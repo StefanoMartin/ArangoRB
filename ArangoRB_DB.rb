@@ -1,30 +1,14 @@
 # === DATABASE ===
 
 class ArangoDB < ArangoS
-  # include HTTParty
-  # @@verbose = false
-  # @@database = "_system"
+  def initialize(database: @@database)
+    if database.is_a?(String)
+      @database = database
+      raise "database should be a String"
+    end
+  end
 
-  # def self.database=(database)
-  #   @@database = database
-  # end
-  #
-  # def self.database
-  #   @@database
-  # end
-
-  # def self.verbose=(verbose)
-  #   @@verbose = verbose
-  # end
-  #
-  # def self.verbose
-  #   @@verbose
-  # end
-
-  # def self.default_server(username: "root", password:, server: "localhost", port: "8529")
-  #   base_uri "http://#{server}:#{port}"
-  #   basic_auth username, password
-  # end
+  attr_reader :database
 
   # === GET ===
 
@@ -35,9 +19,9 @@ class ArangoDB < ArangoS
 
   # === POST ===
 
-  def self.create(username: nil, passwd: nil, users: nil)
+  def self.create(database: @@database, username: nil, passwd: nil, users: nil, itself: true)
     body = {
-      "name" => @@database,
+      "name" => database,
       "username" => username,
       "passwd" => passwd,
       "users" => users
@@ -45,13 +29,17 @@ class ArangoDB < ArangoS
     body = body.delete_if{|k,v| v.nil?}.to_json
     new_DB = { :body => body }
     result = post("/_api/database", new_DB)
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+    if itself
+      @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+    else
+      @@verbose ? result : result["error"] ? result["errorMessage"] : self
+    end
   end
 
   # === DELETE ===
 
-  def self.destroy
-    result = delete("/_api/database/#{@@database}")
+  def self.destroy(database: @@database)
+    result = delete("/_api/database/#{database}")
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
   end
 
@@ -62,7 +50,7 @@ class ArangoDB < ArangoS
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
   end
 
-  def self.collections(excludeSystem: true)
+  def self.collections(database: @@database, excludeSystem: true)
     query = { "excludeSystem": excludeSystem }.delete_if{|k,v| v.nil?}
     new_Document = { :query => query }
     result = get("/_db/#{@@database}/_api/collection", new_Document)
@@ -77,8 +65,8 @@ class ArangoDB < ArangoS
     end
   end
 
-  def self.graphs
-    result = get("/_db/#{@@database}/_api/gharial")
+  def self.graphs(database: @@database)
+    result = get("/_db/#{database}/_api/gharial")
     if @@verbose
       return result
     else
@@ -88,5 +76,23 @@ class ArangoDB < ArangoS
         return result["graphs"].map{|x| ArangoG.new(graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
       end
     end
+  end
+
+  # === FROM INSTANCE ===
+
+  def create(username: nil, passwd: nil, users: nil)
+    ArangoDB.create(database: @database, username: username, passwd: passwd, users: users, itself: false)
+  end
+
+  def destroy
+    ArangoDB.destroy(database: @database)
+  end
+
+  def collections(excludeSystem: true)
+    ArangoDB.collections(database: @database, excludeSystem: true)
+  end
+
+  def graphs
+    ArangoDB.graphs(database: @database, excludeSystem: true)
   end
 end

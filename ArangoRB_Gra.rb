@@ -1,18 +1,18 @@
 # ==== GRAPH ====
 
 class ArangoG < ArangoS
-  def initialize(graph:, database: @@database, edgeDefinitions: [], orphanCollections: [])
+  def initialize(graph: @@graph, database: @@database, edgeDefinitions: [], orphanCollections: [])
     if database.is_a?(String)
       @database = database
     else
-      raise "Database should be a String"
+      raise "database should be a String"
     end
 
     if graph.is_a?(String)
       @graph = graph
       ArangoS.graph = graph
     else
-      raise "Graph should be a String"
+      raise "graph should be a String"
     end
 
     if edgeDefinitions.is_a?(Array)
@@ -28,11 +28,7 @@ class ArangoG < ArangoS
     end
   end
 
-  attr_reader :edgeDefinitions, :orphanCollections
-
-  # def self.graph
-  #   @@graph
-  # end
+  attr_reader :graph, :edgeDefinitions, :orphanCollections, :database
 
 # === GET ===
 

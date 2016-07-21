@@ -3,13 +3,13 @@
 # ==== DOCUMENT ====
 
 class ArangoE < ArangoDoc
-  def initialize(key: nil, collection:, graph: @@graph, database: @@database, body: {})
+  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database, body: {})
     if collection.is_a?(String)
       @collection = collection
     elsif collection.is_a?(ArangoC)
       @collection = collection.collection
     else
-      raise "Collection should be a String or an ArangoC instance."
+      raise "collection should be a String or an ArangoC instance."
     end
 
     if graph.is_a?(String)
@@ -17,26 +17,26 @@ class ArangoE < ArangoDoc
     elsif graph.is_a?(ArangoG)
       @graph = graph.graph
     else
-      raise "Graph should be a String or an ArangoG instance."
+      raise "graph should be a String or an ArangoG instance."
     end
 
     if database.is_a?(String)
       @database = database
     else
-      raise "Database should be a String"
+      raise "database should be a String"
     end
 
     if key.is_a?(String) || key.nil?
       @key = key
       @id = "#{@collection}/#{@key}" unless key.nil?
     else
-      raise "Key should be a String"
+      raise "key should be a String"
     end
 
     if body.is_a?(Hash)
       @body = body
     else
-      raise "Body should be a String"
+      raise "body should be a Hash"
     end
   end
 

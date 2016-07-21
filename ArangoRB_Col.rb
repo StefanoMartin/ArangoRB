@@ -1,17 +1,17 @@
 # === COLLECTION ===
 
 class ArangoC < ArangoS
-  def initialize(collection:, database: @@database, body: {}, type: nil)
+  def initialize(collection: @@collection, database: @@database, body: {}, type: nil)
     if collection.is_a?(String)
       @collection = collection
     else
-      raise "Collection should be a String"
+      raise "collection should be a String"
     end
 
     if database.is_a?(String)
       @database = database
     else
-      raise "Database should be a String"
+      raise "database should be a String"
     end
 
     if body.is_a?(Hash)
@@ -21,7 +21,7 @@ class ArangoC < ArangoS
     end
 
     if !@type.nil? && @type != "Document" && @type != "Edge"
-      raise "Type should be \"Document\" or \"Edge\""
+      raise "type should be \"Document\" or \"Edge\""
     else
       @type = type
     end
@@ -32,7 +32,7 @@ class ArangoC < ArangoS
   # === GET ===
 
   def retrieve
-    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}").parsed_response
+    result = self.class.get("/_db/#{database}/_api/collection/#{collection}").parsed_response
     self.return_result(result, true)
   end
 

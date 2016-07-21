@@ -3,13 +3,13 @@
 # ==== DOCUMENT ====
 
 class ArangoV < ArangoDoc
-  def initialize(key: nil, collection:, graph: @@graph, database: @@database,  body: {})
+  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database,  body: {})
     if collection.is_a?(String)
       @collection = collection
     elsif collection.is_a?(ArangoC)
       @collection = collection.collection
     else
-      raise "Collection should be a String or an ArangoC instance."
+      raise "collection should be a String or an ArangoC instance"
     end
 
     if graph.is_a?(String)
@@ -17,26 +17,26 @@ class ArangoV < ArangoDoc
     elsif graph.is_a?(ArangoG)
       @graph = graph.graph
     else
-      raise "Graph should be a String or an ArangoG instance."
+      raise "graph should be a String or an ArangoG instance"
     end
 
     if database.is_a?(String)
       @database = database
     else
-      raise "Database should be a String"
+      raise "database should be a String"
     end
 
     if key.is_a?(String) || key.nil?
       @key = key
       @id = "#{@collection}/#{@key}" unless key.nil?
     else
-      raise "Key should be a String"
+      raise "key should be a String"
     end
 
     if body.is_a?(Hash)
       @body = body
     else
-      raise "Body should be a String"
+      raise "body should be a Hash"
     end
   end
 
@@ -44,7 +44,7 @@ class ArangoV < ArangoDoc
 
   # === GET ===
 
-  def retrieve #DONE
+  def retrieve
     print "/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}"
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}").parsed_response
     if @@verbose
@@ -62,14 +62,13 @@ class ArangoV < ArangoDoc
 
 # === POST ====
 
-  def create(body: {}, waitForSync: nil) #DONE
+  def create(body: {}, waitForSync: nil)
     query = {"waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
     body["_key"] = @key if body["_key"].nil? && !@key.nil?
     new_Document = { :body => body.to_json, :query => query }
     result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@collection}", new_Document).parsed_response
     self.return_result(result, body)
   end
-  alias create_document create
   alias create_vertex create
 
 # === MODIFY ===
@@ -81,7 +80,7 @@ class ArangoV < ArangoDoc
     self.return_result(result, body)
   end
 
-  def update(body: {}, waitForSync: nil, keepNull: nil) #DONE
+  def update(body: {}, waitForSync: nil, keepNull: nil)
     query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json, :query => query }
     result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", new_Document).parsed_response
@@ -90,7 +89,7 @@ class ArangoV < ArangoDoc
 
 # === DELETE ===
 
-  def destroy(body: nil, waitForSync: nil) #OONE
+  def destroy(body: nil, waitForSync: nil)
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     new_Document = { :query => query }
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}").parsed_response
