@@ -65,27 +65,6 @@ class ArangoC < ArangoS
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["checksum"]
   end
 
-  def documents(type: nil) # "path", "id", "key"
-    body = {"collection" => @collection, "type" => type}.to_json
-    collection_to_look = { :body => body }
-    result = self.class.put("/_db/#{@database}/_api/simple/all-keys", collection_to_look).parsed_response
-    ap result
-    if type.nil?
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          result["result"].map{|x| value = self.class.get(x).parsed_response; ArangoDoc.new(key: value["_key"], collection: @collection, body: value)}
-        end
-      end
-    else
-      @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
-    end
-  end
-
-
   # === POST ===
 
   def create(type: nil, journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil)
@@ -183,6 +162,159 @@ class ArangoC < ArangoS
     result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/rename", new_Collection).parsed_response
     @collection = newName unless result["error"]
     self.return_result(result)
+  end
+
+  # === SIMPLE FUNCTIONS ===
+
+  def documents(type: nil) # "path", "id", "key"
+    body = {
+      "collection" => @collection,
+      "type" => type
+    }.delete_if{|k,v| v.nil?}.to_json
+    collection_to_look = { :body => body }
+    result = self.class.put("/_db/#{@database}/_api/simple/all-keys", collection_to_look).parsed_response
+    if type.nil?
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          result["result"].map{|x| value = self.class.get(x).parsed_response; ArangoDoc.new(key: value["_key"], collection: @collection, body: value)}
+        end
+      end
+    else
+      @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+    end
+  end
+
+  def allDocuments(skip: nil, limit: nil, batchSize: nil) # "path", "id", "key"
+    body = {
+      "collection" => @collection,
+      "skip" => skip,
+      "limit" => limit,
+      "batchSize" => batchSize
+    }.delete_if{|k,v| v.nil?}.to_json
+    collection_to_look = { :body => body }
+    result = self.class.put("/_db/#{@database}/_api/simple/all", collection_to_look).parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+      end
+    end
+  end
+
+  def documentsMatch(match:, skip: nil, limit: nil, batchSize: nil)
+    body = {
+      "collection" => @collection,
+      "example" => match,
+      "skip" => skip,
+      "limit" => limit,
+      "batchSize" => batchSize
+    }.delete_if{|k,v| v.nil?}.to_json
+    collection_to_look = { :body => body }
+    result = self.class.put("/_db/#{@database}/_api/simple/by-example", collection_to_look).parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+      end
+    end
+  end
+
+  def documentMatch(match:)
+    body = {
+      "collection" => @collection,
+      "example" => match
+    }.delete_if{|k,v| v.nil?}.to_json
+    collection_to_look = { :body => body }
+    result = self.class.put("/_db/#{@database}/_api/simple/first-example", collection_to_look).parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+      end
+    end
+  end
+
+  def documentByKeys(keys:)
+    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil}
+    body = { "collection" => @collection, "keys" => keys }
+    collection_to_look = { :body => body.to_json }
+    result = self.class.put("/_db/#{@database}/_api/simple/lookup-by-keys", collection_to_look).parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result["documents"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+      end
+    end
+  end
+
+  def random
+    body = { "collection" => @collection }
+    collection_to_look = { :body => body.to_json }
+    result = self.class.put("/_db/#{@database}/_api/simple/any", collection_to_look)
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+      end
+    end
+  end
+
+  def removeByKeys(keys:, options: nil)
+    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil}
+    body = { "collection" => @collection, "keys" => keys, "options" => options }.delete_if{|k,v| v.nil?}
+    collection_to_look = { :body => body.to_json }
+    self.class.put("/_db/#{@database}/_api/simple/remove-by-keys", collection_to_look).parsed_response
+  end
+
+  def removeMatch(match:, options: nil)
+    body = {
+      "collection" => @collection,
+      "example" => match,
+      "options" => option
+    }.delete_if{|k,v| v.nil?}.to_json
+    collection_to_look = { :body => body }
+    self.class.put("/_db/#{@database}/_api/simple/remove-by-example", collection_to_look).parsed_response
+  end
+
+  def replaceMatch(match:, newValue:, options: nil)
+    body = {
+      "collection" => @collection,
+      "example" => match,
+      "options" => option,
+      "newValue" => newValue
+    }.delete_if{|k,v| v.nil?}.to_json
+    collection_to_look = { :body => body }
+    self.class.put("/_db/#{@database}/_api/simple/replace-by-example", collection_to_look).parsed_response
+  end
+
+  def updateMatch(match:, newValue:, options: nil)
+    body = {
+      "collection" => @collection,
+      "example" => match,
+      "options" => option,
+      "newValue" => newValue
+    }.delete_if{|k,v| v.nil?}.to_json
+    collection_to_look = { :body => body }
+    self.class.put("/_db/#{@database}/_api/simple/update-by-example", collection_to_look).parsed_response
   end
 
 # === UTILITY ===
