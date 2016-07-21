@@ -5,19 +5,19 @@ class ArangoC < ArangoS
     if collection.is_a?(String)
       @collection = collection
     else
-      raise "collection should be a String"
+      raise "collection should be a String, not a #{collection.class}"
     end
 
     if database.is_a?(String)
       @database = database
     else
-      raise "database should be a String"
+      raise "database should be a String, not a #{database.class}"
     end
 
     if body.is_a?(Hash)
       @body = body
     else
-      raise "Body should be a String"
+      raise "body should be a String, not a #{body.class}"
     end
 
     if !@type.nil? && @type != "Document" && @type != "Edge"
@@ -113,6 +113,33 @@ class ArangoC < ArangoS
 
   def create_edge_collection(journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil)
     self.create type: 3, journalSize: journalSize, keyOptions: keyOptions, waitForSync: waitForSync, doCompact: doCompact, isVolatile: isVolatile, shardKeys: shardKeys, numberOfShards: numberOfShards, isSystem: isSystem, indexBuckets: indexBuckets
+  end
+
+  def create_document(document: {}, waitForSync: nil, returnNew: nil)
+    if document.is_a? Hash
+      body = document
+    elsif document.is_a? ArangoDoc
+      body = ArangoDoc.body
+    elsif document.is_a? Array
+      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDoc) ? x.body : nil}
+    else
+      raise "document should be Hash, an ArangoDoc instance or an Array of Hashes or ArangoDoc instances"
+    end
+    ArangoDoc.create(body: body, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
+  end
+  alias create_vertex create_document
+
+  def create_edge(document: {}, from:, to:, waitForSync: nil, returnNew: nil)
+    if document.is_a? Hash
+      body = document
+    elsif document.is_a? ArangoDoc
+      body = ArangoDoc.body
+    elsif document.is_a? Array
+      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDoc) ? x.body : nil}
+    else
+      raise "document should be Hash, an ArangoDoc instance or an Array of Hashes or ArangoDoc instances"
+    end
+    ArangoDoc.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
   end
 
   # === DELETE ===

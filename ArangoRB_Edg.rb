@@ -1,15 +1,13 @@
 # === GRAPH EDGE ===
 
-# ==== DOCUMENT ====
-
 class ArangoE < ArangoDoc
-  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database, body: {})
+  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database, body: {}, from: nil, to: nil)
     if collection.is_a?(String)
       @collection = collection
     elsif collection.is_a?(ArangoC)
       @collection = collection.collection
     else
-      raise "collection should be a String or an ArangoC instance."
+      raise "collection should be a String or an ArangoC instance, not a #{collection.class}"
     end
 
     if graph.is_a?(String)
@@ -17,26 +15,53 @@ class ArangoE < ArangoDoc
     elsif graph.is_a?(ArangoG)
       @graph = graph.graph
     else
-      raise "graph should be a String or an ArangoG instance."
+      raise "graph should be a String or an ArangoG instance, not a #{graph.class}"
     end
 
     if database.is_a?(String)
       @database = database
     else
-      raise "database should be a String"
+      raise "database should be a String, not a #{database.class}"
     end
 
     if key.is_a?(String) || key.nil?
       @key = key
-      @id = "#{@collection}/#{@key}" unless key.nil?
+      unless key.nil?
+        body["_key"] = @key
+        @id = "#{@collection}/#{@key}"
+      end
     else
-      raise "key should be a String"
+      raise "key should be a String, not a #{key.class}"
     end
 
     if body.is_a?(Hash)
       @body = body
     else
-      raise "body should be a Hash"
+      raise "body should be a Hash, not a #{body.class}"
+    end
+
+    if from.is_a?(String)
+      @from = from
+      @body["_from"] = @from
+    elsif from.is_a?(ArangoDoc)
+      @from = from.id
+      @body["_from"] = @from
+    elsif from.nil?
+      @from = @body["_from"] unless @body["_from"].nil?
+    else
+      raise "from should be a String or an ArangoDoc instance, not a #{from.class}"
+    end
+
+    if to.is_a?(String)
+      @to = to
+      @body["_to"] = @to
+    elsif to.is_a?(ArangoDoc)
+      @to = to.id
+      @body["_to"] = @to
+    elsif to.nil?
+      @to = @body["_to"] unless @body["_to"].nil?
+    else
+      raise "to should be a String or an ArangoDoc instance, not a #{to.class}"
     end
   end
 

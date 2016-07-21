@@ -5,26 +5,26 @@ class ArangoG < ArangoS
     if database.is_a?(String)
       @database = database
     else
-      raise "database should be a String"
+      raise "database should be a String, not a #{collection.class}"
     end
 
     if graph.is_a?(String)
       @graph = graph
       ArangoS.graph = graph
     else
-      raise "graph should be a String"
+      raise "graph should be a String, not a #{graph.class}"
     end
 
     if edgeDefinitions.is_a?(Array)
       @edgeDefinitions = edgeDefinitions
     else
-      raise "edgeDefinitions should be an Array"
+      raise "edgeDefinitions should be an Array, not a #{edgeDefinitions.class}"
     end
 
     if orphanCollections.is_a?(Array)
       @orphanCollections = orphanCollections
     else
-      raise "orphanCollections should be an Array"
+      raise "orphanCollections should be an Array, not a #{orphanCollections.class}"
     end
   end
 

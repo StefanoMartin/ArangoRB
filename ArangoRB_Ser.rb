@@ -26,7 +26,7 @@ class ArangoS
     elsif database.is_a? ArangoDB
       @@database = database.database
     else
-      raise "database should be a String or an ArangoDB instance"
+      raise "database should be a String or an ArangoDB instance, not a #{database.class}"
     end
   end
 
@@ -40,7 +40,7 @@ class ArangoS
     elsif graph.is_a? ArangoG
       @@graph = graph
     else
-      raise "graph should be a String or an ArangoG instance"
+      raise "graph should be a String or an ArangoG instance, not a #{graph.class}"
     end
   end
 
@@ -54,7 +54,7 @@ class ArangoS
     elsif collection.is_a? ArangoC
       @@collection = collection
     else
-      raise "graph should be a String or an ArangoC instance"
+      raise "graph should be a String or an ArangoC instance, not a #{collection.class}"
     end
   end
 

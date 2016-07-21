@@ -4,7 +4,7 @@ class ArangoDB < ArangoS
   def initialize(database: @@database)
     if database.is_a?(String)
       @database = database
-      raise "database should be a String"
+      raise "database should be a String, not a #{database.class}"
     end
   end
 
