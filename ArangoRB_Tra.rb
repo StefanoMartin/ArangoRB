@@ -24,7 +24,6 @@ class ArangoT < ArangoS
   end
 
   attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander, :vertices, :paths
-
   attr_reader :startVertex, :graphName, :edgeCollection
 
   def startVertex=(startVertex)
@@ -36,6 +35,8 @@ class ArangoT < ArangoS
       raise "startVertex should be a String or an ArangoDoc instance, not a #{startVertex.class}"
     end
   end
+  alias vertex= startVertex=
+  alias vertex startVertex
 
   def graphName=(graphName)
     if graphName.is_a?(String) || graphName.nil?
@@ -57,8 +58,6 @@ class ArangoT < ArangoS
     end
   end
   alias collection= edgeCollection=
-
-
 
   def in
     @direction = "outbound"
@@ -90,13 +89,13 @@ class ArangoT < ArangoS
   #   @maxDepth
   # end
 
-  def min=(min)
-    @minDepth = min
-  end
-
-  def min
-    @minDepth
-  end
+  # def min=(min)
+  #   @minDepth = min
+  # end
+  #
+  # def min
+  #   @minDepth
+  # end
 
   def execute
     body = {

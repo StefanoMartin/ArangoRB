@@ -33,25 +33,19 @@ class ArangoDoc < ArangoS
     end
 
     if from.is_a?(String)
-      @from = from
-      @body["_from"] = @from
+      @body["_from"] = from
     elsif from.is_a?(ArangoDoc)
-      @from = from.id
-      @body["_from"] = @from
+      @body["_from"] = from.id
     elsif from.nil?
-      @from = @body["_from"] unless @body["_from"].nil?
     else
       raise "from should be a String or an ArangoDoc instance, not a #{from.class}"
     end
 
     if to.is_a?(String)
-      @to = to
-      @body["_to"] = @to
+      @body["_to"] = to
     elsif to.is_a?(ArangoDoc)
-      @to = to.id
-      @body["_to"] = @to
+      @body["_to"] = to.id
     elsif to.nil?
-      @to = @body["_to"] unless @body["_to"].nil?
     else
       raise "to should be a String or an ArangoDoc instance, not a #{to.class}"
     end
@@ -94,6 +88,10 @@ class ArangoDoc < ArangoS
     self.retrieve_edges collection: collection, direction: "out"
   end
 
+  def any(collection)
+    self.retrieve_edges collection: collection
+  end
+
   def from
     result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_from"]}").parsed_response
     collection = result["_id"].split("/")[0]
@@ -113,13 +111,26 @@ class ArangoDoc < ArangoS
 
 # === POST ====
 
-  def create(body: {}, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)
-    ArangoDoc.create(body: body, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
+  def create(body: @body, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)
+    query = {"waitForSync" => waitForSync, "returnNew" => returnNew}.delete_if{|k,v| v.nil?}
+    unless body.is_a? Array
+      body["_key"] = @key if body["_key"].nil? && !@key.nil?
+      new_Document = { :body => body.to_json, :query => query }
+      result = self.class.post("/_db/#{database}/_api/document/#{collection}", new_Document).parsed_response
+      return_result(result, body)
+    else
+      new_Document = { :body => body.to_json, :query => query }
+      result = self.class.post("/_db/#{database}/_api/document/#{collection}", new_Document).parsed_response
+      i = -1
+      return @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
+    end
   end
   alias create_document create
   alias create_vertex create
 
   def self.create(body: {}, waitForSync: nil, returnNew: nil, database: @@database, collection: @@collection)
+    collection = collection.is_a?(String) ? collection : collection.collection
+    database = database.is_a?(String) ? database : database.database
     query = {"waitForSync" => waitForSync, "returnNew" => returnNew}.delete_if{|k,v| v.nil?}
     unless body.is_a? Array
       body["_key"] = @key if body["_key"].nil? && !@key.nil?
@@ -135,7 +146,22 @@ class ArangoDoc < ArangoS
   end
 
   def create_edge(body: {}, from:, to:, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)
-    ArangoDoc.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
+    edges = []
+    from = [from] unless from.is_a? Array
+    to = [to] unless to.is_a? Array
+    body = [body] unless body.is_a? Array
+    body.each do |b|
+      from.each do |f|
+        b["_from"] = f.is_a?(String) ? f : f.id
+        to.each do |t|
+          b["_to"] = t.is_a?(String) ? t : t.id
+          edges << b
+        end
+      end
+    end
+    edges = edges[0] if edges.length == 1
+    create(body: edges, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
+    # ArangoDoc.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
   end
 
   def self.create_edge(body: {}, from:, to:, waitForSync: nil, returnNew: nil, database: @@database, collection: @@collection)
@@ -169,7 +195,7 @@ class ArangoDoc < ArangoS
 
     unless body.is_a? Array
       result = self.class.put("/_db/#{@database}/_api/document/#{@id}", new_Document).parsed_response
-      self.return_result(result, body)
+      return_result(result, body)
     else
       result = self.class.put("/_db/#{@database}/_api/document/#{@collection}", new_Document).parsed_response
       i = -1
@@ -190,7 +216,7 @@ class ArangoDoc < ArangoS
 
     unless body.is_a? Array
       result = self.class.patch("/_db/#{@database}/_api/document/#{@id}", new_Document).parsed_response
-      self.return_result(result, body)
+      return_result(result, body)
     else
       result = self.class.patch("/_db/#{@database}/_api/document/#{@collection}", new_Document).parsed_response
       i = -1
@@ -236,6 +262,18 @@ class ArangoDoc < ArangoS
         @id = "#{@collection}/#{@key}"
         @body = body
         self
+      end
+    end
+  end
+
+  def self.return_result(result, body)
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        ArangoDoc.new key: result["_key"], collection: result["_id"].split("/")[0], body: body
       end
     end
   end

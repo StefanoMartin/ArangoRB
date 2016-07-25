@@ -24,6 +24,11 @@ class ArangoC < ArangoS
       raise "type should be \"Document\" or \"Edge\""
     else
       @type = type
+      if @type == "Document"
+        @body["type"] = 2
+      elsif @type == "Edge"
+        @body["type"] = 3
+      end
     end
   end
 
@@ -32,7 +37,7 @@ class ArangoC < ArangoS
   # === GET ===
 
   def retrieve
-    result = self.class.get("/_db/#{database}/_api/collection/#{collection}").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}").parsed_response
     self.return_result(result, true)
   end
 
@@ -98,7 +103,7 @@ class ArangoC < ArangoS
     if document.is_a? Hash
       body = document
     elsif document.is_a? ArangoDoc
-      body = ArangoDoc.body
+      body = document.body
     elsif document.is_a? Array
       body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDoc) ? x.body : nil}
     else
@@ -112,7 +117,7 @@ class ArangoC < ArangoS
     if document.is_a? Hash
       body = document
     elsif document.is_a? ArangoDoc
-      body = ArangoDoc.body
+      body = document.body
     elsif document.is_a? Array
       body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDoc) ? x.body : nil}
     else
@@ -188,7 +193,7 @@ class ArangoC < ArangoS
     end
   end
 
-  def allDocuments(skip: nil, limit: nil, batchSize: nil) # "path", "id", "key"
+  def allDocuments(skip: nil, limit: nil, batchSize: nil)
     body = {
       "collection" => @collection,
       "skip" => skip,
@@ -248,7 +253,8 @@ class ArangoC < ArangoS
   end
 
   def documentByKeys(keys:)
-    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil}
+    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil} if keys.is_a? Array
+    keys = [keys] if keys.is_a? String
     body = { "collection" => @collection, "keys" => keys }
     collection_to_look = { :body => body.to_json }
     result = self.class.put("/_db/#{@database}/_api/simple/lookup-by-keys", collection_to_look).parsed_response

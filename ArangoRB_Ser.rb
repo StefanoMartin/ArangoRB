@@ -7,9 +7,9 @@ class ArangoS
   @@graph = nil
   @@collection = nil
 
-  def self.default_server(username: "root", password:, server: "localhost", port: "8529")
+  def self.default_server(user: "root", password:, server: "localhost", port: "8529")
     base_uri "http://#{server}:#{port}"
-    basic_auth username, password
+    basic_auth user, password
   end
 
   def self.verbose=(verbose)

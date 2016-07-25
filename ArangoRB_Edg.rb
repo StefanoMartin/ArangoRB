@@ -41,25 +41,19 @@ class ArangoE < ArangoDoc
     end
 
     if from.is_a?(String)
-      @from = from
-      @body["_from"] = @from
+      @body["_from"] = from
     elsif from.is_a?(ArangoDoc)
-      @from = from.id
-      @body["_from"] = @from
+      @body["_from"] = from.id
     elsif from.nil?
-      @from = @body["_from"] unless @body["_from"].nil?
     else
       raise "from should be a String or an ArangoDoc instance, not a #{from.class}"
     end
 
     if to.is_a?(String)
-      @to = to
-      @body["_to"] = @to
+      @body["_to"] = to
     elsif to.is_a?(ArangoDoc)
-      @to = to.id
-      @body["_to"] = @to
+      @body["_to"] = to.id
     elsif to.nil?
-      @to = @body["_to"] unless @body["_to"].nil?
     else
       raise "to should be a String or an ArangoDoc instance, not a #{to.class}"
     end

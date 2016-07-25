@@ -47,12 +47,16 @@ class ArangoAQL < ArangoS
       @count = result["count"]
       @hasMore = result["hasMore"]
       @id = result["id"]
-      @result = result["result"].map{|x| ArangoDoc.new(
-        key: x["_key"],
-        collection: x["_id"].split("/")[0],
-        database: @database,
-        body: x
-      )}
+      if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
+        @result = result["result"]
+      else
+        @result = result["result"].map{|x| ArangoDoc.new(
+          key: x["_key"],
+          collection: x["_id"].split("/")[0],
+          database: @database,
+          body: x
+        )}
+      end
       return @@verbose ? result : self
     end
   end
@@ -68,12 +72,16 @@ class ArangoAQL < ArangoS
         @count = result["count"]
         @hasMore = result["hasMore"]
         @id = result["id"]
-        @result = result["result"].map{|x| ArangoDoc.new(
-          key: x["_key"],
-          collection: x["_id"].split("/")[0],
-          database: @database,
-          body: x
-        )}
+        if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
+          @result = result["result"]
+        else
+          @result = result["result"].map{|x| ArangoDoc.new(
+            key: x["_key"],
+            collection: x["_id"].split("/")[0],
+            database: @database,
+            body: x
+          )}
+        end
         return @@verbose ? result : self
       end
     end
@@ -89,49 +97,19 @@ class ArangoAQL < ArangoS
     }.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json }
     result = self.class.post("/_db/#{@database}/_api/explain", new_Document).parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    return_result(result)
   end
 
   def parse
     body = { "query" => @query }
     new_Document = { :body => body.to_json }
     result = self.class.post("/_db/#{@database}/_api/query", new_Document).parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    return_result(result)
   end
 
   def properties
     result = self.class.get("/_db/#{@database}/_api/query/properties").parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    return_result(result)
   end
 
   def current
@@ -162,17 +140,7 @@ class ArangoAQL < ArangoS
     }.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json }
     result = self.class.put("/_db/#{@database}/_api/query/properties", new_Document).parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    return_result(result)
   end
 
 # === CACHE ===
@@ -201,6 +169,20 @@ class ArangoAQL < ArangoS
     }.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json }
     result = self.class.put("/_db/#{@database}/_api/aqlfunction", new_Document).parsed_response
+    return_result(result)
+  end
+
+  def deleteFunction(name:)
+    self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}")
+  end
+
+  def functions
+    self.class.get("/_db/#{@database}/_api/aqlfunction").parsed_response
+  end
+
+# === UTILITY ===
+
+  def return_result(result)
     if @@verbose
       result
     else
@@ -212,13 +194,5 @@ class ArangoAQL < ArangoS
         result
       end
     end
-  end
-
-  def deleteFunction(name:)
-    self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}")
-  end
-
-  def functions
-    self.class.get("/_db/#{@database}/_api/aqlfunction").parsed_response
   end
 end
