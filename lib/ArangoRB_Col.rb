@@ -130,7 +130,7 @@ class ArangoC < ArangoS
 
   def destroy
     result = self.class.delete("/_db/#{@database}/_api/collection/#{@collection}").parsed_response
-    self.return_result(result)
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
   def truncate

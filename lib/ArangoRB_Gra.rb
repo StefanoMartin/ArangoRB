@@ -59,8 +59,8 @@ class ArangoG < ArangoS
 # === DELETE ===
 
   def destroy
-    result = self.class.destroy("/_db/#{@database}/_api/gharial/#{@graph}")
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["removed"]
   end
 
 # === VERTEX COLLECTION  ===
@@ -110,16 +110,21 @@ class ArangoG < ArangoS
   end
 
   def addEdgeCollection(collection:, from:, to:, replace: false)
+    from = from.is_a?(String) ? [from] : from.is_a?(ArangoC) ? [from.collection] : from
+    to = to.is_a?(String) ? [to] : to.is_a?(ArangoC) ? [to.collection] : to
     body = {}
-    body["collection"] = collection.is_a?(String) ? collection : collection.collection
+    collection = collection.is_a?(String) ? collection : collection.collection
+    body["collection"] = collection
     body["from"] = from.map{|f| f.is_a?(String) ? f : f.id }
     body["to"] = to.map{|t| t.is_a?(String) ? t : t.id }
     new_Document = { :body => body.to_json }
+
     if replace
       result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", new_Document).parsed_response
     else
       result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge", new_Document).parsed_response
     end
+
     if @@verbose
       unless result["error"]
         @edgeDefinitions = result["graph"]["edgeDefinitions"]
@@ -137,9 +142,9 @@ class ArangoG < ArangoS
     end
   end
 
-  def replaceEdgeCollection(collection:, from:, to:)
-    self.addEdge(collection: collection, from: from, to: to, replace: true)
-  end
+  # def replaceEdgeCollection(collection:, from:, to:)
+  #   self.addEdgeCollection(collection: collection, from: from, to: to, replace: true)
+  # end
 
   def removeEdgeCollection(collection:)
     collection = collection.is_a?(String) ? collection : collection.collection

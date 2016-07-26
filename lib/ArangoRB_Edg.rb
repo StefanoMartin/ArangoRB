@@ -80,12 +80,12 @@ class ArangoE < ArangoDoc
 
 # === POST ====
 
-  def create(body: {}, from:, to:, waitForSync: nil) #DONE
+  def create(body: {}, from: @body["_from"], to: @body["_to"], waitForSync: nil) #DONE
     query = {"waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
     body["_key"] = @key if body["_key"].nil? && !@key.nil?
     body["_from"] = from.is_a?(String) ? from : from.id
     body["_to"] = to.is_a?(String) ? to : to.id
-    new_Document = { :body => body.to_json, :query => query }
+    new_Document = { :body => body.to_json, :query => query }.delete_if{|k,v| v.nil?}
     result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@collection}", new_Document).parsed_response
     self.return_result(result, body)
   end
@@ -96,7 +96,7 @@ class ArangoE < ArangoDoc
 
   def replace(body: {}, waitForSync: nil)
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json, :query => query }
+    new_Document = { :body => body.to_json, :query => query }.delete_if{|k,v| v.nil?}
     result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@id}", new_Document).parsed_response
     self.return_result(result, body)
   end
@@ -105,7 +105,23 @@ class ArangoE < ArangoDoc
     query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json, :query => query }
     result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@id}", new_Document).parsed_response
-    self.return_result(result, body)
+    if @@verbose
+      unless result["error"]
+        @key = result["_key"]
+        @id = "#{@collection}/#{@key}"
+        @body = body
+      end
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        @key = result["_key"]
+        @id = "#{@collection}/#{@key}"
+        @body = @body.merge(body)
+        self
+      end
+    end
   end
 
 # === DELETE ===
@@ -114,7 +130,7 @@ class ArangoE < ArangoDoc
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     new_Document = { :query => query }
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@id}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["removed"]
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
 # === UTILITY ===

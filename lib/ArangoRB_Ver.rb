@@ -48,7 +48,6 @@ class ArangoV < ArangoDoc
   # === GET ===
 
   def retrieve
-    print "/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}"
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}").parsed_response
     if @@verbose
       @body = result["vertex"] unless result["error"]
@@ -65,12 +64,12 @@ class ArangoV < ArangoDoc
 
 # === POST ====
 
-  def create(body: {}, waitForSync: nil)
+  def create(body: @body, waitForSync: nil)
     query = {"waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
     body["_key"] = @key if body["_key"].nil? && !@key.nil?
     new_Document = { :body => body.to_json, :query => query }
     result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@collection}", new_Document).parsed_response
-    self.return_result(result, body)
+    return_result(result, body)
   end
   alias create_vertex create
 
@@ -80,14 +79,30 @@ class ArangoV < ArangoDoc
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json, :query => query }
     result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", new_Document).parsed_response
-    self.return_result(result, body)
+    return_result(result, body)
   end
 
   def update(body: {}, waitForSync: nil, keepNull: nil)
     query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json, :query => query }
     result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", new_Document).parsed_response
-    self.return_result(result, body)
+    if @@verbose
+      unless result["error"]
+        @key = result["_key"]
+        @id = "#{@collection}/#{@key}"
+        @body = body
+      end
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        @key = result["_key"]
+        @id = "#{@collection}/#{@key}"
+        @body = @body.merge(body)
+        self
+      end
+    end
   end
 
 # === DELETE ===
@@ -96,7 +111,7 @@ class ArangoV < ArangoDoc
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     new_Document = { :query => query }
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["removed"]
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
 # === UTILITY ===

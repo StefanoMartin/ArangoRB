@@ -44,13 +44,13 @@ class ArangoDB < ArangoS
 
   def self.databases(user: nil)
     result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}")
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDB.new(database: x.database)}
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDB.new(database: x)}
   end
 
   def collections(excludeSystem: true)
     query = { "excludeSystem": excludeSystem }.delete_if{|k,v| v.nil?}
     new_Document = { :query => query }
-    result = get("/_db/#{@database}/_api/collection", new_Document)
+    result = self.class.get("/_db/#{@database}/_api/collection", new_Document)
     if @@verbose
       return result
     else
@@ -63,7 +63,7 @@ class ArangoDB < ArangoS
   end
 
   def graphs
-    result = get("/_db/#{@database}/_api/gharial")
+    result = self.class.get("/_db/#{@database}/_api/gharial")
     if @@verbose
       return result
     else

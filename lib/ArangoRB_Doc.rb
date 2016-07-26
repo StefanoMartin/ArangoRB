@@ -145,7 +145,7 @@ class ArangoDoc < ArangoS
     end
   end
 
-  def create_edge(body: {}, from:, to:, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)
+  def create_edge(body: [{}], from:, to:, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)
     edges = []
     from = [from] unless from.is_a? Array
     to = [to] unless to.is_a? Array
@@ -155,7 +155,7 @@ class ArangoDoc < ArangoS
         b["_from"] = f.is_a?(String) ? f : f.id
         to.each do |t|
           b["_to"] = t.is_a?(String) ? t : t.id
-          edges << b
+          edges << b.clone
         end
       end
     end
@@ -174,10 +174,11 @@ class ArangoDoc < ArangoS
         b["_from"] = f.is_a?(String) ? f : f.id
         to.each do |t|
           b["_to"] = t.is_a?(String) ? t : t.id
-          edges << b
+          edges << b.clone
         end
       end
     end
+
     edges = edges[0] if edges.length == 1
     self.create(body: edges, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
   end
@@ -216,7 +217,23 @@ class ArangoDoc < ArangoS
 
     unless body.is_a? Array
       result = self.class.patch("/_db/#{@database}/_api/document/#{@id}", new_Document).parsed_response
-      return_result(result, body)
+      if @@verbose
+        unless result["error"]
+          @key = result["_key"]
+          @id = "#{@collection}/#{@key}"
+          @body = body
+        end
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          @key = result["_key"]
+          @id = "#{@collection}/#{@key}"
+          @body = @body.merge(body)
+          self
+        end
+      end
     else
       result = self.class.patch("/_db/#{@database}/_api/document/#{@collection}", new_Document).parsed_response
       i = -1
@@ -236,7 +253,7 @@ class ArangoDoc < ArangoS
 
     unless body.is_a? Array
       result = self.class.delete("/_db/#{@database}/_api/document/#{@id}", new_Document).parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : result
+      @@verbose ? result : result["error"] ? result["errorMessage"] : true
     else
       new_Document = { :body => body.to_json, :query => query }
       result = self.class.delete("/_db/#{@database}/_api/document/#{@collection}", new_Document).parsed_response

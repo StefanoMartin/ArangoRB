@@ -30,7 +30,7 @@ ArangoS is used to manage global variables for the management of the database an
 To setup your server use:
 
 ``` ruby
-ArangoS.default_server user: "Username", password: "MyPass", server: "localhost", port: "8529"`
+ArangoS.default_server user: "Username", password: "MyPass", server: "localhost", port: "8529"
 ```
 
 Default value for the server are user: "root", server: "localhost", port: "8529". Password must be defined.
@@ -53,7 +53,7 @@ By default the global database is "\_system".
 For Debugging reasons the user sometimes would like to receive the original JSON file from the database. To do this you can use the verbose command.
 
 ``` ruby
-ArangoS.verbose = true`
+ArangoS.verbose = true
 ```
 
 Remember that verbose is only for testing reason: to work efficiently verbose should be false.
@@ -76,8 +76,8 @@ myDatabase = ArangoDB.new
 ### Create and Destroy a Database
 
 ``` ruby
-myDB.create
-myDB.destroy
+myDatabase.create
+mmyDatabase.destroy
 ```
 
 ### Retrieve information
@@ -146,7 +146,7 @@ myCollection.documents
 myCollection.allDocuments
 ```
 
-These two functions are similar but you assign different variables.
+These two functions are similar except for the fact that you can assign different variables.
 
 `myCollection.documents type: "path"`
 
@@ -244,13 +244,17 @@ Further we have the possibility to create different combination of Edges in only
 One-to-one with one Edge class
  - [myDocA] --(myEdge)--> [myDocB]
 
-`myEdgeCollection.create_edge document: myEdge, from: myDocA, to: myDocB`
+``` ruby
+myEdgeCollection.create_edge document: myEdge, from: myDocA, to: myDocB
+```
 
 One-to-more with one Edge class (and More-to-one with one Edge class)
  - [myDocA] --(myEdge)--> [myDocB]
  - [myDocA] --(myEdge)--> [myDocC]
 
-`myEdgeCollection.create_edge document: myEdge, from: myDocA, to: [myDocB, myDocC]`
+ ``` ruby
+myEdgeCollection.create_edge document: myEdge, from: myDocA, to: [myDocB, myDocC]
+```
 
 More-to-More with one Edge class
  - [myDocA] --(myEdge)--> [myDocC]
@@ -258,7 +262,9 @@ More-to-More with one Edge class
  - [myDocA] --(myEdge)--> [myDocD]
  - [myDocB] --(myEdge)--> [myDocD]
 
-`myEdgeCollection.create_edge document: myEdge, from: [myDocA, myDocB], to: [myDocC, myDocD]`
+ ``` ruby
+myEdgeCollection.create_edge document: myEdge, from: [myDocA, myDocB], to: [myDocC, myDocD]
+```
 
 More-to-More with more Edge classes
  - [myDocA] --(myEdge)--> [myDocC]
@@ -270,11 +276,15 @@ More-to-More with more Edge classes
  - [myDocA] --(myEdge2)--> [myDocD]
  - [myDocB] --(myEdge2)--> [myDocD]
 
-`myEdgeCollection.create_edge document: [myEdge, myEdge2], from: [myDocA, myDocB], to: [myDocC, myDocD]`
+ ``` ruby
+myEdgeCollection.create_edge document: [myEdge, myEdge2], from: [myDocA, myDocB], to: [myDocC, myDocD]
+```
 
 ### Destroy a Document
 
-`myDocument.destroy`
+``` ruby
+myDocument.destroy
+```
 
 ### Retrieve information
 
@@ -300,9 +310,9 @@ Then we have:
 
  - A.retrieve is A
  - A.retrieve_edges(collection: a) is [aa, bb]
- - B.any(collection: a) is [aa, dd]
- - B.in(collection: a) is [aa]
- - B.out(collection: a) is [dd]
+ - B.any(a) is [aa, dd]
+ - B.in(a) is [aa]
+ - B.out(a) is [dd]
  - aa.from is A
  - aa.to is B
 
@@ -317,8 +327,8 @@ We can even do some combinations: for example A.out(a)[0].to.out(a)[0].to is E s
 ### Modify
 
 ``` ruby
-myDocument.update({value => 3}) # We update or add a value
-myDocument.replace({value => 3}) # We replace a value
+myDocument.update body: {"value" => 3} # We update or add a value
+myDocument.replace body: {"value" => 3} # We replace a value
 ```
 
 ## ArangoG - ArangoDB Graph
@@ -352,9 +362,9 @@ myGraph.removeVertexCollection(collection: "myCollection")
 ``` ruby
 myGraph.edgeCollections # Retrieve all the edgeCollections of the Graph
 myGraph.addEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB")
-myGraph.replaceEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB")
 myGraph.removeEdgeCollections(collection: "myEdgeCollection")
 ```
+<!-- myGraph.replaceEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB") -->
 
 ## ArangoV - ArangoDB Vertex and ArangoE - ArangoDB Edge
 
@@ -369,8 +379,8 @@ ArangoV inherit all the methods of ArangoDoc class. The following one works simi
 myVertex = ArangoV.new key: "newVertex", body: {"value" => 3}, collection: "myCollection", graph: "myGraph", database: "myDatabase"
 myVertex.create
 myVertex.retrieve
-myVertex.replace({"value" => 6})
-myVertex.update({"value" => 6})
+myVertex.replace body: {"value" => 6}
+myVertex.update body: {"value" => 6}
 myVertex.destroy
 ```
 
@@ -382,8 +392,8 @@ ArangoE inherit all the methods of ArangoDoc class. The following one works simi
 myEdge = ArangoE.new key: "newVertex", body: {"value" => 3}, from: myArangoDoc, to: myArangoDoc, collection: "myCollection", graph: "myGraph", database: "myDatabase"
 myEdge.create
 myEdge.retrieve
-myEdge.replace({"value" => 6})
-myEdge.update({"value" => 6})
+myEdge.replace body: {"value" => 6}
+myEdge.update body: {"value" => 6}
 myEdge.destroy
 ```
 
