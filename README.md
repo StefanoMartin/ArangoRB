@@ -438,27 +438,27 @@ myEdge.destroy # delete the Document
 ```
 
 <a name="arangot"></a>
-## ArangoT - ArangoDB Transaction
+## ArangoT - ArangoDB Traversal
 
-ArangoT is used to administrate the transaction.
-ArangoT needs to know the vertex from where the transaction starts, the direction the transaction is going and either the Graph or the EdgeCollection we want to analize.
+ArangoT is used to administrate the traversal.
+ArangoT needs to know the vertex from where the traversal starts, the direction the traversal is going and either the Graph or the EdgeCollection we want to analize.
 
 ``` ruby
-myTransaction = ArangoT.new # create new ArangoTransaction
-myTransaction.vertex = myVertex # define starting Vertex
-myTransaction.graph = myGraph  # define used Graph
-myTransaction.edgeCollection = myEdgeCollection # define used Edge
-myTransaction.in # Direction is in
-myTransaction.out  # Direction is out
-myTransaction.any  # Direction is in and out
-myTransaction.min = 1 # Define how minimum deep we want to go with the transaction
-myTransaction.max = 3 # Define how maximum deep we want to go with the transaction
+myTraversal = ArangoT.new # create new ArangoTraversal
+myTraversal.vertex = myVertex # define starting Vertex
+myTraversal.graph = myGraph  # define used Graph
+myTraversal.edgeCollection = myEdgeCollection # define used Edge
+myTraversal.in # Direction is in
+myTraversal.out  # Direction is out
+myTraversal.any  # Direction is in and out
+myTraversal.min = 1 # Define how minimum deep we want to go with the traversal
+myTraversal.max = 3 # Define how maximum deep we want to go with the traversal
 ```
 
-After the transaction is setup, you can execute it:
+After the traversal is setup, you can execute it:
 
 ``` ruby
-myTransaction.execute
+myTraversal.execute
 ```
 
 <a name="arangoaql"></a>
