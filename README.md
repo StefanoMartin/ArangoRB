@@ -9,6 +9,8 @@ ArangoRB has been tested with ArangoDB 3.0 on Ruby 2.3.1. It requires the gem "H
 At the moment ArangoRB is not a Gem: to install it clone the project, create a link in your project and then use
 `require_relative "./ArangoRB/ArangoRB"` in your ruby code.
 
+When it will be a gem you can use `require "arangorb"`.
+
 ## Classes used
 
 ArangoRB has the following classes.
