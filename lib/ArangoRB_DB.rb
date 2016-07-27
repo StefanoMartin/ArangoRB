@@ -231,7 +231,21 @@ class ArangoDB < ArangoS
     self.class.put("/_db/#{@database}/_api/replication/sync", new_Document).parsed_response
   end
 
+  # === USER ===
 
+  def grant(user: @@user)
+    body = { "grant" => "rw" }.to_json
+    new_DB = { :body => body }
+    result = self.class.post("/_api/user/#{user}/database/#{@database}", new_DB)
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
+
+  def revoke(user: @@user)
+    body = { "grant" => "none" }.to_json
+    new_DB = { :body => body }
+    result = self.class.post("/_api/user/#{user}/database/#{@database}", new_DB)
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
 
   # === UTILITY ===
 
