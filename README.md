@@ -15,16 +15,17 @@ When it will be a gem you can use `require "arangorb"`.
 
 ArangoRB has the following classes.
 
-* ArangoS: to manage the global variables for the management of the database
-* ArangoDB: to manage a Database
-* ArangoC: to manage a Collection
-* ArangoDoc: to manage a Document
-* ArangoV: to manage a Vertex
-* ArangoE: to manage an Edge
-* ArangoG: to manage a Graph
-* ArangoT: to manage a Traverse operation
-* ArangoAQL: to manage an AQL instance
+* [ArangoS](#arangos): to manage the global variables for the management of the database
+* [ArangoDB](#arangodb): to manage a Database
+* [ArangoC](#arangoc): to manage a Collection
+* [ArangoDoc](#arangodoc): to manage a Document
+* [ArangoV](#arangov): to manage a Vertex
+* [ArangoE](#arangoe): to manage an Edge
+* [ArangoG](#arangog): to manage a Graph
+* [ArangoT](#arangot): to manage a Traverse operation
+* [ArangoAQL](#arangoaql): to manage an AQL instance
 
+<a name="arangos"></a>
 ## ArangoS - ArangoDB Server
 
 ArangoS is used to manage global variables for the management of the database and it is the mandatory step to start your database.
@@ -60,6 +61,7 @@ ArangoS.verbose = true
 
 Remember that verbose is only for testing reason: to work efficiently verbose should be false.
 
+<a name="arangodb"></a>
 ## ArangoDB - ArangoDB Database
 
 ArangoDB is used to manage your Database. You can create an instance in the following way:
@@ -117,7 +119,7 @@ myDatabase.createFunction code: "function(){return 1+1;}", name: "myFunction" # 
 myDatabase.deleteFunction name: "myFunction" # Delete a function
 myDatabase.functions # Retrieve a list of the available functions
 ```
-
+<a name="arangoc"></a>
 ## ArangoC - ArangoDB Collection
 
 ArangoDB is used to manage your Collections. You can create an ArangoC instance in one of the following way:
@@ -212,6 +214,7 @@ myCollection.replaceMatch match: {"value" => 4}, newValue: {"value" => 6} # All 
 myCollection.updateMatch match: {"value" => 4}, newValue: {"value" => 6} # All Documents of the Collection with value equal to 4 will be updated with the new Value
 ```
 
+<a name="arangodoc"></a>
 ## ArangoDoc - ArangoDB Document
 
 An Arango Document is an element of a Collection. Edges are documents with "\_from" and "\_to" in their body.
@@ -238,7 +241,6 @@ When you do the instance of an ArangoDoc is a good idea to define a Body for the
 ``` ruby
 myDocument = ArangoDoc.new(body: {"value" => 17})
 ```
-
 
 ### Create one or more Documents
 
@@ -364,6 +366,7 @@ myDocument.update body: {"value" => 3} # We update or add a value
 myDocument.replace body: {"value" => 3} # We replace a value
 ```
 
+<a name="arangog"></a>
 ## ArangoG - ArangoDB Graph
 
 ArangoG are used to manage graphs. You can create an ArangoG instance in one of the following way:
@@ -399,7 +402,7 @@ myGraph.replaceEdgeCollections(collection: "myEdgeCollection", from: "myCollecti
 myGraph.removeEdgeCollections(collection: "myEdgeCollection") # Remove an Edge Collection to our Graph
 ```
 
-
+<a name="arangov"></a><a name="arangoe"></a>
 ## ArangoV - ArangoDB Vertex and ArangoE - ArangoDB Edge
 
 Both these two classes inherit the class ArangoDoc.
@@ -433,6 +436,7 @@ myEdge.update body: {"value" => 6} # update the Document
 myEdge.destroy # delete the Document
 ```
 
+<a name="arangot"></a>
 ## ArangoT - ArangoDB Transaction
 
 ArangoT is used to administrate the transaction.
@@ -456,6 +460,7 @@ After the transaction is setup, you can execute it:
 myTransaction.execute
 ```
 
+<a name="arangoaql"></a>
 ## ArangoAQL - ArangoDB Query Language
 
 ArangoAQL is used to manage the ArangoDB query languages. To instantiate a query use:
