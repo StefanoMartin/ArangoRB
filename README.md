@@ -269,6 +269,7 @@ ArangoDoc.create_edge(body: {"value" => 17}, from: myDocA, to: myDocB, collectio
 Further we have the possibility to create different combination of Edges in only one line of code
 
 One-to-one with one Edge class
+
  * [myDocA] --(myEdge)--> [myDocB]
 
 ``` ruby
@@ -276,6 +277,7 @@ myEdgeCollection.create_edge document: myEdge, from: myDocA, to: myDocB
 ```
 
 One-to-more with one Edge class (and More-to-one with one Edge class)
+
  * [myDocA] --(myEdge)--> [myDocB]
  * [myDocA] --(myEdge)--> [myDocC]
 
@@ -284,6 +286,7 @@ myEdgeCollection.create_edge document: myEdge, from: myDocA, to: [myDocB, myDocC
 ```
 
 More-to-More with one Edge class
+
  * [myDocA] --(myEdge)--> [myDocC]
  * [myDocB] --(myEdge)--> [myDocC]
  * [myDocA] --(myEdge)--> [myDocD]
@@ -294,6 +297,7 @@ myEdgeCollection.create_edge document: myEdge, from: [myDocA, myDocB], to: [myDo
 ```
 
 More-to-More with more Edge classes
+
  * [myDocA] --(myEdge)--> [myDocC]
  * [myDocB] --(myEdge)--> [myDocC]
  * [myDocA] --(myEdge)--> [myDocD]
