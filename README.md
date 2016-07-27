@@ -1,4 +1,4 @@
-ArangoRB
+ArangoRB [![Gem Version](https://badge.fury.io/rb/arangorb.svg)](https://badge.fury.io/rb/arangorb)
 ===============================
 
 [ArangoDB](https://www.arangodb.com/) is a native multi-model database with flexible data models for document, graphs, and key-values.
