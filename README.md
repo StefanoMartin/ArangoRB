@@ -2,14 +2,15 @@ ArangoRB
 ===============================
 
 [ArangoDB](https://www.arangodb.com/) is a native multi-model database with flexible data models for document, graphs, and key-values.
-ArangoRB would like to be a Ruby Gem to use ArangoDB with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.0/HTTP/index.html).
+ArangoRB is a Gem to use ArangoDB with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.0/HTTP/index.html).
 
 ArangoRB has been tested with ArangoDB 3.0 on Ruby 2.3.1. It requires the gem "HTTParty"
 
-At the moment ArangoRB is not a Gem: to install it clone the project, create a link in your project and then use
-`require_relative "./ArangoRB/ArangoRB"` in your ruby code.
+To install ArangoRB: `gem install arangorb`
 
-When it will be a gem you can use `require "arangorb"`.
+To use it in your application: `require "arangorb"`
+
+This Gem was created from [Seluxit ApS](http://seluxit.com/).
 
 ## Classes used
 
@@ -406,7 +407,7 @@ myGraph.removeEdgeCollections(collection: "myEdgeCollection") # Remove an Edge C
 ## ArangoV - ArangoDB Vertex and ArangoE - ArangoDB Edge
 
 Both these two classes inherit the class ArangoDoc.
-These two classes has been created since ArangoDB offers, in connection of the chosen graph, other possible HTTP request to fetch Vertexes and Edges.
+These two classes have been created since ArangoDB offers, in connection of the chosen graph, other possible HTTP requests to fetch Vertexes and Edges. We recommend the reader to read carefully the section on ArangoDoc instances before to use ArangoV and ArangoE instances.
 
 ### ArangoV methods
 
