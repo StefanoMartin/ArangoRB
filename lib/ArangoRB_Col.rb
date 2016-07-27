@@ -323,6 +323,141 @@ class ArangoC < ArangoS
     self.class.put("/_db/#{@database}/_api/simple/update-by-example", collection_to_look).parsed_response
   end
 
+# === IMPORT ===
+
+  def import(attributes:, values:, from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
+    query = {
+      "collection": @collection,
+      "fromPrefix": from,
+      "toPrefix": to,
+      "overwrite": overwrite,
+      "waitForSync": waitForSync,
+      "onDuplicate": onDuplicate,
+      "complete": complete,
+      "details": details
+    }.delete_if{|k,v| v.nil?}
+    body = []
+    body << attributes
+    body << values
+    new_Document = { :body => body.to_json, :query => query }
+    result = self.class.post("/_db/#{@database}/_api/import", new_Document).parsed_response
+    if @@verbose
+      unless result["errorMessage"]
+        result.delete("error")
+        result.delete("code")
+      end
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result.delete("error")
+        result.delete("code")
+        result
+      end
+    end
+  end
+
+  def importJSON(body:, type: "auto", from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
+    query = {
+      "collection": @collection,
+      "type": type,
+      "fromPrefix": from,
+      "toPrefix": to,
+      "overwrite": overwrite,
+      "waitForSync": waitForSync,
+      "onDuplicate": onDuplicate,
+      "complete": complete,
+      "details": details
+    }.delete_if{|k,v| v.nil?}
+    new_Document = { :body => body.to_json, :query => query }
+    result = self.class.post("/_db/#{@database}/_api/import", new_Document).parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result.delete("error")
+        result.delete("code")
+        result
+      end
+    end
+  end
+
+# === INDEXES ===
+
+  def retrieveIndex(id:)
+    result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}").parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result.delete("error")
+        result.delete("code")
+        result
+      end
+    end
+  end
+
+  def indexes
+    query = { "collection": @collection }
+    new_Document = { :query => query }
+    result = self.class.get("/_db/#{@database}/_api/index", new_Document).parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result.delete("error")
+        result.delete("code")
+        result
+      end
+    end
+  end
+
+  def createIndex(body: nil)
+    query = { "collection": @collection }
+    new_Document = { :body => body.to_json, :query => query }
+    result = self.class.post("/_db/#{@database}/_api/index", new_Document).parsed_response
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result.delete("error")
+        result.delete("code")
+        result
+      end
+    end
+  end
+
+  def deleteIndex(id:)
+    result = self.class.delete("/_db/#{@database}/_api/index/#{@collection}/#{id}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
+
+# === REPLICATION ===
+
+  def inventory(from: nil, to: nil, chunkSize: nil, includeSystem: false, failOnUnknown: nil, ticks: nil, flush: nil)
+    query = {
+      "collection": @collection,
+      "from": from,
+      "to": to,
+      "chunkSize": chunkSize,
+      "includeSystem": includeSystem,
+      "failOnUnknown": failOnUnknown,
+      "ticks": ticks,
+      "flush": flush
+    }.delete_if{|k,v| v.nil?}
+    new_Document = { :query => query }
+    self.class.get("/_db/#{@database}/_api/replication/inventory", new_Document).parsed_response
+  end
+
 # === UTILITY ===
 
   def return_result(result, checkType=false)

@@ -148,9 +148,90 @@ class ArangoDB < ArangoS
   end
 
   def deleteFunction(name:)
-    result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}")
+    result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}").parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
+
+  # === ASYNC ===
+
+  def fetchAsync(id)
+    result = self.class.put("/_db/#{@database}/_api/job/#{id}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+  end
+
+  def retrieveAsync(id)
+    result = self.class.get("/_db/#{@database}/_api/job/#{id}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+  end
+
+  def cancelAsync(id)
+    result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+  end
+
+  def destroyAsync(type)
+    result = self.class.delete("/_db/#{@database}/_api/job/#{type}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
+
+  def destroyAllAsync
+    destroyAsync("all")
+  end
+
+  # === REPLICATION ===
+
+  def inventory(includeSystem: false)
+    query = { "includeSystem": includeSystem }
+    new_Document = { :query => query }
+    self.class.get("/_db/#{@database}/_api/replication/inventory", new_Document).parsed_response
+  end
+
+  def clusterInventory(includeSystem: false)
+    query = { "includeSystem": includeSystem }
+    new_Document = { :query => query }
+    self.class.get("/_db/#{@database}/_api/replication/clusterInventory", new_Document).parsed_response
+  end
+
+  def logger
+    self.class.get("/_db/#{@database}/_api/replication/logger-state").parsed_response
+  end
+
+  def lastLogger(from: nil, to: nil, chunkSize: nil, includeSystem: false)
+    query = {
+      "from": from,
+      "to": to,
+      "chunkSize": chunkSize,
+      "includeSystem": includeSystem
+    }.delete_if{|k,v| v.nil?}
+    new_Document = { :query => query }
+    self.class.get("/_db/#{@database}/_api/replication/logger-follow", new_Document).parsed_response
+  end
+
+  def firstTick
+    self.class.get("/_db/#{@database}/_api/replication/logger-first-tick").parsed_response
+  end
+
+  def rangeTick
+    self.class.get("/_db/#{@database}/_api/replication/logger-tick-ranges").parsed_response
+  end
+
+  def sync(username:, password:, includeSystem:, endpoint:, initialSyncMaxWaitTime: nil, database: @database, restrictType: nil, incremental: nil, restrictCollections: nil)
+    body = {
+      "username" => username,
+      "password" => password,
+      "includeSystem" => includeSystem,
+      "endpoint" => includeSystem,
+      "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
+      "database" => @database,
+      "restrictType" => restrictType,
+      "incremental" => incremental,
+      "restrictCollections" =>  restrictCollections
+    }.delete_if{|k,v| v.nil?}
+    new_Document = { :body => body.to_json }
+    self.class.put("/_db/#{@database}/_api/replication/sync", new_Document).parsed_response
+  end
+
+
 
   # === UTILITY ===
 

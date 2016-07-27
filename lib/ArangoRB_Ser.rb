@@ -61,4 +61,40 @@ class ArangoS
   def self.collection
     @@collection
   end
+
+# === MONITORING ===
+
+  def self.log
+    self.class.get("/_admin/log").parsed_response
+  end
+
+  def self.reload
+    self.class.post("/_admin/reload").parsed_response
+  end
+
+  def self.statistics
+    self.class.get("/_admin/statistics").parsed_response
+  end
+
+  def self.statisticsDescription
+    self.class.get("/_admin/statistics-description").parsed_response
+  end
+
+  def self.role
+    self.class.get("/_admin/server/role").parsed_response
+  end
+
+  def self.server
+    self.class.get("/_admin/server/id").parsed_response
+  end
+
+  def self.clusterStatistics
+    self.class.get("/_admin/clusterStatistics").parsed_response
+  end
+
+# === ENDPOINTS ===
+
+  def self.endpoints
+    self.class.get("/_api/endpoint").parsed_response
+  end
 end
