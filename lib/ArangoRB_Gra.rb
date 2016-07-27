@@ -120,7 +120,7 @@ class ArangoG < ArangoS
     new_Document = { :body => body.to_json }
 
     if replace
-      result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", new_Document).parsed_response
+      result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", new_Document).parsed_response
     else
       result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge", new_Document).parsed_response
     end
@@ -142,9 +142,9 @@ class ArangoG < ArangoS
     end
   end
 
-  # def replaceEdgeCollection(collection:, from:, to:)
-  #   self.addEdgeCollection(collection: collection, from: from, to: to, replace: true)
-  # end
+  def replaceEdgeCollection(collection:, from:, to:)
+    self.addEdgeCollection(collection: collection, from: from, to: to, replace: true)
+  end
 
   def removeEdgeCollection(collection:)
     collection = collection.is_a?(String) ? collection : collection.collection

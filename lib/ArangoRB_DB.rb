@@ -75,21 +75,96 @@ class ArangoDB < ArangoS
     end
   end
 
-  # === FROM INSTANCE ===
+  def functions
+    self.class.get("/_db/#{@database}/_api/aqlfunction").parsed_response
+  end
 
-  # def create(username: nil, passwd: nil, users: nil)
-  #   ArangoDB.create(database: @database, username: username, passwd: passwd, users: users)
-  # end
-  #
-  # def destroy
-  #   ArangoDB.destroy(database: @database)
-  # end
+  # === QUERY ===
 
-  # def collections(excludeSystem: true)
-  #   ArangoDB.collections(database: @database, excludeSystem: true)
-  # end
-  #
-  # def graphs
-  #   ArangoDB.graphs(database: @database, excludeSystem: true)
-  # end
+  def propertiesQuery
+    result = self.class.get("/_db/#{@database}/_api/query/properties").parsed_response
+    return_result(result)
+  end
+
+  def currentQuery
+    self.class.get("/_db/#{@database}/_api/query/current").parsed_response
+  end
+
+  def slowQuery
+    self.class.get("/_db/#{@database}/_api/query/slow").parsed_response
+  end
+
+  def stopSlowQuery
+    result = self.class.delete("/_db/#{@database}/_api/query/slow").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
+
+  def killQuery(id:)
+    result = self.class.delete("/_db/#{@database}/_api/query/#{id}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
+
+  def changePropertiesQuery(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)
+    body = {
+      "slowQueryThreshold" => slowQueryThreshold,
+      "enabled" => enabled,
+      "maxSlowQueries" => maxSlowQueries,
+      "trackSlowQueries" => trackSlowQueries,
+      "maxQueryStringLength" => maxQueryStringLength
+    }.delete_if{|k,v| v.nil?}
+    new_Document = { :body => body.to_json }
+    result = self.class.put("/_db/#{@database}/_api/query/properties", new_Document).parsed_response
+    return_result(result)
+  end
+
+# === CACHE ===
+
+  def clearCache
+    result = self.class.delete("/_db/#{@database}/_api/query-cache").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
+
+  def propertyCache
+    self.class.get("/_db/#{@database}/_api/query-cache/properties").parsed_response
+  end
+
+  def changePropertyCache(mode: nil, maxResults: nil)
+    body = { "mode" => mode, "maxResults" => maxResults }.delete_if{|k,v| v.nil?}
+    new_Document = { :body => body.to_json }
+    self.class.put("/_db/#{@database}/_api/query-cache/properties", new_Document).parsed_response
+  end
+
+  # === AQL FUNCTION ===
+
+  def createFunction(code:, name:, isDeterministic: nil)
+    body = {
+      "code" => code,
+      "name" => name,
+      "isDeterministic" => isDeterministic
+    }.delete_if{|k,v| v.nil?}
+    new_Document = { :body => body.to_json }
+    result = self.class.post("/_db/#{@database}/_api/aqlfunction", new_Document).parsed_response
+    return_result(result)
+  end
+
+  def deleteFunction(name:)
+    result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}")
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+  end
+
+  # === UTILITY ===
+
+  def return_result(result)
+    if @@verbose
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        result.delete("error")
+        result.delete("code")
+        result
+      end
+    end
+  end
 end

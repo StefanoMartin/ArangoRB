@@ -123,11 +123,13 @@ class ArangoAQL < ArangoS
 # === DELETE ===
 
   def stopSlow
-    self.class.delete("/_db/#{@database}/_api/query/slow").parsed_response
+    result = self.class.delete("/_db/#{@database}/_api/query/slow").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
   def kill(id: @id)
-    self.class.delete("/_db/#{@database}/_api/query/#{id}").parsed_response
+    result = self.class.delete("/_db/#{@database}/_api/query/#{id}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
   def changeProperties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)
@@ -146,7 +148,8 @@ class ArangoAQL < ArangoS
 # === CACHE ===
 
   def clearCache
-    self.class.delete("/_db/#{@database}/_api/query-cache").parsed_response
+    result = self.class.delete("/_db/#{@database}/_api/query-cache").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
   def propertyCache
@@ -168,12 +171,13 @@ class ArangoAQL < ArangoS
       "isDeterministic" => isDeterministic
     }.delete_if{|k,v| v.nil?}
     new_Document = { :body => body.to_json }
-    result = self.class.put("/_db/#{@database}/_api/aqlfunction", new_Document).parsed_response
+    result = self.class.post("/_db/#{@database}/_api/aqlfunction", new_Document).parsed_response
     return_result(result)
   end
 
   def deleteFunction(name:)
-    self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}")
+    result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}").parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
   def functions

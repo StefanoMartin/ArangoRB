@@ -89,6 +89,33 @@ myDatabase.collections # Obtain an Array with the available collections in the s
 myDatabase.graphs #  Obtain an Array with the available graphs in the selected Database
 ```
 
+### Query
+
+``` ruby
+myDatabase.propertiesQuery; # See property of the Query
+myDatabase.currentQuery; # Check the current Query
+myDatabase.slowQuery; # Find slow queries
+myDatabase.stopSlowQuery; # Stop slow queries
+myDatabase.kill id: myQuery.id # Kill a Query
+myDatabase.changePropertiesQuery maxSlowQueries: 65 # Change properties of a Query
+```
+
+### Cache
+
+``` ruby
+myDatabase.clearCache # Clear Cache
+myDatabase.propertyCache # Check properties Cache
+myDatabase.changePropertyCache maxResults: 30 # Change properties Cache
+```
+
+### AQL Functions
+
+``` ruby
+myDatabase.createFunction code: "function(){return 1+1;}", name: "myFunction" # Create a new Function
+myDatabase.deleteFunction name: "myFunction" # Delete a function
+myDatabase.functions # Retrieve a list of the available functions
+```
+
 ## ArangoC - ArangoDB Collection
 
 ArangoDB is used to manage your Collections. You can create an ArangoC instance in one of the following way:
@@ -242,39 +269,39 @@ ArangoDoc.create_edge(body: {"value" => 17}, from: myDocA, to: myDocB, collectio
 Further we have the possibility to create different combination of Edges in only one line of code
 
 One-to-one with one Edge class
- - [myDocA] --(myEdge)--> [myDocB]
+ * [myDocA] --(myEdge)--> [myDocB]
 
 ``` ruby
 myEdgeCollection.create_edge document: myEdge, from: myDocA, to: myDocB
 ```
 
 One-to-more with one Edge class (and More-to-one with one Edge class)
- - [myDocA] --(myEdge)--> [myDocB]
- - [myDocA] --(myEdge)--> [myDocC]
+ * [myDocA] --(myEdge)--> [myDocB]
+ * [myDocA] --(myEdge)--> [myDocC]
 
  ``` ruby
 myEdgeCollection.create_edge document: myEdge, from: myDocA, to: [myDocB, myDocC]
 ```
 
 More-to-More with one Edge class
- - [myDocA] --(myEdge)--> [myDocC]
- - [myDocB] --(myEdge)--> [myDocC]
- - [myDocA] --(myEdge)--> [myDocD]
- - [myDocB] --(myEdge)--> [myDocD]
+ * [myDocA] --(myEdge)--> [myDocC]
+ * [myDocB] --(myEdge)--> [myDocC]
+ * [myDocA] --(myEdge)--> [myDocD]
+ * [myDocB] --(myEdge)--> [myDocD]
 
  ``` ruby
 myEdgeCollection.create_edge document: myEdge, from: [myDocA, myDocB], to: [myDocC, myDocD]
 ```
 
 More-to-More with more Edge classes
- - [myDocA] --(myEdge)--> [myDocC]
- - [myDocB] --(myEdge)--> [myDocC]
- - [myDocA] --(myEdge)--> [myDocD]
- - [myDocB] --(myEdge)--> [myDocD]
- - [myDocA] --(myEdge2)--> [myDocC]
- - [myDocB] --(myEdge2)--> [myDocC]
- - [myDocA] --(myEdge2)--> [myDocD]
- - [myDocB] --(myEdge2)--> [myDocD]
+ * [myDocA] --(myEdge)--> [myDocC]
+ * [myDocB] --(myEdge)--> [myDocC]
+ * [myDocA] --(myEdge)--> [myDocD]
+ * [myDocB] --(myEdge)--> [myDocD]
+ * [myDocA] --(myEdge2)--> [myDocC]
+ * [myDocB] --(myEdge2)--> [myDocC]
+ * [myDocA] --(myEdge2)--> [myDocD]
+ * [myDocB] --(myEdge2)--> [myDocD]
 
  ``` ruby
 myEdgeCollection.create_edge document: [myEdge, myEdge2], from: [myDocA, myDocB], to: [myDocC, myDocD]
@@ -301,28 +328,28 @@ myEdge.to # Retrieve the document at the end of the edge
 #### Example: how to navigate the edges
 
 Think for example that we have the following schema:
- - A --[class: a, name: aa]--> B
- - A --[class: a, name: bb]--> C
- - A --[class: b, name: cc]--> D
- - B --[class: a, name: dd]--> E
+ * A --[class: a, name: aa]--> B
+ * A --[class: a, name: bb]--> C
+ * A --[class: b, name: cc]--> D
+ * B --[class: a, name: dd]--> E
 
 Then we have:
 
- - A.retrieve is A
- - A.retrieve_edges(collection: a) is [aa, bb]
- - B.any(a) is [aa, dd]
- - B.in(a) is [aa]
- - B.out(a) is [dd]
- - aa.from is A
- - aa.to is B
+ * A.retrieve is A
+ * A.retrieve_edges(collection: a) is [aa, bb]
+ * B.any(a) is [aa, dd]
+ * B.in(a) is [aa]
+ * B.out(a) is [dd]
+ * aa.from is A
+ * aa.to is B
 
 We can even do some combinations: for example A.out(a)[0].to.out(a)[0].to is E since:
- - A.out(a) is [aa]
- - A.out(a)[0] is aa
- - A.out(a)[0].to is B
- - A.out(a)[0].to.out(a) is [dd]
- - A.out(a)[0].to.out(a)[0] is dd
- - A.out(a)[0].to.out(a)[0].to is E
+ * A.out(a) is [aa]
+ * A.out(a)[0] is aa
+ * A.out(a)[0].to is B
+ * A.out(a)[0].to.out(a) is [dd]
+ * A.out(a)[0].to.out(a)[0] is dd
+ * A.out(a)[0].to.out(a)[0].to is E
 
 ### Modify
 
@@ -344,27 +371,28 @@ myGraph = ArangoG.new # If the database and the graph have been already defined 
 ### Create, Retrieve and Destroy a Graph
 
 ``` ruby
-myGraph.create
-myGraph.retrieve
-myGraph.destroy
+myGraph.create # create a new Graph
+myGraph.retrieve # retrieve the Graph
+myGraph.destroy # destroy the Graph
 ```
 
 ### Manage Vertex Collections
 
 ``` ruby
 myGraph.vertexCollections # Retrieve all the vertexCollections of the Graph
-myGraph.addVertexCollection(collection: "myCollection")
-myGraph.removeVertexCollection(collection: "myCollection")
+myGraph.addVertexCollection(collection: "myCollection") # Add a Vertex Collection to our Graph
+myGraph.removeVertexCollection(collection: "myCollection") # Remove a Vertex Collection to our Graph
 ```
 
 ### Manage Edge Collections
 
 ``` ruby
 myGraph.edgeCollections # Retrieve all the edgeCollections of the Graph
-myGraph.addEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB")
-myGraph.removeEdgeCollections(collection: "myEdgeCollection")
+myGraph.addEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB") # Add an Edge Collection to our Graph
+myGraph.replaceEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB") # Replace an Edge Collection to our Graph
+myGraph.removeEdgeCollections(collection: "myEdgeCollection") # Remove an Edge Collection to our Graph
 ```
-<!-- myGraph.replaceEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB") -->
+
 
 ## ArangoV - ArangoDB Vertex and ArangoE - ArangoDB Edge
 
@@ -374,27 +402,29 @@ These two classes has been created since ArangoDB offers, in connection of the c
 ### ArangoV methods
 
 ArangoV inherit all the methods of ArangoDoc class. The following one works similar to the one of ArangoDoc Class but use a different HTTP request. For this reason the performance could be different.
+To use ArangoV, the Collection of the Vertex needs to be added to the VertexCollections of the chosen Graph.
 
 ``` ruby
 myVertex = ArangoV.new key: "newVertex", body: {"value" => 3}, collection: "myCollection", graph: "myGraph", database: "myDatabase"
-myVertex.create
-myVertex.retrieve
-myVertex.replace body: {"value" => 6}
-myVertex.update body: {"value" => 6}
-myVertex.destroy
+myVertex.create # create a new Document in the Graph
+myVertex.retrieve  # retrieve a Document
+myVertex.replace body: {"value" => 6} # replace the Document
+myVertex.update body: {"value" => 6} # update the Document
+myVertex.destroy # delete the Document
 ```
 
 ### ArangoE methods
 
 ArangoE inherit all the methods of ArangoDoc class. The following one works similar to the one of ArangoDoc Class but use a different HTTP request. For this reason the performance could be different.
+To use ArangoE, the Collection of the Edge needs to be added to the EdgeCollections of the chosen Graph.
 
 ``` ruby
 myEdge = ArangoE.new key: "newVertex", body: {"value" => 3}, from: myArangoDoc, to: myArangoDoc, collection: "myCollection", graph: "myGraph", database: "myDatabase"
-myEdge.create
-myEdge.retrieve
-myEdge.replace body: {"value" => 6}
-myEdge.update body: {"value" => 6}
-myEdge.destroy
+myEdge.create # create a new Document of type Edge in the Graph
+myEdge.retrieve # retrieve a Document
+myEdge.replace body: {"value" => 6} # replace the Document
+myEdge.update body: {"value" => 6} # update the Document
+myEdge.destroy # delete the Document
 ```
 
 ## ArangoT - ArangoDB Transaction
@@ -404,12 +434,14 @@ ArangoT needs to know the vertex from where the transaction starts, the directio
 
 ``` ruby
 myTransaction = ArangoT.new # create new ArangoTransaction
-myTransaction.vertex = myVertex
-myTransaction.graphName = myGraph
-myTransaction.edgeCollection = myEdgeCollection
+myTransaction.vertex = myVertex # define starting Vertex
+myTransaction.graph = myGraph  # define used Graph
+myTransaction.edgeCollection = myEdgeCollection # define used Edge
 myTransaction.in # Direction is in
-myTransaction.out
-myTransaction.any
+myTransaction.out  # Direction is out
+myTransaction.any  # Direction is in and out
+myTransaction.min = 1 # Define how minimum deep we want to go with the transaction
+myTransaction.max = 3 # Define how maximum deep we want to go with the transaction
 ```
 
 After the transaction is setup, you can execute it:
@@ -423,7 +455,7 @@ myTransaction.execute
 ArangoAQL is used to manage the ArangoDB query languages. To instantiate a query use:
 
 ``` ruby
-myQuery = ArangoAQL.new(query: "FOR v,e,p IN 1..6 ANY "Year/2016" GRAPH "myGraph" FILTER p.vertices[1].num == 6 && p.vertices[2].num == 22 && p.vertices[6]._key == "424028e5-e429-4885-b50b-007867208c71" RETURN [p.vertices[4].value, p.vertices[5].data]")
+myQuery = ArangoAQL.new(query: "FOR v,e,p IN 1..6 ANY 'Year/2016' GRAPH 'MyGraph' FILTER p.vertices[1].num == 6 && p.vertices[2].num == 22 && p.vertices[6]._key == '424028e5-e429-4885-b50b-007867208c71' RETURN [p.vertices[4].value, p.vertices[5].data]")
 ```
 
 To execute it use:
@@ -442,32 +474,17 @@ myQuery.next # Next 10 documents
 ### Check property query
 
 ``` ruby
-myQuery.explain
-myQuery.parse
-myQuery.properties
-myQuery.current
-myQuery.slow # Findslow query
+myQuery.explain # Show data query
+myQuery.parse # Parse query
+myQuery.properties;  # Check properties
+myQuery.current; # Retrieve current Query
+myQuery.slow; # Retrieve slow Queries
+myQuery.changeProperties maxSlowQueries: 65 # Change Properties
 ```
 
 ### Delete query
 
 ``` ruby
-myQuery.stopSlow
-myQuery.kill
-```
-
-### Cache
-
-``` ruby
-myQuery.clearCache
-myQuery.propertyCache
-myQuery.changePropertyCache maxResults: 30
-```
-
-### AQL Functions
-
-``` ruby
-myQuery.createFunction code: "function(){return 1+1;}", name: "myFunction"
-myQuery.deleteFunction name: "myFunction"
-myQuery.functions
+myQuery.stopSlow; # Stop Slow query
+myQuery.kill; # Kill Query
 ```

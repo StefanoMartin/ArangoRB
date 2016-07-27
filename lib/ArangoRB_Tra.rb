@@ -1,7 +1,7 @@
 # === TRAVERSAL ===
 
 class ArangoT < ArangoS
-  def initialize(body: {}, database: @@database, graphName: nil, edgeCollection: nil)
+  def initialize(body: {}, database: @@database, graph: nil, edgeCollection: nil)
     @sort        = body["sort"]
     @direction   = body["direction"]
     @maxDepth    = body["maxDepth"]
@@ -15,7 +15,7 @@ class ArangoT < ArangoS
     @maxiterations = body["maxiterations"]
     @uniqueness  = body["uniqueness"]
     @order       = body["order"]
-    @graphName   = body["graphName"].nil? ? graphName : body["graphName"]
+    @graphName   = body["graphName"].nil? ? graph : body["graphName"]
     @expander    = body["expander"]
     @edgeCollection = body["edgeCollection"].nil? ? edgeCollection : body["edgeCollection"]
     @database = database
@@ -23,7 +23,7 @@ class ArangoT < ArangoS
     @paths = nil
   end
 
-  attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander, :vertices, :paths
+  attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander, :vertices, :paths, :database
   attr_reader :startVertex, :graphName, :edgeCollection
 
   def startVertex=(startVertex)
@@ -35,8 +35,6 @@ class ArangoT < ArangoS
       raise "startVertex should be a String or an ArangoDoc instance, not a #{startVertex.class}"
     end
   end
-  alias vertex= startVertex=
-  alias vertex startVertex
 
   def graphName=(graphName)
     if graphName.is_a?(String) || graphName.nil?
@@ -57,20 +55,21 @@ class ArangoT < ArangoS
       raise "edgeCollection should be a String or an ArangoC instance, not a #{edgeCollection.class}"
     end
   end
-  alias collection= edgeCollection=
 
   def in
-    @direction = "outbound"
+    @direction = "inbound"
   end
 
   def out
-    @direction = "inbound"
+    @direction = "outbound"
   end
 
   def any
     @direction = "any"
   end
 
+  alias vertex= startVertex=
+  alias vertex startVertex
   alias max maxDepth
   alias max= maxDepth=
   alias min minDepth
@@ -79,23 +78,6 @@ class ArangoT < ArangoS
   alias collection= edgeCollection=
   alias graph graphName
   alias graph= graphName=
-
-
-  # def max=(max)
-  #   @maxDepth = max
-  # end
-  #
-  # def max
-  #   @maxDepth
-  # end
-
-  # def min=(min)
-  #   @minDepth = min
-  # end
-  #
-  # def min
-  #   @minDepth
-  # end
 
   def execute
     body = {

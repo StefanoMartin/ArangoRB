@@ -1,4 +1,4 @@
-require 'spec_helper'
+require_relative './../spec_helper'
 
 describe ArangoDoc do
   before :all do
@@ -47,7 +47,7 @@ describe ArangoDoc do
 
     it "create a new Edge" do
       myDoc = @myCollection.create_document document: [{"A" => "B", "num" => 1}, {"C" => "D", "num" => 3}]
-      myEdge = ArangoDoc.new from: myDoc[0].id, to: myDoc[1].id
+      myEdge = ArangoDoc.new collection: "MyEdgeCollection", from: myDoc[0].id, to: myDoc[1].id
       myEdge = myEdge.create
       expect(myEdge.body["_from"]).to eq myDoc[0].id
     end

@@ -1,4 +1,4 @@
-require 'spec_helper'
+require_relative './../spec_helper'
 
 describe ArangoG do
   before :all do
@@ -72,10 +72,10 @@ describe ArangoG do
       expect(myGraph[0].collection).to eq "MyEdgeCollection"
     end
 
-    # it "replace EdgeCollection" do
-    #   myGraph = @myGraph.replaceEdgeCollection collection: @myEdgeCollection, from: "MyCollection", to: "MyCollection"
-    #   expect(myGraph.edgeDefinitions[0]["to"][0]).to eq "MyCollection"
-    # end
+    it "replace EdgeCollection" do
+      myGraph = @myGraph.replaceEdgeCollection collection: @myEdgeCollection, from: "MyCollection", to: "MyCollection"
+      expect(myGraph.edgeDefinitions[0]["to"][0]).to eq "MyCollection"
+    end
 
     it "remove EdgeCollection" do
       myGraph = @myGraph.removeEdgeCollection collection: "MyEdgeCollection"
