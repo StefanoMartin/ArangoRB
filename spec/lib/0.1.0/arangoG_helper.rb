@@ -1,22 +1,22 @@
-require_relative './../spec_helper'
+require_relative './../../spec_helper'
 
 describe ArangoG do
-  before :all do
-    ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-    ArangoS.database = "MyDatabase"
-    ArangoS.collection = "MyCollection"
-    ArangoDB.new.create
-    @myCollection = ArangoC.new.create
-    @myCollectionB = ArangoC.new(collection: "MyCollectionB").create
-    @myCollectionC = ArangoC.new(collection: "MyCollectionC").create
-    @myCollectionD = ArangoC.new(collection: "MyCollectionD").create
-    @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
-    @myGraph = ArangoG.new graph: "MyGraph"
-  end
-
-  after :all do
-    ArangoDB.new.destroy
-  end
+  # before :all do
+  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+  #   ArangoS.database = "MyDatabase"
+  #   ArangoS.collection = "MyCollection"
+  #   ArangoDB.new.create
+  #   @myCollection = ArangoC.new.create
+  #   @myCollectionB = ArangoC.new(collection: "MyCollectionB").create
+  #   @myCollectionC = ArangoC.new(collection: "MyCollectionC").create
+  #   @myCollectionD = ArangoC.new(collection: "MyCollectionD").create
+  #   @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
+  #   @myGraph = ArangoG.new graph: "MyGraph"
+  # end
+  #
+  # after :all do
+  #   ArangoDB.new.destroy
+  # end
 
   context "#new" do
     it "create a new Graph instance without global" do
@@ -32,6 +32,7 @@ describe ArangoG do
 
   context "#create" do
     it "create new graph" do
+      @myGraph.destroy
       myGraph = @myGraph.create
       expect(myGraph.graph).to eq "MyGraph"
     end
@@ -46,6 +47,8 @@ describe ArangoG do
 
   context "#manageVertexCollections" do
     it "add VertexCollection" do
+      @myGraph.removeEdgeCollection collection: "MyEdgeCollection"
+      @myGraph.removeVertexCollection collection: "MyCollection"
       myGraph = @myGraph.addVertexCollection collection: "MyCollection"
       expect(myGraph.orphanCollections[0]).to eq "MyCollection"
     end

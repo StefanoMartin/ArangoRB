@@ -1,18 +1,18 @@
-require_relative './../spec_helper'
+require_relative './../../spec_helper'
 
 describe ArangoC do
-  before :all do
-    ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-    ArangoS.database = "MyDatabase"
-    ArangoS.collection = "MyCollection"
-    ArangoDB.new.create
-    @myCollection = ArangoC.new
-    @myEdgeCollection = ArangoC.new collection: "MyEdgeCollection"
-  end
-
-  after :all do
-    ArangoDB.new.destroy
-  end
+  # before :all do
+  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+  #   ArangoS.database = "MyDatabase"
+  #   ArangoS.collection = "MyCollection"
+  #   ArangoDB.new.create
+  #   @myCollection = ArangoC.new
+  #   @myEdgeCollection = ArangoC.new collection: "MyEdgeCollection"
+  # end
+  #
+  # after :all do
+  #   ArangoDB.new.destroy
+  # end
 
   context "#new" do
     it "create a new instance without global" do
@@ -33,6 +33,7 @@ describe ArangoC do
 
   context "#create" do
     it "create a new Collection" do
+      @myCollection.destroy
       myCollection = @myCollection.create
       expect(myCollection.collection).to eq "MyCollection"
     end
@@ -43,6 +44,7 @@ describe ArangoC do
     end
 
     it "create a new Edge Collection" do
+      @myEdgeCollection.destroy
       myCollection = @myEdgeCollection.create_edge_collection
       expect(myCollection.type).to eq "Edge"
     end

@@ -1,11 +1,11 @@
-require_relative './../spec_helper'
+require_relative './../../spec_helper'
 
 describe ArangoDB do
-  before :all do
-    ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-    ArangoS.database = "MyDatabase"
-    @myDatabase = ArangoDB.new
-  end
+  # before :all do
+  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+  #   ArangoS.database = "MyDatabase"
+  #   @myDatabase = ArangoDB.new
+  # end
 
   context "#new" do
     it "create a new instance without global" do
@@ -21,6 +21,7 @@ describe ArangoDB do
 
   context "#create" do
     it "create a new Database" do
+      @myDatabase.destroy
       myDatabase = @myDatabase.create
       expect(myDatabase.database).to eq "MyDatabase"
     end

@@ -1,9 +1,9 @@
-require_relative './../spec_helper'
+require_relative './../../spec_helper'
 
 describe ArangoS do
-  before :all do
-    ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-  end
+  # before :all do
+  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+  # end
 
   context "#database" do
     it "setup a global database" do

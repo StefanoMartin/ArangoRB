@@ -37,23 +37,24 @@ class ArangoC < ArangoS
   # === GET ===
 
   def retrieve
-    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}").parsed_response
-    self.return_result(result, true)
+    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}", @@request)
+    self.return_result result: result, checkType: true
   end
 
   def properties
-    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/properties").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/properties", @@request)
+    result = self.return_result result: result
+    return result.is_a?(ArangoC) ? result.body : result
   end
 
   def count
-    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/count").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["count"]
+    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/count", @@request)
+    self.return_result result: result, key: "count"
   end
 
   def stats
-    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/figures").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["figures"]
+    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/figures", @@request)
+    self.return_result result: result, key: "figures"
   end
 
   # def revisions
@@ -65,9 +66,9 @@ class ArangoC < ArangoS
       "withRevisions": withRevisions,
       "withData": withData
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :query => query }
-    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/checksum", new_Document).parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["checksum"]
+    request = @@request.merge({ :query => query })
+    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/checksum", request)
+    self.return_result result: result, key: "checksum"
   end
 
   # === POST ===
@@ -87,9 +88,9 @@ class ArangoC < ArangoS
       "indexBuckets" => indexBuckets
     }
     body = body.delete_if{|k,v| v.nil?}.to_json
-    new_Collection = { :body => body }
-    result = self.class.post("/_db/#{@database}/_api/collection", new_Collection).parsed_response
-    self.return_result(result, true)
+    request = @@request.merge({ :body => body })
+    result = self.class.post("/_db/#{@database}/_api/collection", request)
+    self.return_result result: result, checkType: true
   end
   alias create_collection create
   alias create_document_collection create
@@ -129,25 +130,25 @@ class ArangoC < ArangoS
   # === DELETE ===
 
   def destroy
-    result = self.class.delete("/_db/#{@database}/_api/collection/#{@collection}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    result = self.class.delete("/_db/#{@database}/_api/collection/#{@collection}", @@request)
+    self.return_result result: result, caseTrue: true
   end
 
   def truncate
-    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/truncate").parsed_response
-    self.return_result(result)
+    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/truncate", @@request)
+    self.return_result result: result
   end
 
   # === MODIFY ===
 
   def load
-    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/load").parsed_response
-    self.return_result(result)
+    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/load", @@request)
+    self.return_result result: result
   end
 
   def unload
-    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/unload").parsed_response
-    self.return_result(result)
+    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/unload", @@request)
+    self.return_result result: result
   end
 
   def change(waitForSync: nil, journalSize: nil)
@@ -156,17 +157,17 @@ class ArangoC < ArangoS
       "waitForSync" => waitForSync
     }
     body = body.delete_if{|k,v| k.nil?}.to_json
-    new_Collection = { :body => body }
-    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/properties", new_Collection).parsed_response
-    self.return_result(result)
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/properties", request)
+    self.return_result result: result
   end
 
   def rename(newName)
     body = { "name" => newName }
-    new_Collection = { :body => body.to_json }
-    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/rename", new_Collection).parsed_response
-    @collection = newName unless result["error"]
-    self.return_result(result)
+    request = @@request.merge({ :body => body.to_json })
+    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/rename", request)
+    @collection = newName unless result.parsed_response["error"]
+    self.return_result result: result
   end
 
   # === SIMPLE FUNCTIONS ===
@@ -176,20 +177,25 @@ class ArangoC < ArangoS
       "collection" => @collection,
       "type" => type
     }.delete_if{|k,v| v.nil?}.to_json
-    collection_to_look = { :body => body }
-    result = self.class.put("/_db/#{@database}/_api/simple/all-keys", collection_to_look).parsed_response
-    if type.nil?
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          result["result"].map{|x| value = self.class.get(x).parsed_response; ArangoDoc.new(key: value["_key"], collection: @collection, body: value)}
-        end
-      end
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/all-keys", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+      result = result.parsed_response
+      if type.nil?
+        if @@verbose
+          result
+        else
+          if result["error"]
+            result["errorMessage"]
+          else
+            result["result"].map{|x| value = self.class.get(x).parsed_response; ArangoDoc.new(key: value["_key"], collection: @collection, body: value)}
+          end
+        end
+      else
+        @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+      end
     end
   end
 
@@ -200,15 +206,20 @@ class ArangoC < ArangoS
       "limit" => limit,
       "batchSize" => batchSize
     }.delete_if{|k,v| v.nil?}.to_json
-    collection_to_look = { :body => body }
-    result = self.class.put("/_db/#{@database}/_api/simple/all", collection_to_look).parsed_response
-    if @@verbose
-      result
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/all", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+        if result["error"]
+          result["errorMessage"]
+        else
+          result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+        end
       end
     end
   end
@@ -221,15 +232,20 @@ class ArangoC < ArangoS
       "limit" => limit,
       "batchSize" => batchSize
     }.delete_if{|k,v| v.nil?}.to_json
-    collection_to_look = { :body => body }
-    result = self.class.put("/_db/#{@database}/_api/simple/by-example", collection_to_look).parsed_response
-    if @@verbose
-      result
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/by-example", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+        if result["error"]
+          result["errorMessage"]
+        else
+          result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+        end
       end
     end
   end
@@ -239,15 +255,20 @@ class ArangoC < ArangoS
       "collection" => @collection,
       "example" => match
     }.delete_if{|k,v| v.nil?}.to_json
-    collection_to_look = { :body => body }
-    result = self.class.put("/_db/#{@database}/_api/simple/first-example", collection_to_look).parsed_response
-    if @@verbose
-      result
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/first-example", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+        if result["error"]
+          result["errorMessage"]
+        else
+          ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+        end
       end
     end
   end
@@ -256,39 +277,50 @@ class ArangoC < ArangoS
     keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil} if keys.is_a? Array
     keys = [keys] if keys.is_a? String
     body = { "collection" => @collection, "keys" => keys }
-    collection_to_look = { :body => body.to_json }
-    result = self.class.put("/_db/#{@database}/_api/simple/lookup-by-keys", collection_to_look).parsed_response
-    if @@verbose
-      result
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/lookup-by-keys", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        result["documents"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+        if result["error"]
+          result["errorMessage"]
+        else
+          result["documents"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+        end
       end
     end
   end
 
   def random
-    body = { "collection" => @collection }
-    collection_to_look = { :body => body.to_json }
-    result = self.class.put("/_db/#{@database}/_api/simple/any", collection_to_look)
-    if @@verbose
-      result
+    body = { "collection" => @collection }.to_json
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/any", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+        if result["error"]
+          result["errorMessage"]
+        else
+          ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+        end
       end
     end
   end
 
   def removeByKeys(keys:, options: nil)
     keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil}
-    body = { "collection" => @collection, "keys" => keys, "options" => options }.delete_if{|k,v| v.nil?}
-    collection_to_look = { :body => body.to_json }
-    self.class.put("/_db/#{@database}/_api/simple/remove-by-keys", collection_to_look).parsed_response
+    body = { "collection" => @collection, "keys" => keys, "options" => options }.delete_if{|k,v| v.nil?}.to_json
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/remove-by-keys", request)
+    self.return_result result: result, caseTrue: true
   end
 
   def removeMatch(match:, options: nil)
@@ -297,8 +329,9 @@ class ArangoC < ArangoS
       "example" => match,
       "options" => option
     }.delete_if{|k,v| v.nil?}.to_json
-    collection_to_look = { :body => body }
-    self.class.put("/_db/#{@database}/_api/simple/remove-by-example", collection_to_look).parsed_response
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/remove-by-example", request)
+    self.return_result result: result, caseTrue: true
   end
 
   def replaceMatch(match:, newValue:, options: nil)
@@ -308,8 +341,9 @@ class ArangoC < ArangoS
       "options" => option,
       "newValue" => newValue
     }.delete_if{|k,v| v.nil?}.to_json
-    collection_to_look = { :body => body }
-    self.class.put("/_db/#{@database}/_api/simple/replace-by-example", collection_to_look).parsed_response
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/replace-by-example", request)
+    self.return_result result: result
   end
 
   def updateMatch(match:, newValue:, options: nil)
@@ -319,8 +353,9 @@ class ArangoC < ArangoS
       "options" => option,
       "newValue" => newValue
     }.delete_if{|k,v| v.nil?}.to_json
-    collection_to_look = { :body => body }
-    self.class.put("/_db/#{@database}/_api/simple/update-by-example", collection_to_look).parsed_response
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_db/#{@database}/_api/simple/update-by-example", request)
+    self.return_result result: result
   end
 
 # === IMPORT ===
@@ -339,23 +374,9 @@ class ArangoC < ArangoS
     body = []
     body << attributes
     body << values
-    new_Document = { :body => body.to_json, :query => query }
-    result = self.class.post("/_db/#{@database}/_api/import", new_Document).parsed_response
-    if @@verbose
-      unless result["errorMessage"]
-        result.delete("error")
-        result.delete("code")
-      end
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    request = @@request.merge({ :body => body.to_json, :query => query })
+    result = self.class.post("/_db/#{@database}/_api/import", request)
+    self.return_result result: result
   end
 
   def importJSON(body:, type: "auto", from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
@@ -369,76 +390,36 @@ class ArangoC < ArangoS
       "onDuplicate": onDuplicate,
       "complete": complete,
       "details": details
-    }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json, :query => query }
-    result = self.class.post("/_db/#{@database}/_api/import", new_Document).parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    }.delete_if{|k,v| v.nil?}.to_json
+    request = @@request.merge({ :body => body, :query => query })
+    result = self.class.post("/_db/#{@database}/_api/import", request)
+    self.return_result result: result
   end
 
 # === INDEXES ===
 
   def retrieveIndex(id:)
-    result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}").parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}")
+    self.return_result result: result
   end
 
   def indexes
     query = { "collection": @collection }
-    new_Document = { :query => query }
-    result = self.class.get("/_db/#{@database}/_api/index", new_Document).parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    request = @@request.merge({ :query => query })
+    result = self.class.get("/_db/#{@database}/_api/index", request)
+    self.return_result result: result
   end
 
   def createIndex(body: nil)
     query = { "collection": @collection }
-    new_Document = { :body => body.to_json, :query => query }
-    result = self.class.post("/_db/#{@database}/_api/index", new_Document).parsed_response
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
+    request = @@request.merge({ :body => body.to_json, :query => query })
+    result = self.class.post("/_db/#{@database}/_api/index", request)
+    self.return_result result: result
   end
 
   def deleteIndex(id:)
-    result = self.class.delete("/_db/#{@database}/_api/index/#{@collection}/#{id}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    result = self.class.delete("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
+    self.return_result result: result, caseTrue: true
   end
 
 # === REPLICATION ===
@@ -454,31 +435,42 @@ class ArangoC < ArangoS
       "ticks": ticks,
       "flush": flush
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :query => query }
-    self.class.get("/_db/#{@database}/_api/replication/inventory", new_Document).parsed_response
+    request = @@request.merge({ :query => query })
+    result = self.class.get("/_db/#{@database}/_api/replication/inventory", request)
+    self.return_result result: result
   end
 
 # === UTILITY ===
 
-  def return_result(result, checkType=false)
-    if @@verbose
-      resultTemp = result
-      unless result["errorMessage"]
-        result.delete("error")
-        result.delete("code")
-        @body = result
-        @type = result["type"] == 2 ? "Document" : "Edge" if(checkType)
-      end
-      resultTemp
+  def return_result(result:, caseTrue: false, key: nil, checkType: false)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose || !result.is_a?(Hash)
+        resultTemp = result
+        unless result["errorMessage"]
+          result.delete("error")
+          result.delete("code")
+          @body = result
+          @type = result["type"] == 2 ? "Document" : "Edge" if(checkType)
+        end
+        resultTemp
       else
-        result.delete("error")
-        result.delete("code")
-        @body = result
-        @type = result["type"] == 2 ? "Document" : "Edge" if(checkType)
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          return true if caseTrue
+          result.delete("error")
+          result.delete("code")
+          @body = result
+          @type = result["type"] == 2 ? "Document" : "Edge" if(checkType)
+          if key.nil?
+            self
+          else
+            result[key]
+          end
+        end
       end
     end
   end

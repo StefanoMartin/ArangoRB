@@ -56,25 +56,17 @@ class ArangoDoc < ArangoS
   # === GET ===
 
   def retrieve
-    result = self.class.get("/_db/#{@database}/_api/document/#{@id}").parsed_response
-    if @@verbose
-      @body = result unless result["error"]
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        @body = result
-        self
-      end
-    end
+    result = self.class.get("/_db/#{@database}/_api/document/#{@id}", @@request)
+    self.return_result result: result
   end
 
   def retrieve_edges(collection: , direction: nil)
     query = {"vertex" => @id, "direction" => direction }.delete_if{|k,v| v.nil?}
-    new_Document = { :query => query }
+    request = @@request.merge({ :query => query })
     collection = collection.is_a?(String) ? collection : collection.collection
-    result = self.class.get("/_db/#{@database}/_api/edges/#{collection}", new_Document).parsed_response
+    result = self.class.get("/_db/#{@database}/_api/edges/#{collection}", request)
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["edges"].map{|edge|
       ArangoDoc.new(key: edge["_key"], collection: collection, database: @database, body: edge)
     }
@@ -93,14 +85,18 @@ class ArangoDoc < ArangoS
   end
 
   def from
-    result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_from"]}").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_from"]}", @@request)
     collection = result["_id"].split("/")[0]
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDoc.new(key: result["_key"], collection: collection, database: @database, body: result)
   end
 
   def to
-    result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_to"]}").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_to"]}", @@request)
     collection = result["_id"].split("/")[0]
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDoc.new(key: result["_key"], collection: collection, database: @database, body: result)
   end
 
@@ -115,14 +111,16 @@ class ArangoDoc < ArangoS
     query = {"waitForSync" => waitForSync, "returnNew" => returnNew}.delete_if{|k,v| v.nil?}
     unless body.is_a? Array
       body["_key"] = @key if body["_key"].nil? && !@key.nil?
-      new_Document = { :body => body.to_json, :query => query }
-      result = self.class.post("/_db/#{database}/_api/document/#{collection}", new_Document).parsed_response
-      return_result(result, body)
+      request = @@request.merge({ :body => body.to_json, :query => query })
+      result = self.class.post("/_db/#{database}/_api/document/#{collection}", request)
+      return_result result: result, body: body
     else
-      new_Document = { :body => body.to_json, :query => query }
-      result = self.class.post("/_db/#{database}/_api/document/#{collection}", new_Document).parsed_response
+      request = @@request.merge({ :body => body.to_json, :query => query })
+      result = self.class.post("/_db/#{database}/_api/document/#{collection}", request)
       i = -1
-      return @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
+      return result.headers["x-arango-async-id"] if @@async == "store"
+      result = result.parsed_response
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
     end
   end
   alias create_document create
@@ -134,14 +132,16 @@ class ArangoDoc < ArangoS
     query = {"waitForSync" => waitForSync, "returnNew" => returnNew}.delete_if{|k,v| v.nil?}
     unless body.is_a? Array
       body["_key"] = @key if body["_key"].nil? && !@key.nil?
-      new_Document = { :body => body.to_json, :query => query }
-      result = post("/_db/#{database}/_api/document/#{collection}", new_Document).parsed_response
-      self.return_result(result, body)
+      request = @@request.merge({ :body => body.to_json, :query => query })
+      result = post("/_db/#{database}/_api/document/#{collection}", request)
+      ArangoDoc.new.return_result result: result, body: body, newo: true
     else
-      new_Document = { :body => body.to_json, :query => query }
-      result = post("/_db/#{database}/_api/document/#{collection}", new_Document).parsed_response
+      request = @@request.merge({ :body => body.to_json, :query => query })
+      result = post("/_db/#{database}/_api/document/#{collection}", request)
       i = -1
-      return @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
+      return result.headers["x-arango-async-id"] if @@async == "store"
+      result = result.parsed_response
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
     end
   end
 
@@ -178,7 +178,6 @@ class ArangoDoc < ArangoS
         end
       end
     end
-
     edges = edges[0] if edges.length == 1
     self.create(body: edges, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
   end
@@ -192,15 +191,17 @@ class ArangoDoc < ArangoS
       "returnOld" => returnOld,
       "ignoreRevs" => ignoreRevs
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json, :query => query }
+    request = @@request.merge({ :body => body.to_json, :query => query })
 
     unless body.is_a? Array
-      result = self.class.put("/_db/#{@database}/_api/document/#{@id}", new_Document).parsed_response
-      return_result(result, body)
+      result = self.class.put("/_db/#{@database}/_api/document/#{@id}", request)
+      self.return_result result: result, body: body
     else
-      result = self.class.put("/_db/#{@database}/_api/document/#{@collection}", new_Document).parsed_response
+      result = self.class.put("/_db/#{@database}/_api/document/#{@collection}", request)
       i = -1
-      return @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
+      return result.headers["x-arango-async-id"] if @@async == "store"
+      result = result.parsed_response
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
     end
   end
 
@@ -213,10 +214,12 @@ class ArangoDoc < ArangoS
       "keepNull" => keepNull,
       "mergeObjects" => mergeObjects
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json, :query => query }
+    request = @@request.merge({ :body => body.to_json, :query => query })
 
     unless body.is_a? Array
-      result = self.class.patch("/_db/#{@database}/_api/document/#{@id}", new_Document).parsed_response
+      result = self.class.patch("/_db/#{@database}/_api/document/#{@id}", request)
+      return result.headers["x-arango-async-id"] if @@async == "store"
+      result = result.parsed_response
       if @@verbose
         unless result["error"]
           @key = result["_key"]
@@ -235,9 +238,11 @@ class ArangoDoc < ArangoS
         end
       end
     else
-      result = self.class.patch("/_db/#{@database}/_api/document/#{@collection}", new_Document).parsed_response
+      result = self.class.patch("/_db/#{@database}/_api/document/#{@collection}", request)
       i = -1
-      return @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
+      return result.headers["x-arango-async-id"] if @@async == "store"
+      result = result.parsed_response
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
     end
   end
 
@@ -249,49 +254,90 @@ class ArangoDoc < ArangoS
       "returnOld" => returnOld,
       "ignoreRevs" => ignoreRevs
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :query => query }
+    request = @@request.merge({ :query => query })
 
     unless body.is_a? Array
-      result = self.class.delete("/_db/#{@database}/_api/document/#{@id}", new_Document).parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : true
+      result = self.class.delete("/_db/#{@database}/_api/document/#{@id}", request)
+      return_result result: result, caseTrue: true
     else
       new_Document = { :body => body.to_json, :query => query }
-      result = self.class.delete("/_db/#{@database}/_api/document/#{@collection}", new_Document).parsed_response
-      return result
+      result = self.class.delete("/_db/#{@database}/_api/document/#{@collection}", request)
+      return_result result: result, caseTrue: true
     end
   end
 
 # === UTILITY ===
 
-  def return_result(result, body)
-    if @@verbose
-      unless result["error"]
-        @key = result["_key"]
-        @id = "#{@collection}/#{@key}"
-        @body = body
-      end
-      result
+#   def return_result(result, body)
+#     if @@verbose
+#       unless result["error"]
+#         @key = result["_key"]
+#         @id = "#{@collection}/#{@key}"
+#         @body = body
+#       end
+#       result
+#     else
+#       if result["error"]
+#         result["errorMessage"]
+#       else
+#         @key = result["_key"]
+#         @id = "#{@collection}/#{@key}"
+#         @body = body
+#         self
+#       end
+#     end
+#   end
+#
+# # === UTILITY ===
+
+  def return_result(result:, body: {}, caseTrue: false, key: nil, newo: false)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose || !result.is_a?(Hash)
+        resultTemp = result
+        unless result["errorMessage"]
+          result.delete("error")
+          result.delete("code")
+          @key = result["_key"]
+          @collection = result["_id"].split("/")[0]
+          @body = result.merge(body)
+        end
+        resultTemp
       else
-        @key = result["_key"]
-        @id = "#{@collection}/#{@key}"
-        @body = body
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          if newo
+            ArangoDoc.new key: result["_key"], collection: result["_id"].split("/")[0], body: body
+          else
+            return true if caseTrue        
+            result.delete("error")
+            result.delete("code")
+            @key = result["_key"]
+            @collection = result["_id"].split("/")[0]
+            @body = result.merge(body)
+            if key.nil?
+              self
+            else
+              result[key]
+            end
+          end
+        end
       end
     end
   end
 
-  def self.return_result(result, body)
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        ArangoDoc.new key: result["_key"], collection: result["_id"].split("/")[0], body: body
-      end
-    end
-  end
+  # def self.return_result(result, body)
+  #   if @@verbose
+  #     result
+  #   else
+  #     if result["error"]
+  #       result["errorMessage"]
+  #     else
+  #       ArangoDoc.new key: result["_key"], collection: result["_id"].split("/")[0], body: body
+  #     end
+  #   end
+  # end
 end

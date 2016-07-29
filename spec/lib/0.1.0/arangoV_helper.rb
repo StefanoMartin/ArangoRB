@@ -1,22 +1,22 @@
-require_relative './../spec_helper'
+require_relative './../../spec_helper'
 
 describe ArangoV do
-  before :all do
-    ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-    ArangoS.database = "MyDatabase"
-    ArangoS.collection = "MyCollection"
-    ArangoS.graph = "MyGraph"
-    ArangoDB.new.create
-    @myGraph = ArangoG.new.create
-    @myCollection = ArangoC.new.create
-    @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
-    @myVertex = ArangoV.new body: {"Hello" => "World", "num" => 1}, key: "FirstDocument"
-    @myGraph.addVertexCollection collection: "MyCollection"
-  end
-
-  after :all do
-    ArangoDB.new.destroy
-  end
+  # before :all do
+  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+  #   ArangoS.database = "MyDatabase"
+  #   ArangoS.collection = "MyCollection"
+  #   ArangoS.graph = "MyGraph"
+  #   ArangoDB.new.create
+  #   @myGraph = ArangoG.new.create
+  #   @myCollection = ArangoC.new.create
+  #   @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
+  #   @myVertex = ArangoV.new body: {"Hello" => "World", "num" => 1}, key: "FirstDocument"
+  #   @myGraph.addVertexCollection collection: "MyCollection"
+  # end
+  #
+  # after :all do
+  #   ArangoDB.new.destroy
+  # end
 
   context "#new" do
     it "create a new Document instance without global" do
@@ -32,6 +32,7 @@ describe ArangoV do
 
   context "#create" do
     it "create a new Document" do
+      @myVertex.destroy
       myVertex = @myVertex.create
       expect(myVertex.body["Hello"]).to eq "World"
     end

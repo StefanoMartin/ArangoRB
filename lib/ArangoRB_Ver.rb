@@ -48,16 +48,21 @@ class ArangoV < ArangoDoc
   # === GET ===
 
   def retrieve
-    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}").parsed_response
-    if @@verbose
-      @body = result["vertex"] unless result["error"]
-      result
+    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        @body = result["vertex"] unless result["error"]
+        result
       else
-        @body = result["vertex"]
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          @body = result["vertex"]
+          self
+        end
       end
     end
   end
@@ -67,9 +72,9 @@ class ArangoV < ArangoDoc
   def create(body: @body, waitForSync: nil)
     query = {"waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
     body["_key"] = @key if body["_key"].nil? && !@key.nil?
-    new_Document = { :body => body.to_json, :query => query }
-    result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@collection}", new_Document).parsed_response
-    return_result(result, body)
+    request = @@request.merge({ :body => body.to_json, :query => query })
+    result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@collection}", request)
+    return_result result: result, body: body
   end
   alias create_vertex create
 
@@ -77,61 +82,72 @@ class ArangoV < ArangoDoc
 
   def replace(body: {}, waitForSync: nil)
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json, :query => query }
-    result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", new_Document).parsed_response
-    return_result(result, body)
-  end
-
-  def update(body: {}, waitForSync: nil, keepNull: nil)
-    query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json, :query => query }
-    result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", new_Document).parsed_response
-    if @@verbose
-      unless result["error"]
-        @key = result["_key"]
-        @id = "#{@collection}/#{@key}"
-        @body = body
-      end
-      result
+    request = @@request.merge({ :body => body.to_json, :query => query })
+    result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        unless result["error"]
+          @key = result["_key"]
+          @id = "#{@collection}/#{@key}"
+          @body = body
+        end
+        result
       else
-        @key = result["_key"]
-        @id = "#{@collection}/#{@key}"
-        @body = @body.merge(body)
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          @key = result["_key"]
+          @id = "#{@collection}/#{@key}"
+          @body = result.merge(body)
+          self
+        end
       end
     end
   end
 
+  def update(body: {}, waitForSync: nil, keepNull: nil)
+    query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
+    request = @@request.merge({ :body => body.to_json, :query => query })
+    result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)
+    return_result result: result, body: body
+  end
+
 # === DELETE ===
 
-  def destroy(body: nil, waitForSync: nil)
+  def destroy(waitForSync: nil)
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
-    new_Document = { :query => query }
-    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    request = @@request.merge({ :query => query })
+    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)
+    return_result result: result, caseTrue: true
   end
 
 # === UTILITY ===
 
-  def return_result(result, body)
-    if @@verbose
-      unless result["error"]
-        @key = result["vertex"]["_key"]
-        @id = "#{@collection}/#{@key}"
-        @body = body
-      end
-      result
+  def return_result(result:, body: {}, caseTrue: false)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        unless result["error"]
+          @key = result["vertex"]["_key"]
+          @id = "#{@collection}/#{@key}"
+          @body = result["vertex"].merge(body)
+        end
+        result
       else
-        @key = result["vertex"]["_key"]
-        @id = "#{@collection}/#{@key}"
-        @body = body
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          return true if caseTrue
+          @key = result["vertex"]["_key"]
+          @id = "#{@collection}/#{@key}"
+          @body = result["vertex"].merge(body)
+          self
+        end
       end
     end
   end

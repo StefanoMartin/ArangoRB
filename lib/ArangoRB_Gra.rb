@@ -33,16 +33,21 @@ class ArangoG < ArangoS
 # === GET ===
 
   def retrieve
-    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}").parsed_response
-    if @@verbose
-      result
+    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        @edgeDefinitions = result["graph"]["edgeDefinitions"]
-        @orphanCollections = result["graph"]["orphanCollections"]
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          @edgeDefinitions = result["graph"]["edgeDefinitions"]
+          @orphanCollections = result["graph"]["orphanCollections"]
+          self
+        end
       end
     end
   end
@@ -51,53 +56,78 @@ class ArangoG < ArangoS
 
   def create
     body = { "name" => @graph, "edgeDefinitions" => @edgeDefinitions, "orphanCollections" => @orphanCollections }
-    new_Document = { :body => body.to_json }
-    result = self.class.post("/_db/#{@database}/_api/gharial", new_Document).parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : self
+    request = @@request.merge({ :body => body.to_json })
+    result = self.class.post("/_db/#{@database}/_api/gharial", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      @@verbose ? result : result["error"] ? result["errorMessage"] : self
+    end
   end
 
 # === DELETE ===
 
   def destroy
-    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["removed"]
+    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    end
   end
 
 # === VERTEX COLLECTION  ===
 
   def vertexCollections
-    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoC.new(collection: x)}
+    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoC.new(collection: x)}
+    end
   end
 
   def addVertexCollection(collection:)
     collection = collection.is_a?(String) ? collection : collection.collection
-    body = { "collection" => collection }
-    new_Document = { :body => body.to_json }
-    result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex", new_Document).parsed_response
-    if @@verbose
-      result
+    body = { "collection" => collection }.to_json
+    request = @@request.merge({ :body => body })
+    result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        @orphanCollections << collection
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          @orphanCollections << collection
+          self
+        end
       end
     end
   end
 
   def removeVertexCollection(collection:)
     collection = collection.is_a?(String) ? collection : collection.collection
-    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{collection}")
-    if @@verbose
-      result
+    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{collection}", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        @orphanCollections -= [collection]
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          @orphanCollections -= [collection]
+          self
+        end
       end
     end
   end
@@ -105,8 +135,13 @@ class ArangoG < ArangoS
 # === EDGE COLLECTION ===
 
   def edgeCollections
-    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/edge").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoC.new(collection: x)}
+    result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/edge", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoC.new(collection: x)}
+    end
   end
 
   def addEdgeCollection(collection:, from:, to:, replace: false)
@@ -117,27 +152,32 @@ class ArangoG < ArangoS
     body["collection"] = collection
     body["from"] = from.map{|f| f.is_a?(String) ? f : f.id }
     body["to"] = to.map{|t| t.is_a?(String) ? t : t.id }
-    new_Document = { :body => body.to_json }
+    request = @@request.merge({ :body => body.to_json })
 
     if replace
-      result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", new_Document).parsed_response
+      result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", request)
     else
-      result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge", new_Document).parsed_response
+      result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge", request)
     end
 
-    if @@verbose
-      unless result["error"]
-        @edgeDefinitions = result["graph"]["edgeDefinitions"]
-        @orphanCollections = result["graph"]["orphanCollections"]
-      end
-      result
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        unless result["error"]
+          @edgeDefinitions = result["graph"]["edgeDefinitions"]
+          @orphanCollections = result["graph"]["orphanCollections"]
+        end
+        result
       else
-        @edgeDefinitions = result["graph"]["edgeDefinitions"]
-        @orphanCollections = result["graph"]["orphanCollections"]
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          @edgeDefinitions = result["graph"]["edgeDefinitions"]
+          @orphanCollections = result["graph"]["orphanCollections"]
+          self
+        end
       end
     end
   end
@@ -148,20 +188,26 @@ class ArangoG < ArangoS
 
   def removeEdgeCollection(collection:)
     collection = collection.is_a?(String) ? collection : collection.collection
-    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}")
-    if @@verbose
-      unless result["error"]
-        @edgeDefinitions = result["graph"]["edgeDefinitions"]
-        @orphanCollections = result["graph"]["orphanCollections"]
-      end
-      result
+    result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", @@request)
+
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        unless result["error"]
+          @edgeDefinitions = result["graph"]["edgeDefinitions"]
+          @orphanCollections = result["graph"]["orphanCollections"]
+        end
+        result
       else
-        @edgeDefinitions = result["graph"]["edgeDefinitions"]
-        @orphanCollections = result["graph"]["orphanCollections"]
-        self
+        if result["error"]
+          result["errorMessage"]
+        else
+          @edgeDefinitions = result["graph"]["edgeDefinitions"]
+          @orphanCollections = result["graph"]["orphanCollections"]
+          self
+        end
       end
     end
   end

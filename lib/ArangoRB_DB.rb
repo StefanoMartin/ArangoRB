@@ -14,8 +14,9 @@ class ArangoDB < ArangoS
   # === GET ===
 
   def self.info
-    result = get("/_api/database/current")
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+    result = get("/_api/database/current", @@request)
+    return_result result: result, key: "result"
+    # @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
   end
 
   # === POST ===
@@ -28,80 +29,93 @@ class ArangoDB < ArangoS
       "users" => users
     }
     body = body.delete_if{|k,v| v.nil?}.to_json
-    new_DB = { :body => body }
-    result = self.class.post("/_api/database", new_DB)
-    @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDB.new(database: @database)
+    request = @@request.merge({ :body => body })
+    result = self.class.post("/_api/database", request)
+    @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : self
   end
 
   # === DELETE ===
 
   def destroy
-    result = self.class.delete("/_api/database/#{@database}")
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+    result = self.class.delete("/_api/database/#{@database}", @@request)
+    self.class.return_result(result: result, caseTrue: true)
   end
 
   # === LISTS ===
 
   def self.databases(user: nil)
-    result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}")
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDB.new(database: x)}
+    result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}", @@request)
+    @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : result.parsed_response["result"].map{|x| ArangoDB.new(database: x)}
   end
 
   def collections(excludeSystem: true)
     query = { "excludeSystem": excludeSystem }.delete_if{|k,v| v.nil?}
-    new_Document = { :query => query }
-    result = self.class.get("/_db/#{@database}/_api/collection", new_Document)
-    if @@verbose
-      return result
+    request = @@request.merge({ :query => query })
+    result = self.class.get("/_db/#{@database}/_api/collection", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        return result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        return result["result"].map{|x| ArangoC.new(database: @database, collection: x["name"])}
+        if result["error"]
+          result["errorMessage"]
+        else
+          result["result"].map{|x| ArangoC.new(database: @database, collection: x["name"])}
+        end
       end
     end
   end
 
   def graphs
-    result = self.class.get("/_db/#{@database}/_api/gharial")
-    if @@verbose
-      return result
+    result = self.class.get("/_db/#{@database}/_api/gharial", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        return result["errorMessage"]
+      result = result.parsed_response
+      if @@verbose
+        result
       else
-        return result["graphs"].map{|x| ArangoG.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
+        if result["error"]
+          result["errorMessage"]
+        else
+          result["graphs"].map{|x| ArangoG.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
+        end
       end
     end
   end
 
   def functions
-    self.class.get("/_db/#{@database}/_api/aqlfunction").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/aqlfunction", @@request)
+    self.class.return_result result: result
   end
 
   # === QUERY ===
 
   def propertiesQuery
-    result = self.class.get("/_db/#{@database}/_api/query/properties").parsed_response
-    return_result(result)
+    result = self.class.get("/_db/#{@database}/_api/query/properties", @@request)
+    self.class.return_result result: result
   end
 
   def currentQuery
-    self.class.get("/_db/#{@database}/_api/query/current").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/query/current", @@request)
+    self.class.return_result result: result
   end
 
   def slowQuery
-    self.class.get("/_db/#{@database}/_api/query/slow").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/query/slow", @@request)
+    self.class.return_result result: result
   end
 
   def stopSlowQuery
-    result = self.class.delete("/_db/#{@database}/_api/query/slow").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    result = self.class.delete("/_db/#{@database}/_api/query/slow", @@request)
+    self.class.return_result result: result, caseTrue: true
   end
 
   def killQuery(id:)
-    result = self.class.delete("/_db/#{@database}/_api/query/#{id}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    result = self.class.delete("/_db/#{@database}/_api/query/#{id}", @@request)
+    self.class.return_result result: result, caseTrue: true
   end
 
   def changePropertiesQuery(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)
@@ -112,26 +126,28 @@ class ArangoDB < ArangoS
       "trackSlowQueries" => trackSlowQueries,
       "maxQueryStringLength" => maxQueryStringLength
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json }
-    result = self.class.put("/_db/#{@database}/_api/query/properties", new_Document).parsed_response
-    return_result(result)
+    request = @@request.merge({ :body => body.to_json })
+    result = self.class.put("/_db/#{@database}/_api/query/properties", request)
+    self.class.return_result result: result
   end
 
 # === CACHE ===
 
   def clearCache
-    result = self.class.delete("/_db/#{@database}/_api/query-cache").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    result = self.class.delete("/_db/#{@database}/_api/query-cache", @@request)
+    self.class.return_result result: result, caseTrue: true
   end
 
   def propertyCache
-    self.class.get("/_db/#{@database}/_api/query-cache/properties").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/query-cache/properties", @@request)
+    self.class.return_result result: result
   end
 
   def changePropertyCache(mode: nil, maxResults: nil)
     body = { "mode" => mode, "maxResults" => maxResults }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json }
-    self.class.put("/_db/#{@database}/_api/query-cache/properties", new_Document).parsed_response
+    request = @@request.merge({ :body => body.to_json })
+    result = self.class.put("/_db/#{@database}/_api/query-cache/properties", request)
+    self.class.return_result result: result
   end
 
   # === AQL FUNCTION ===
@@ -142,36 +158,41 @@ class ArangoDB < ArangoS
       "name" => name,
       "isDeterministic" => isDeterministic
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json }
-    result = self.class.post("/_db/#{@database}/_api/aqlfunction", new_Document).parsed_response
-    return_result(result)
+    request = @@request.merge({ :body => body.to_json })
+    result = self.class.post("/_db/#{@database}/_api/aqlfunction", request)
+    self.class.return_result result: result
   end
 
   def deleteFunction(name:)
-    result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}", @@request)
+    self.class.return_result result: result, caseTrue: true
   end
 
   # === ASYNC ===
 
+  def pendingAsync
+    result = self.class.put("/_db/#{@database}/_api/job/pending", @@request)
+    self.class.return_result result: result
+  end
+
   def fetchAsync(id)
-    result = self.class.put("/_db/#{@database}/_api/job/#{id}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+    result = self.class.put("/_db/#{@database}/_api/job/#{id}", @@request)
+    self.class.return_result result: result
   end
 
   def retrieveAsync(id)
-    result = self.class.get("/_db/#{@database}/_api/job/#{id}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+    result = self.class.get("/_db/#{@database}/_api/job/#{id}", @@request)
+    self.class.return_result result: result
   end
 
   def cancelAsync(id)
-    result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result
+    result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel", @@request)
+    self.class.return_result result: result
   end
 
   def destroyAsync(type)
-    result = self.class.delete("/_db/#{@database}/_api/job/#{type}").parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    result = self.class.delete("/_db/#{@database}/_api/job/#{type}", @@request)
+    self.class.return_result result: result, caseTrue: true
   end
 
   def destroyAllAsync
@@ -182,18 +203,21 @@ class ArangoDB < ArangoS
 
   def inventory(includeSystem: false)
     query = { "includeSystem": includeSystem }
-    new_Document = { :query => query }
-    self.class.get("/_db/#{@database}/_api/replication/inventory", new_Document).parsed_response
+    request = @@request.merge({ :query => query })
+    result = self.class.get("/_db/#{@database}/_api/replication/inventory", request)
+    self.class.return_result result: result
   end
 
   def clusterInventory(includeSystem: false)
     query = { "includeSystem": includeSystem }
-    new_Document = { :query => query }
-    self.class.get("/_db/#{@database}/_api/replication/clusterInventory", new_Document).parsed_response
+    request = @@request.merge({ :query => query })
+    result = self.class.get("/_db/#{@database}/_api/replication/clusterInventory", request)
+    self.class.return_result result: result
   end
 
   def logger
-    self.class.get("/_db/#{@database}/_api/replication/logger-state").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/replication/logger-state")
+    self.class.return_result result: result
   end
 
   def lastLogger(from: nil, to: nil, chunkSize: nil, includeSystem: false)
@@ -203,16 +227,19 @@ class ArangoDB < ArangoS
       "chunkSize": chunkSize,
       "includeSystem": includeSystem
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :query => query }
-    self.class.get("/_db/#{@database}/_api/replication/logger-follow", new_Document).parsed_response
+    request = @@request.merge({ :query => query })
+    result = self.class.get("/_db/#{@database}/_api/replication/logger-follow", request)
+    self.class.return_result result: result
   end
 
   def firstTick
-    self.class.get("/_db/#{@database}/_api/replication/logger-first-tick").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/replication/logger-first-tick")
+    self.class.return_result result: result
   end
 
   def rangeTick
-    self.class.get("/_db/#{@database}/_api/replication/logger-tick-ranges").parsed_response
+    result = self.class.get("/_db/#{@database}/_api/replication/logger-tick-ranges")
+    self.class.return_result result: result
   end
 
   def sync(username:, password:, includeSystem:, endpoint:, initialSyncMaxWaitTime: nil, database: @database, restrictType: nil, incremental: nil, restrictCollections: nil)
@@ -227,39 +254,40 @@ class ArangoDB < ArangoS
       "incremental" => incremental,
       "restrictCollections" =>  restrictCollections
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json }
-    self.class.put("/_db/#{@database}/_api/replication/sync", new_Document).parsed_response
+    request = @@request.merge({ :body => body.to_json })
+    result = self.class.put("/_db/#{@database}/_api/replication/sync", request)
+    self.class.return_result result: result
   end
 
   # === USER ===
 
   def grant(user: @@user)
     body = { "grant" => "rw" }.to_json
-    new_DB = { :body => body }
+    request = @@request.merge({ :body => body })
     result = self.class.post("/_api/user/#{user}/database/#{@database}", new_DB)
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    self.class.return_result result: result, caseTrue: true
   end
 
   def revoke(user: @@user)
     body = { "grant" => "none" }.to_json
-    new_DB = { :body => body }
+    request = @@request.merge({ :body => body })
     result = self.class.post("/_api/user/#{user}/database/#{@database}", new_DB)
-    @@verbose ? result : result["error"] ? result["errorMessage"] : true
+    self.class.return_result result: result, caseTrue: true
   end
 
   # === UTILITY ===
 
-  def return_result(result)
-    if @@verbose
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        result.delete("error")
-        result.delete("code")
-        result
-      end
-    end
-  end
+  # def return_result(result)
+  #   if @@verbose
+  #     result
+  #   else
+  #     if result["error"]
+  #       result["errorMessage"]
+  #     else
+  #       result.delete("error")
+  #       result.delete("code")
+  #       result
+  #     end
+  #   end
+  # end
 end

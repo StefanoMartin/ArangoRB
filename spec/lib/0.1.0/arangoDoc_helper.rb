@@ -1,19 +1,19 @@
-require_relative './../spec_helper'
+require_relative './../../spec_helper'
 
 describe ArangoDoc do
-  before :all do
-    ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-    ArangoS.database = "MyDatabase"
-    ArangoS.collection = "MyCollection"
-    ArangoDB.new.create
-    @myCollection = ArangoC.new.create
-    @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
-    @myDocument = ArangoDoc.new body: {"Hello" => "World", "num" => 1}, key: "FirstDocument"
-  end
-
-  after :all do
-    ArangoDB.new.destroy
-  end
+  # before :all do
+  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+  #   ArangoS.database = "MyDatabase"
+  #   ArangoS.collection = "MyCollection"
+  #   ArangoDB.new.create
+  #   @myCollection = ArangoC.new.create
+  #   @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
+  #   @myDocument = ArangoDoc.new body: {"Hello" => "World", "num" => 1}, key: "FirstDocument"
+  # end
+  #
+  # after :all do
+  #   ArangoDB.new.destroy
+  # end
 
   context "#new" do
     it "create a new Document instance without global" do
@@ -36,6 +36,7 @@ describe ArangoDoc do
 
   context "#create" do
     it "create a new Document" do
+      @myDocument.destroy
       myDocument = @myDocument.create
       expect(myDocument.body["Hello"]).to eq "World"
     end

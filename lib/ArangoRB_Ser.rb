@@ -2,11 +2,14 @@
 
 class ArangoS
   include HTTParty
+
   @@verbose = false
+  @@async = false
   @@database = "_system"
   @@graph = nil
   @@collection = nil
   @@user = nil
+  @@request = {:body => {}, :headers => {}, :query => {}}
 
   def self.default_server(user: "root", password:, server: "localhost", port: "8529")
     base_uri "http://#{server}:#{port}"
@@ -19,6 +22,21 @@ class ArangoS
 
   def self.verbose
     @@verbose
+  end
+
+  def self.async=(async)
+    @@async = async
+    if async == true || async == "true"
+      @@request[:headers] = {"x-arango-async" => "true"}
+    elsif async == "store"
+      @@request[:headers] = {"x-arango-async" => "store"}
+    else
+      @@request[:headers] = {}
+    end
+  end
+
+  def self.async
+    @@async
   end
 
   def self.database=(database)
@@ -77,51 +95,94 @@ class ArangoS
     @@user
   end
 
+  def self.request
+    @@request
+  end
+
 # === MONITORING ===
 
   def self.log
-    self.class.get("/_admin/log").parsed_response
+    result = get("/_admin/log", @@request)
+    return_result result: result
+    # @@verbose ? result : result["error"] ? result["errorMessage"] : result
   end
 
   def self.reload
-    self.class.post("/_admin/reload").parsed_response
+    result = post("/_admin/routing/reload", @@request)
+    return_result result: result, caseTrue: true
   end
 
   def self.statistics
-    self.class.get("/_admin/statistics").parsed_response
+    result = get("/_admin/statistics", @@request)
+    return_result result: result
   end
 
   def self.statisticsDescription
-    self.class.get("/_admin/statistics-description").parsed_response
+    result = get("/_admin/statistics-description", @@request)
+    return_result result: result
   end
 
   def self.role
-    self.class.get("/_admin/server/role").parsed_response
+    result = get("/_admin/server/role", @@request)
+    return_result result: result, key: "role"
   end
 
   def self.server
-    self.class.get("/_admin/server/id").parsed_response
+    result = get("/_admin/server/id", @@request)
+    return_result result: result
   end
 
   def self.clusterStatistics
-    self.class.get("/_admin/clusterStatistics").parsed_response
+    result = get("/_admin/clusterStatistics", @@request)
+    return_result result: result
   end
 
 # === ENDPOINTS ===
 
   def self.endpoints
-    self.class.get("/_api/endpoint").parsed_response
+    result = get("/_api/endpoint", @@request)
+    return_result result: result
   end
 
   def self.users
-    result = self.class.get("/_api/user").parsed_response
-    if @@verbose
-      return result
+    result = get("/_api/user", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      if result["error"]
-        return result["errorMessage"]
+      result.parsed_response
+      if @@verbose
+        return result
       else
-        return result["result"].map{|x| ArangoU.new(user: x["user"], active: x["active"], extra: x["extra"])}
+        if result["error"]
+          return result["errorMessage"]
+        else
+          return result["result"].map{|x| ArangoU.new(user: x["user"], active: x["active"], extra: x["extra"])}
+        end
+      end
+    end
+  end
+
+# === UTILITY ===
+
+  def self.return_result(result:, caseTrue: false, key: nil)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose || !result.is_a?(Hash)
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          if caseTrue
+            true
+          elsif key.nil?
+            result.delete_if{|k,v| k == "error" || k == "code"}
+          else
+            result[key]
+          end
+        end
       end
     end
   end
