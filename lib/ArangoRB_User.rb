@@ -1,7 +1,7 @@
 # === USER ===
 
 class ArangoU < ArangoS
-  def initialize(user:, password: nil, active: nil, extra: nil)
+  def initialize(user: @@user, password: nil, active: nil, extra: nil)
     @password = password
     @user = user
     @active = active
@@ -48,6 +48,7 @@ class ArangoU < ArangoS
   end
 
   def grant(database: @@database)
+    database = database.database if database.is_a?(ArangoDB)
     body = { "grant" => "rw" }.to_json
     new_DB = { :body => body }
     result = self.class.post("/_api/user/#{@user}/database/#{database}", new_DB).parsed_response
@@ -55,6 +56,7 @@ class ArangoU < ArangoS
   end
 
   def revoke(database: @@database)
+    database = database.database if database.is_a?(ArangoDB)
     body = { "grant" => "none" }.to_json
     new_DB = { :body => body }
     result = self.class.post("/_api/user/#{@user}/database/#{database}", new_DB).parsed_response

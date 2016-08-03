@@ -3,8 +3,8 @@ require_relative './../../spec_helper'
 describe ArangoS do
   context "#user" do
     it "setup a global user" do
-      ArangoS.user = "MyUser"
-      expect(ArangoS.user).to eq "MyUser"
+      ArangoS.user = "MyUser2"
+      expect(ArangoS.user).to eq "MyUser2"
     end
   end
 
@@ -54,5 +54,25 @@ describe ArangoS do
       expect(ArangoS.async).to eq "store"
     end
   end
+
+  context "#batch" do
+    it "batch" do
+      ArangoS.async = false
+      ArangoC.new.create
+      queries = [{
+        "type": "POST",
+        "address": "/_db/MyDatabase/_api/collection",
+        "body": {"name": "newCOLLECTION"},
+        "id": "1"
+      },
+      {
+        "type": "GET",
+        "address": "/_api/database",
+        "id": "2"
+      }]
+      ArangoS.batch queries: queries
+    end
+  end
+
 
 end

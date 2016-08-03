@@ -162,6 +162,29 @@ class ArangoS
     end
   end
 
+  # === BATCH ===
+
+  def self.batch(queries:)
+    headers = {
+      "Content-Type": "multipart/form-data",
+      "boundary": "XboundaryX"
+    }
+    body = ""
+    queries.each{|query|
+      body += "--XboundaryX\n"
+      body += "Content-Type: application/x-arango-batchpart\n"
+      body += "Content-Id: #{query[:id]}\n" unless query[:id].nil?
+      body += "\n"
+      body += "#{query[:type]} "
+      body += "#{query[:address]} HTTP/1.1\n"
+      body += "\n#{query[:body].to_json}\n" unless query[:body].nil?
+    }
+    body += "--XboundaryX--\n" if queries.length > 0
+    request = @@request.merge({ :body => body, :headers => headers })
+    result = post("/_api/batch", request)
+    print result.parsed_response
+  end
+
 # === UTILITY ===
 
   def self.return_result(result:, caseTrue: false, key: nil)

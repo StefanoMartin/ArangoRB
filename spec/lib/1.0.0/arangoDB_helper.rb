@@ -3,13 +3,72 @@ require_relative './../../spec_helper'
 describe ArangoDB do
   context "#async" do
     it "pendingAsync" do
-      ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
-      print @myDatabase.pendingAsync
+      ArangoS.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(@myDatabase.pendingAsync).to eq []
+    end
+
+    it "fetchAsync" do
+      ArangoS.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(@myDatabase.fetchAsync(id: id)["count"]).to eq 18
+    end
+
+    it "retrieveAsync" do
+      ArangoS.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(@myDatabase.retrievePendingAsync).to eq []
+    end
+
+    it "cancelAsync" do
+      ArangoS.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(@myDatabase.cancelAsync(id: id)).to eq "not found"
+    end
+
+    it "destroyAsync" do
+      ArangoS.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(@myDatabase.destroyAsync type: id).to be true
     end
   end
 end
 
+context "#replication" do
+  it "inventory" do
+    expect(@myDatabase.inventory["collections"].class).to be Array
+  end
 
+  it "clusterInventory" do
+    expect(@myDatabase.clusterInventory).to eq "this operation is only valid on a coordinator in a cluster"
+  end
+
+  it "logger" do
+    expect(@myDatabase.logger["state"]["running"]).to be true
+  end
+
+  it "lastLogger" do
+    expect(@myDatabase.lastLogger.class).to be String
+  end
+
+  it "fistTick" do
+    expect(@myDatabase.firstTick).to eq "7"
+  end
+
+  it "rangeTick" do
+    expect(@myDatabase.rangeTick[0]["datafile"].class).to be String
+  end
+end
+
+context "#user" do
+  it "grant" do
+    expect(@myDatabase.grant user: @myUser).to be true
+  end
+
+  it "revoke" do
+    expect(@myDatabase.revoke user: @myUser).to be true
+  end
+end
 
   # before :all do
   #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"

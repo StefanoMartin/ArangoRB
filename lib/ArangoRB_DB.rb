@@ -44,6 +44,7 @@ class ArangoDB < ArangoS
   # === LISTS ===
 
   def self.databases(user: nil)
+    user = user.user if user.is_a?(ArangoU)
     result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}", @@request)
     @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : result.parsed_response["result"].map{|x| ArangoDB.new(database: x)}
   end
@@ -171,32 +172,44 @@ class ArangoDB < ArangoS
   # === ASYNC ===
 
   def pendingAsync
-    result = self.class.put("/_db/#{@database}/_api/job/pending", @@request)
-    self.class.return_result result: result
+    result = self.class.get("/_db/#{@database}/_api/job/pending")
+    return_result_async result: result
   end
 
-  def fetchAsync(id)
-    result = self.class.put("/_db/#{@database}/_api/job/#{id}", @@request)
-    self.class.return_result result: result
+  def fetchAsync(id:)
+    result = self.class.put("/_db/#{@database}/_api/job/#{id}")
+    return_result_async result: result
   end
 
-  def retrieveAsync(id)
-    result = self.class.get("/_db/#{@database}/_api/job/#{id}", @@request)
-    self.class.return_result result: result
+  def retrieveAsync(type:)
+    result = self.class.get("/_db/#{@database}/_api/job/#{type}")
+    return_result_async result: result
   end
 
-  def cancelAsync(id)
-    result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel", @@request)
-    self.class.return_result result: result
+  def retrieveDoneAsync
+    retrieveAsync(type: "done")
   end
 
-  def destroyAsync(type)
-    result = self.class.delete("/_db/#{@database}/_api/job/#{type}", @@request)
-    self.class.return_result result: result, caseTrue: true
+  def retrievePendingAsync
+    retrieveAsync(type: "pending")
+  end
+
+  def cancelAsync(id:)
+    result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel")
+    return_result_async result: result
+  end
+
+  def destroyAsync(type:)
+    result = self.class.delete("/_db/#{@database}/_api/job/#{type}")
+    return_result_async result: result, caseTrue: true
   end
 
   def destroyAllAsync
-    destroyAsync("all")
+    destroyAsync(type: "all")
+  end
+
+  def destroyExpiredAsync
+    destroyAsync(type: "expired")
   end
 
   # === REPLICATION ===
@@ -234,7 +247,7 @@ class ArangoDB < ArangoS
 
   def firstTick
     result = self.class.get("/_db/#{@database}/_api/replication/logger-first-tick")
-    self.class.return_result result: result
+    self.class.return_result result: result, key: "firstTick"
   end
 
   def rangeTick
@@ -262,32 +275,37 @@ class ArangoDB < ArangoS
   # === USER ===
 
   def grant(user: @@user)
+    user = user.user if user.is_a?(ArangoU)
     body = { "grant" => "rw" }.to_json
     request = @@request.merge({ :body => body })
-    result = self.class.post("/_api/user/#{user}/database/#{@database}", new_DB)
+    result = self.class.put("/_api/user/#{user}/database/#{@database}", request)
     self.class.return_result result: result, caseTrue: true
   end
 
   def revoke(user: @@user)
+    user = user.user if user.is_a?(ArangoU)
     body = { "grant" => "none" }.to_json
     request = @@request.merge({ :body => body })
-    result = self.class.post("/_api/user/#{user}/database/#{@database}", new_DB)
+    result = self.class.put("/_api/user/#{user}/database/#{@database}", request)
     self.class.return_result result: result, caseTrue: true
   end
 
   # === UTILITY ===
 
-  # def return_result(result)
-  #   if @@verbose
-  #     result
-  #   else
-  #     if result["error"]
-  #       result["errorMessage"]
-  #     else
-  #       result.delete("error")
-  #       result.delete("code")
-  #       result
-  #     end
-  #   end
-  # end
+  def return_result_async(result:, caseTrue: false)
+    result = result.parsed_response
+    if @@verbose || !result.is_a?(Hash)
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        if caseTrue
+          true
+        else
+          result.delete_if{|k,v| k == "error" || k == "code"}
+        end
+      end
+    end
+  end
 end

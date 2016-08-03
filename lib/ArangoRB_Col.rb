@@ -57,9 +57,10 @@ class ArangoC < ArangoS
     self.return_result result: result, key: "figures"
   end
 
-  # def revisions
-  #   self.class.get("/_db/#{@database}/_api/collection/#{@collection}/revisions").parsed_response
-  # end
+  def revision
+    result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/revision", @@request)
+    self.return_result result: result, key: "revision"
+  end
 
   def checksum(withRevisions: nil, withData: nil)
     query = {
@@ -371,12 +372,31 @@ class ArangoC < ArangoS
       "complete": complete,
       "details": details
     }.delete_if{|k,v| v.nil?}
-    body = []
-    body << attributes
-    body << values
-    request = @@request.merge({ :body => body.to_json, :query => query })
+    body = "#{attributes}\n"
+    if values[0].is_a? Array
+      values.each{|x| body += "#{x}\n"}
+    else
+      body += "#{values}\n"
+    end
+    # print body
+    request = @@request.merge({ :body => body, :query => query })
     result = self.class.post("/_db/#{@database}/_api/import", request)
-    self.return_result result: result
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          result.delete("error")
+          result.delete("code")
+          result
+        end
+      end
+    end
   end
 
   def importJSON(body:, type: "auto", from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
@@ -390,11 +410,26 @@ class ArangoC < ArangoS
       "onDuplicate": onDuplicate,
       "complete": complete,
       "details": details
-    }.delete_if{|k,v| v.nil?}.to_json
-    request = @@request.merge({ :body => body, :query => query })
+    }.delete_if{|k,v| v.nil?}
+    request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/import", request)
-    self.return_result result: result
-  end
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          result.delete("error")
+          result.delete("code")
+          result
+        end
+      end
+    end
+  end  
 
 # === INDEXES ===
 

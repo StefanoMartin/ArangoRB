@@ -98,35 +98,40 @@ class ArangoT < ArangoS
       "expander"    => @expander,
       "edgeCollection" => @edgeCollection
     }.delete_if{|k,v| v.nil?}
-    new_Document = { :body => body.to_json }
-    result = self.class.post("/_db/#{@database}/_api/traversal", new_Document).parsed_response
-    if result["error"]
-      return @@verbose ? result : result["errorMessage"]
+    request = @@request.merge({ :body => body.to_json })
+    result = self.class.post("/_db/#{@database}/_api/traversal", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
     else
-      @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDoc.new(
-        key: x["_key"],
-        collection: x["_id"].split("/")[0],
-        database: @database,
-        body: x
-      )}
-      @paths = result["result"]["visited"]["paths"].map{|x|
-        { "edges" => x["edges"].map{|e| ArangoDoc.new(
-            key: e["_key"],
-            collection: e["_id"].split("/")[0],
-            database: @database,
-            body: e,
-            from: e["_from"],
-            to: e["_to"]
-          )},
-            "vertices" => x["vertices"].map{|v| ArangoDoc.new(
-            key: v["_key"],
-            collection: v["_id"].split("/")[0],
-            database: @database,
-            body: v
-          )}
+      result = result.parsed_response
+      if result["error"]
+        return @@verbose ? result : result["errorMessage"]
+      else
+        @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDoc.new(
+          key: x["_key"],
+          collection: x["_id"].split("/")[0],
+          database: @database,
+          body: x
+        )}
+        @paths = result["result"]["visited"]["paths"].map{|x|
+          { "edges" => x["edges"].map{|e| ArangoDoc.new(
+              key: e["_key"],
+              collection: e["_id"].split("/")[0],
+              database: @database,
+              body: e,
+              from: e["_from"],
+              to: e["_to"]
+            )},
+              "vertices" => x["vertices"].map{|v| ArangoDoc.new(
+              key: v["_key"],
+              collection: v["_id"].split("/")[0],
+              database: @database,
+              body: v
+            )}
+          }
         }
-      }
-      return @@verbose ? result : self
+        return @@verbose ? result : self
+      end
     end
   end
 end

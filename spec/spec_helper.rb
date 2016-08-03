@@ -4,10 +4,11 @@ require_relative File.expand_path('../../lib/arangorb', __FILE__)
 RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
-		ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+		ArangoS.default_server user: "root", password: "", server: "localhost", port: "8529"
 		ArangoS.database = "MyDatabase"
 		ArangoS.collection = "MyCollection"
 		ArangoS.graph = "MyGraph"
+		ArangoS.user = "MyUser"
 		ArangoS.async = false
 		@myDatabase = ArangoDB.new.create
 		@myGraph = ArangoG.new.create
@@ -25,10 +26,12 @@ RSpec.configure do |config|
 	  @vertexB = ArangoV.new(body: {"Hello" => "Moon", "num" => 2}).create
 	  @myEdge = ArangoE.new(from: @vertexA, to: @vertexB, collection: "MyEdgeCollection").create
 		@myTraversal = ArangoT.new
+		@myUser = ArangoU.new.create
 	end
 
 	config.after(:all) do
 		ArangoDB.new.destroy
+		ArangoU.new.destroy
 	end
 end
 #
