@@ -17,7 +17,7 @@ class ArangoC < ArangoS
     if body.is_a?(Hash)
       @body = body
     else
-      raise "body should be a String, not a #{body.class}"
+      raise "body should be a Hash, not a #{body.class}"
     end
 
     if !@type.nil? && @type != "Document" && @type != "Edge"
@@ -506,32 +506,90 @@ class ArangoC < ArangoS
 # === INDEXES ===
 
   def retrieveIndex(id:)
-    result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}")
-    self.return_result result: result
+    result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          ArangoI.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
+        end
+      end
+    end
   end
 
   def indexes
     query = { "collection": @collection }
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/index", request)
-    self.return_result result: result
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          result.delete("error")
+          result.delete("code")
+          result["indexes"] = result["indexes"].map{|x| ArangoI.new(body: x, id: x["id"], database: @database, collection: @collection, type: x["type"], unique: x["unique"], fields: x["fields"])}
+          result
+        end
+      end
+    end
   end
 
-  def createIndex(body: nil)
+  def createIndex(body: {}, unique: nil, type:, fields:)
+    body["fields"] = fields.is_a?(Array) ? fields : [fields]
+    body["unique"] = unique unless unique.nil?
+    body["type"] = type unless type.nil?
     query = { "collection": @collection }
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/index", request)
-    self.return_result result: result
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          ArangoI.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
+        end
+      end
+    end
   end
 
   def deleteIndex(id:)
     result = self.class.delete("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
-    self.return_result result: result, caseTrue: true
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          true
+        end
+      end
+    end
   end
 
 # === REPLICATION ===
 
-  def inventory(from: nil, to: nil, chunkSize: nil, includeSystem: false, failOnUnknown: nil, ticks: nil, flush: nil)
+  def data(from: nil, to: nil, chunkSize: nil, includeSystem: false, failOnUnknown: nil, ticks: nil, flush: nil)
     query = {
       "collection": @collection,
       "from": from,
@@ -543,8 +601,21 @@ class ArangoC < ArangoS
       "flush": flush
     }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :query => query })
-    result = self.class.get("/_db/#{@database}/_api/replication/inventory", request)
-    self.return_result result: result
+    result = self.class.get("/_db/#{@database}/_api/replication/dump", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result["error"]
+          result["errorMessage"]
+        else
+          result
+        end
+      end
+    end
   end
 
 # === UTILITY ===

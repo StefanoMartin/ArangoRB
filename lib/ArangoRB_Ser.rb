@@ -10,10 +10,26 @@ class ArangoS
   @@collection = nil
   @@user = nil
   @@request = {:body => {}, :headers => {}, :query => {}}
+  @@password = ""
+  @@username = ""
+  @@server = "localhost"
+  @@port = "8529"
 
-  def self.default_server(user: "root", password:, server: "localhost", port: "8529")
+  def self.default_server(user: @@username, password: @@password = "", server: @@server, port: @@port)
     base_uri "http://#{server}:#{port}"
     basic_auth user, password
+    @@username = user
+    @@password = password
+    @@server = server
+    @@port = port
+  end
+
+  def self.address
+    "#{@@server}:#{@@port}"
+  end
+
+  def self.username
+    @@username
   end
 
   def self.verbose=(verbose)
@@ -207,6 +223,62 @@ class ArangoS
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = post("/_api/replication/batch/#{id}", request)
     return_result result: result, key: "id"
+  end
+
+# === REPLICATION ===
+
+  def self.serverId
+    result = get("/_api/replication/server-id", @@request)
+    return_result result: result, key: "serverId"
+  end
+
+# === SHARDING ===
+
+  def self.clusterRoundtrip
+    result = get("/_admin/cluster-test", @@request)
+    return_result result: result
+  end
+
+  def self.executeCluster(body:)
+    request = @@request.merge({ "body" => body.to_json })
+    result = post("/_admin/cluster-test", request)
+    return_result result: result
+  end
+
+  def self.executeCluster2(body:)
+    request = @@request.merge({ "body" => body.to_json })
+    result = put("/_admin/cluster-test", request)
+    return_result result: result
+  end
+
+  def self.destroyCluster
+    result = delete("/_admin/cluster-test", @@request)
+    return_result result: result, caseTrue: true
+  end
+
+  def self.updateCluster(body:)
+    request = @@request.merge({ "body" => body.to_json })
+    result = patch("/_admin/cluster-test", request)
+    return_result result: result, caseTrue: true
+  end
+
+  def self.headCluster(body:)
+    result = head("/_admin/cluster-test", @@request)
+    return_result result: result
+  end
+
+  def self.checkPort(port:)
+    query = {"port": port}
+    request = @@request.merge({ "query" => query })
+    result = get("/_admin/clusterCheckPort", request)
+    return_result result: result
+  end
+
+# === TASKS ===
+
+  def self.tasks
+    result = get("/_admin/tasks", @@request)
+    return_result result: result
   end
 
 # === UTILITY ===

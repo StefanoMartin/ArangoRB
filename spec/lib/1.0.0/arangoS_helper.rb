@@ -1,6 +1,16 @@
 require_relative './../../spec_helper'
 
 describe ArangoS do
+  context "#general" do
+    it "address" do
+      expect(ArangoS.address).to eq "localhost:8529"
+    end
+
+    it "username" do
+      expect(ArangoS.username).to eq "root"
+    end
+  end
+
   context "#user" do
     it "setup a global user" do
       ArangoS.user = "MyUser2"
@@ -31,6 +41,10 @@ describe ArangoS do
 
     it "server" do
       expect(ArangoS.server.class).to eq String
+    end
+
+    it "serverID" do
+      expect(ArangoS.serverId.to_i).to be >= 1
     end
 
     it "clusterStatistics" do
@@ -86,17 +100,5 @@ describe ArangoS do
       dumpBatchID = ArangoS.createDumpBatch ttl: 100
       expect(ArangoS.destroyDumpBatch id: dumpBatchID).to be true
     end
-
-
-    # it "prolongDumpBatch" do
-    #   print ArangoS.prolongDumpBatch ttl: 10, id:
-    # end
-    #
-    # it "destroyDumpBatch" do
-    #   print ArangoS.destroyDumpBatch
-    # end
-
   end
-
-
 end

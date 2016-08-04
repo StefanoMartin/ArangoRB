@@ -48,15 +48,24 @@ context "#replication" do
   end
 
   it "lastLogger" do
-    expect(@myDatabase.lastLogger.class).to be String
+    expect(@myDatabase.loggerFollow.class).to be String
   end
 
   it "fistTick" do
-    expect(@myDatabase.firstTick).to eq "7"
+    expect(@myDatabase.firstTick.to_i).to be >= 1
   end
 
   it "rangeTick" do
     expect(@myDatabase.rangeTick[0]["datafile"].class).to be String
+  end
+
+  it "configurationReplication" do
+    expect(@myDatabase.configurationReplication["requestTimeout"]).to eq 600
+  end
+
+  it "modifyConfigurationReplication" do
+    result = @myDatabase.modifyConfigurationReplication autoStart: true
+    expect(result["autoStart"]).to be true
   end
 end
 

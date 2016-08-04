@@ -25,6 +25,7 @@ RSpec.configure do |config|
 		@vertexA = ArangoV.new(body: {"Hello" => "World", "num" => 1}).create
 	  @vertexB = ArangoV.new(body: {"Hello" => "Moon", "num" => 2}).create
 	  @myEdge = ArangoE.new(from: @vertexA, to: @vertexB, collection: "MyEdgeCollection").create
+		@myIndex = @myCollection.createIndex unique: false, fields: "num", type: "hash"
 		@myTraversal = ArangoT.new
 		@myUser = ArangoU.new.create
 	end
