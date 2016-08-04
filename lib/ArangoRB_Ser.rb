@@ -185,22 +185,26 @@ class ArangoS
     return_result result: result
   end
 
-  def self.destroyDumpBatch(id:)
-    result = delete("/_api/replication/batch/#{id}", @@request)
+  def self.destroyDumpBatch(id:, dbserver: nil)
+    query = {"DBserver" => dbserver}.delete_if{|k,v| v.nil?}
+    request = @@request.merge({ :query => query })
+    result = delete("/_api/replication/batch/#{id}", request)
     return true if result.nil?
     return result["errorMessage"] if result["error"]
   end
 
-  def self.createDumpBatch(ttl:)
+  def self.createDumpBatch(ttl:, dbserver: nil)
+    query = {"DBserver" => dbserver}.delete_if{|k,v| v.nil?}
     body = { "ttl" => ttl }
-    request = @@request.merge({ :body => body.to_json })
+    request = @@request.merge({ :body => body.to_json, :query => query })
     result = post("/_api/replication/batch", request)
     return_result result: result, key: "id"
   end
 
-  def self.prolongDumpBatch(id:, ttl:)
+  def self.prolongDumpBatch(id:, ttl:, dbserver: nil)
+    query = {"DBserver" => dbserver}.delete_if{|k,v| v.nil?}
     body = { "ttl" => ttl }
-    request = @@request.merge({ :body => body.to_json })
+    request = @@request.merge({ :body => body.to_json, :query => query })
     result = post("/_api/replication/batch/#{id}", request)
     return_result result: result, key: "id"
   end

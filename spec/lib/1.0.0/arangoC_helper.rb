@@ -29,6 +29,19 @@ describe ArangoC do
     end
   end
 
+  context "#export" do
+    it "export" do
+      result = @myCollection.export
+      expect(result[0].class).to be ArangoDoc
+    end
+
+    it "exportNext" do
+      result = @myCollection.export batchSize: 3
+      result = @myCollection.exportNext
+      expect(result[0].class).to be ArangoDoc
+    end
+  end
+
 
   # before :all do
   #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"

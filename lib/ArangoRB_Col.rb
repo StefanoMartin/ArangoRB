@@ -429,7 +429,79 @@ class ArangoC < ArangoS
         end
       end
     end
-  end  
+  end
+
+# === EXPORT ===
+
+  def export(count: nil, restrict: nil, batchSize: nil, flush: nil, limit: nil, ttl: nil)
+    query = { "collection": @collection }
+    body = {
+      "count" => count,
+      "restrict" => restrict,
+      "batchSize" => batchSize,
+      "flush" => flush,
+      "limit" => limit,
+      "ttl" => ttl
+    }.delete_if{|k,v| v.nil?}
+    request = @@request.merge({ :body => body.to_json, :query => query })
+    result = self.class.post("/_db/#{@database}/_api/export", request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if result["error"]
+        return @@verbose ? result : result["errorMessage"]
+      else
+        @countExport = result["count"]
+        @hasMoreExport = result["hasMore"]
+        @idExport = result["id"]
+        if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
+          result = result["result"]
+        else
+          result = result["result"].map{|x| ArangoDoc.new(
+            key: x["_key"],
+            collection: @collection,
+            database: @database,
+            body: x
+          )}
+        end
+        result
+      end
+    end
+  end
+
+  def exportNext
+    unless @hasMoreExport
+      print "No other results"
+    else
+      query = { "collection": @collection }
+      request = @@request.merge({ :query => query })
+      result = self.class.put("/_db/#{@database}/_api/cursor/#{@idExport}", request)
+      if @@async == "store"
+        result.headers["x-arango-async-id"]
+      else
+        result = result.parsed_response
+        if result["error"]
+          return @@verbose ? result : result["errorMessage"]
+        else
+          @countExport = result["count"]
+          @hasMoreExport = result["hasMore"]
+          @idExport = result["id"]
+          if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
+            result = result["result"]
+          else
+            result = result["result"].map{|x| ArangoDoc.new(
+              key: x["_key"],
+              collection: @collection,
+              database: @database,
+              body: x
+            )}
+          end
+          result
+        end
+      end
+    end
+  end
 
 # === INDEXES ===
 
