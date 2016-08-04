@@ -182,7 +182,27 @@ class ArangoS
     body += "--XboundaryX--\n" if queries.length > 0
     request = @@request.merge({ :body => body, :headers => headers })
     result = post("/_api/batch", request)
-    print result.parsed_response
+    return_result result: result
+  end
+
+  def self.destroyDumpBatch(id:)
+    result = delete("/_api/replication/batch/#{id}", @@request)
+    return true if result.nil?
+    return result["errorMessage"] if result["error"]
+  end
+
+  def self.createDumpBatch(ttl:)
+    body = { "ttl" => ttl }
+    request = @@request.merge({ :body => body.to_json })
+    result = post("/_api/replication/batch", request)
+    return_result result: result, key: "id"
+  end
+
+  def self.prolongDumpBatch(id:, ttl:)
+    body = { "ttl" => ttl }
+    request = @@request.merge({ :body => body.to_json })
+    result = post("/_api/replication/batch/#{id}", request)
+    return_result result: result, key: "id"
   end
 
 # === UTILITY ===

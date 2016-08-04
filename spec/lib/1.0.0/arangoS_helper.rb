@@ -70,8 +70,32 @@ describe ArangoS do
         "address": "/_api/database",
         "id": "2"
       }]
-      ArangoS.batch queries: queries
+      expect((ArangoS.batch queries: queries).class).to be String
     end
+
+    it "createDumpBatch" do
+      expect((ArangoS.createDumpBatch ttl: 100).to_i).to be > 1
+    end
+
+    it "prolongDumpBatch" do
+      dumpBatchID = ArangoS.createDumpBatch ttl: 100
+      expect((ArangoS.prolongDumpBatch ttl: 100, id: dumpBatchID).to_i).to be > 1
+    end
+
+    it "destroyDumpBatch" do
+      dumpBatchID = ArangoS.createDumpBatch ttl: 100
+      expect(ArangoS.destroyDumpBatch id: dumpBatchID).to be true
+    end
+
+
+    # it "prolongDumpBatch" do
+    #   print ArangoS.prolongDumpBatch ttl: 10, id:
+    # end
+    #
+    # it "destroyDumpBatch" do
+    #   print ArangoS.destroyDumpBatch
+    # end
+
   end
 
 
