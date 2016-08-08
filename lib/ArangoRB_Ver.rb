@@ -2,22 +2,22 @@
 
 # ==== DOCUMENT ====
 
-class ArangoV < ArangoDoc
+class ArangoVertex < ArangoDocument
   def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database,  body: {})
     if collection.is_a?(String)
       @collection = collection
-    elsif collection.is_a?(ArangoC)
+    elsif collection.is_a?(ArangoCollection)
       @collection = collection.collection
     else
-      raise "collection should be a String or an ArangoC instance, not a #{collection.class}"
+      raise "collection should be a String or an ArangoCollection instance, not a #{collection.class}"
     end
 
     if graph.is_a?(String)
       @graph = graph
-    elsif graph.is_a?(ArangoG)
+    elsif graph.is_a?(ArangoGraph)
       @graph = graph.graph
     else
-      raise "graph should be a String or an ArangoG instance, not a #{graph.class}"
+      raise "graph should be a String or an ArangoGraph instance, not a #{graph.class}"
     end
 
     if database.is_a?(String)

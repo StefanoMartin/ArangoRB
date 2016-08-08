@@ -1,6 +1,6 @@
 # === AQL ===
 
-class ArangoAQL < ArangoS
+class ArangoAQL < ArangoServer
   def initialize(query: nil, batchSize: nil, ttl: nil, cache: nil, options: nil, bindVars: nil, database: @@database)
     if query.is_a?(String)
       @query = query
@@ -54,7 +54,7 @@ class ArangoAQL < ArangoS
         if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
           @result = result["result"]
         else
-          @result = result["result"].map{|x| ArangoDoc.new(
+          @result = result["result"].map{|x| ArangoDocument.new(
             key: x["_key"],
             collection: x["_id"].split("/")[0],
             database: @database,
@@ -84,7 +84,7 @@ class ArangoAQL < ArangoS
           if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
             @result = result["result"]
           else
-            @result = result["result"].map{|x| ArangoDoc.new(
+            @result = result["result"].map{|x| ArangoDocument.new(
               key: x["_key"],
               collection: x["_id"].split("/")[0],
               database: @database,

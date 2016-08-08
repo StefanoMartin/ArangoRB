@@ -1,10 +1,10 @@
 ArangoRB [![Gem Version](https://badge.fury.io/rb/arangorb.svg)](https://badge.fury.io/rb/arangorb)
 ===============================
 
-[ArangoDB](https://www.arangodb.com/) is a native multi-model database with flexible data models for document, graphs, and key-values.
-ArangoRB is a Gem to use ArangoDB with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.0/HTTP/index.html).
+[ArangoDatabase](https://www.arangodb.com/) is a native multi-model database with flexible data models for document, graphs, and key-values.
+ArangoRB is a Gem to use ArangoDatabase with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.0/HTTP/index.html).
 
-ArangoRB has been tested with ArangoDB 3.0 on Ruby 2.3.1. It requires the gem "HTTParty"
+ArangoRB has been tested with ArangoDatabase 3.0 on Ruby 2.3.1. It requires the gem "HTTParty"
 
 To install ArangoRB: `gem install arangorb`
 
@@ -16,25 +16,25 @@ This Gem was created from [Seluxit ApS](http://seluxit.com/).
 
 ArangoRB has the following classes.
 
-* [ArangoS](#arangos): to manage the global variables for the management of the database
-* [ArangoDB](#arangodb): to manage a Database
-* [ArangoC](#arangoc): to manage a Collection
-* [ArangoDoc](#arangodoc): to manage a Document
-* [ArangoV](#arangov): to manage a Vertex
-* [ArangoE](#arangoe): to manage an Edge
+* [ArangoServer](#ArangoServer): to manage the global variables for the management of the database
+* [ArangoDatabase](#ArangoDatabase): to manage a Database
+* [ArangoCollection](#ArangoCollection): to manage a Collection
+* [ArangoDocument](#ArangoDocument): to manage a Document
+* [ArangoVertex](#ArangoVertex): to manage a Vertex
+* [ArangoEdge](#ArangoEdge): to manage an Edge
 * [ArangoG](#arangog): to manage a Graph
-* [ArangoT](#arangot): to manage a Traverse operation
+* [ArangoTraversal](#ArangoTraversal): to manage a Traverse operation
 * [ArangoAQL](#arangoaql): to manage an AQL instance
 
-<a name="arangos"></a>
-## ArangoS - ArangoDB Server
+<a name="ArangoServer"></a>
+## ArangoServer
 
-ArangoS is used to manage global variables for the management of the database and it is the mandatory step to start your database.
+ArangoServer is used to manage global variables for the management of the database and it is the mandatory step to start your database.
 
 To setup your server use:
 
 ``` ruby
-ArangoS.default_server user: "Username", password: "MyPass", server: "localhost", port: "8529"
+ArangoServer.default_server user: "Username", password: "MyPass", server: "localhost", port: "8529"
 ```
 
 Default value for the server are user: "root", server: "localhost", port: "8529". Password must be defined.
@@ -42,12 +42,12 @@ Default value for the server are user: "root", server: "localhost", port: "8529"
 ### Global variables
 
 The databases, graphs and collections used in your program can be defined every time. But often the user needs to use only a single database, a single graph and a single collection.
-If this is the case, the user can use ArangoS to define this value once for all the ArangoRB instances.
+If this is the case, the user can use ArangoServer to define this value once for all the ArangoRB instances.
 
 ``` ruby
-ArangoS.database = "MyDatabase"
-ArangoS.graph = "MyGraph"
-ArangoS.collection = "MyCollection"
+ArangoServer.database = "MyDatabase"
+ArangoServer.graph = "MyGraph"
+ArangoServer.collection = "MyCollection"
 ```
 
 By default the global database is "\_system".
@@ -57,25 +57,25 @@ By default the global database is "\_system".
 For Debugging reasons the user sometimes would like to receive the original JSON file from the database. To do this you can use the verbose command.
 
 ``` ruby
-ArangoS.verbose = true
+ArangoServer.verbose = true
 ```
 
 Remember that verbose is only for testing reason: to work efficiently verbose should be false.
 
-<a name="arangodb"></a>
-## ArangoDB - ArangoDB Database
+<a name="ArangoDatabase"></a>
+## ArangoDatabase
 
-ArangoDB is used to manage your Database. You can create an instance in the following way:
+ArangoDatabase is used to manage your Database. You can create an instance in the following way:
 
 ``` ruby
-myDatabase = ArangoDB.new(database: "MyDatabase")
+myDatabase = ArangoDatabase.new(database: "MyDatabase")
 ```
 
-Alternatively, you can use ArangoS:
+Alternatively, you can use ArangoServer:
 
 ``` ruby
-ArangoS.database = "MyDatabase"
-myDatabase = ArangoDB.new
+ArangoServer.database = "MyDatabase"
+myDatabase = ArangoDatabase.new
 ```
 
 ### Create and Destroy a Database
@@ -88,8 +88,8 @@ mmyDatabase.destroy
 ### Retrieve information
 
 ``` ruby
-ArangoDB.info # Obtain general info about the databases
-ArangoDB.databases # Obtain an Array with the available databases
+ArangoDatabase.info # Obtain general info about the databases
+ArangoDatabase.databases # Obtain an Array with the available databases
 myDatabase.collections # Obtain an Array with the available collections in the selected Database
 myDatabase.graphs #  Obtain an Array with the available graphs in the selected Database
 ```
@@ -120,22 +120,22 @@ myDatabase.createFunction code: "function(){return 1+1;}", name: "myFunction" # 
 myDatabase.deleteFunction name: "myFunction" # Delete a function
 myDatabase.functions # Retrieve a list of the available functions
 ```
-<a name="arangoc"></a>
-## ArangoC - ArangoDB Collection
+<a name="ArangoCollection"></a>
+## ArangoCollection
 
-ArangoDB is used to manage your Collections. You can create an ArangoC instance in one of the following way:
+ArangoDatabase is used to manage your Collections. You can create an ArangoCollection instance in one of the following way:
 
 ``` ruby
-myCollection = ArangoC.new(database: "MyDatabase", collection: "MyCollection")
-myCollection = ArangoC.new(collection: "MyCollection") # If the database has been already defined with ArangoS
-myCollection = ArangoC.new # If the database and the collection have been already defined with ArangoS
+myCollection = ArangoCollection.new(database: "MyDatabase", collection: "MyCollection")
+myCollection = ArangoCollection.new(collection: "MyCollection") # If the database has been already defined with ArangoServer
+myCollection = ArangoCollection.new # If the database and the collection have been already defined with ArangoServer
 ```
 
 A Collection can be of two types: "Document" and "Edge". If you want to specify it, uses:
 
 ``` ruby
-myCollectionA = ArangoC.new collection: "MyCollectionA", type: "Document"
-myCollectionB = ArangoC.new collection: "MyCollectionB", type: "Edge"
+myCollectionA = ArangoCollection.new collection: "MyCollectionA", type: "Document"
+myCollectionB = ArangoCollection.new collection: "MyCollectionB", type: "Edge"
 ```
 
 ### Create a Collection
@@ -148,7 +148,7 @@ To create an Edge Collection you can use one of the next three options:
 ``` ruby
 myCollection.create_edge_collection
 myCollection.create type: 3
-myCollectionB = ArangoC.new(collection: "MyCollectionB", type: "Edge");  myCollectionB.create
+myCollectionB = ArangoCollection.new(collection: "MyCollectionB", type: "Edge");  myCollectionB.create
 ```
 
 ### Destroy or Truncate a Collections
@@ -182,7 +182,7 @@ These two functions are similar except for the fact that you can assign differen
 
 `myCollection.documents type: "path"`
 
-Type can be "path", "id" or "key" in relation what we wish to have. If not specified we will receive an array of ArangoDoc instances.
+Type can be "path", "id" or "key" in relation what we wish to have. If not specified we will receive an array of ArangoDocument instances.
 
 `myCollection.allDocuments skip: 3, limit: 100, batchSize: 10`
 
@@ -215,32 +215,32 @@ myCollection.replaceMatch match: {"value" => 4}, newValue: {"value" => 6} # All 
 myCollection.updateMatch match: {"value" => 4}, newValue: {"value" => 6} # All Documents of the Collection with value equal to 4 will be updated with the new Value
 ```
 
-<a name="arangodoc"></a>
-## ArangoDoc - ArangoDB Document
+<a name="ArangoDocument"></a>
+## ArangoDocument
 
 An Arango Document is an element of a Collection. Edges are documents with "\_from" and "\_to" in their body.
-You can create an ArangoC instance in one of the following way:
+You can create an ArangoCollection instance in one of the following way:
 
 ``` ruby
-myDocument = ArangoDoc.new(database: "MyDatabase", collection: "MyCollection", key: "myKey")
-myDocument = ArangoDoc.new(collection: "MyCollection", key: "myKey") # If the database has been already defined with ArangoS
-myDocument = ArangoDoc.new(collection: myCollection, key: "myKey") # If the database has been already defined with ArangoS and myCollection is an ArangoC instance
-myDocument = ArangoDoc.new(key: "myKey") # If the database and the collection have been already defined with ArangoS
-myDocument = ArangoDoc.new # If the database and the collection have been already defined with ArangoS and I don't want to define a key for my Instance
+myDocument = ArangoDocument.new(database: "MyDatabase", collection: "MyCollection", key: "myKey")
+myDocument = ArangoDocument.new(collection: "MyCollection", key: "myKey") # If the database has been already defined with ArangoServer
+myDocument = ArangoDocument.new(collection: myCollection, key: "myKey") # If the database has been already defined with ArangoServer and myCollection is an ArangoCollection instance
+myDocument = ArangoDocument.new(key: "myKey") # If the database and the collection have been already defined with ArangoServer
+myDocument = ArangoDocument.new # If the database and the collection have been already defined with ArangoServer and I don't want to define a key for my Instance
 ```
 
 In the case you want to define a Edge, it is convenient to introduce them during the instance.
 
 ``` ruby
-myEdge = ArangoDoc.new from: myDocA, to: myDocB
+myEdge = ArangoDocument.new from: myDocA, to: myDocB
 ```
 
-where myDocA and myDocB are the IDs of two Documents or are two ArangoDoc instances.
+where myDocA and myDocB are the IDs of two Documents or are two ArangoDocument instances.
 
-When you do the instance of an ArangoDoc is a good idea to define a Body for the Document you want:
+When you do the instance of an ArangoDocument is a good idea to define a Body for the Document you want:
 
 ``` ruby
-myDocument = ArangoDoc.new(body: {"value" => 17})
+myDocument = ArangoDocument.new(body: {"value" => 17})
 ```
 
 ### Create one or more Documents
@@ -249,15 +249,15 @@ You have three way to create a single Document.
 
 ``` ruby
 myDocument.create
-myCollection.create_document document: myDocument # myDocument is an ArangoDoc instance or a Hash
-ArangoDoc.create(body: {"value" => 17}, collection: myDocument)
+myCollection.create_document document: myDocument # myDocument is an ArangoDocument instance or a Hash
+ArangoDocument.create(body: {"value" => 17}, collection: myDocument)
 ```
 
 You have two way to create more Documents.
 
 ``` ruby
-myCollection.create_document document: [myDocumentA, myDocumentB, {"value" => 17}] # Array of ArangoDoc instances and Hashes
-ArangoDoc.create(body: [{"value" => 17}, {"value" => 18}, {"value" => 3}], collection: myDocument)  # Array of only Hashes
+myCollection.create_document document: [myDocumentA, myDocumentB, {"value" => 17}] # Array of ArangoDocument instances and Hashes
+ArangoDocument.create(body: [{"value" => 17}, {"value" => 18}, {"value" => 3}], collection: myDocument)  # Array of only Hashes
 ```
 
 ### Create one or more Edges
@@ -265,10 +265,10 @@ ArangoDoc.create(body: [{"value" => 17}, {"value" => 18}, {"value" => 3}], colle
 We have different way to create one or multiple edges. Here some example:
 
 ``` ruby
-myEdge = ArangoDoc.new from: myDocA, to: myDocB; myEdge.create
-myEdge.create_edge from: myDocA, to: myDocB # myDocA and myDocB are ArangoDoc ids or ArangoDoc instances
+myEdge = ArangoDocument.new from: myDocA, to: myDocB; myEdge.create
+myEdge.create_edge from: myDocA, to: myDocB # myDocA and myDocB are ArangoDocument ids or ArangoDocument instances
 myEdgeCollection.create_edge document: myEdge, from: myDocA, to: myDocB
-ArangoDoc.create_edge(body: {"value" => 17}, from: myDocA, to: myDocB, collection: myEdgeCollection)
+ArangoDocument.create_edge(body: {"value" => 17}, from: myDocA, to: myDocB, collection: myEdgeCollection)
 ```
 
 Further we have the possibility to create different combination of Edges in only one line of code
@@ -368,14 +368,14 @@ myDocument.replace body: {"value" => 3} # We replace a value
 ```
 
 <a name="arangog"></a>
-## ArangoG - ArangoDB Graph
+## ArangoG - ArangoDatabase Graph
 
 ArangoG are used to manage graphs. You can create an ArangoG instance in one of the following way:
 
 ``` ruby
 myGraph = ArangoG.new(database: "MyDatabase", graph: "MyGraph")
-myGraph = ArangoG.new(graph: "MyGraph") # If the database has been already defined with ArangoS
-myGraph = ArangoG.new # If the database and the graph have been already defined with ArangoS
+myGraph = ArangoG.new(graph: "MyGraph") # If the database has been already defined with ArangoServer
+myGraph = ArangoG.new # If the database and the graph have been already defined with ArangoServer
 ```
 
 ### Create, Retrieve and Destroy a Graph
@@ -403,19 +403,19 @@ myGraph.replaceEdgeCollections(collection: "myEdgeCollection", from: "myCollecti
 myGraph.removeEdgeCollections(collection: "myEdgeCollection") # Remove an Edge Collection to our Graph
 ```
 
-<a name="arangov"></a><a name="arangoe"></a>
-## ArangoV - ArangoDB Vertex and ArangoE - ArangoDB Edge
+<a name="ArangoVertex"></a><a name="ArangoEdge"></a>
+## ArangoVertex and ArangoEdge
 
-Both these two classes inherit the class ArangoDoc.
-These two classes have been created since ArangoDB offers, in connection of the chosen graph, other possible HTTP requests to fetch Vertexes and Edges. We recommend the reader to read carefully the section on ArangoDoc instances before to use ArangoV and ArangoE instances.
+Both these two classes inherit the class ArangoDocument.
+These two classes have been created since ArangoDatabase offers, in connection of the chosen graph, other possible HTTP requests to fetch Vertexes and Edges. We recommend the reader to read carefully the section on ArangoDocument instances before to use ArangoVertex and ArangoEdge instances.
 
-### ArangoV methods
+### ArangoVertex methods
 
-ArangoV inherit all the methods of ArangoDoc class. The following one works similar to the one of ArangoDoc Class but use a different HTTP request. For this reason the performance could be different.
-To use ArangoV, the Collection of the Vertex needs to be added to the VertexCollections of the chosen Graph.
+ArangoVertex inherit all the methods of ArangoDocument class. The following one works similar to the one of ArangoDocument Class but use a different HTTP request. For this reason the performance could be different.
+To use ArangoVertex, the Collection of the Vertex needs to be added to the VertexCollections of the chosen Graph.
 
 ``` ruby
-myVertex = ArangoV.new key: "newVertex", body: {"value" => 3}, collection: "myCollection", graph: "myGraph", database: "myDatabase"
+myVertex = ArangoVertex.new key: "newVertex", body: {"value" => 3}, collection: "myCollection", graph: "myGraph", database: "myDatabase"
 myVertex.create # create a new Document in the Graph
 myVertex.retrieve  # retrieve a Document
 myVertex.replace body: {"value" => 6} # replace the Document
@@ -423,13 +423,13 @@ myVertex.update body: {"value" => 6} # update the Document
 myVertex.destroy # delete the Document
 ```
 
-### ArangoE methods
+### ArangoEdge methods
 
-ArangoE inherit all the methods of ArangoDoc class. The following one works similar to the one of ArangoDoc Class but use a different HTTP request. For this reason the performance could be different.
-To use ArangoE, the Collection of the Edge needs to be added to the EdgeCollections of the chosen Graph.
+ArangoEdge inherit all the methods of ArangoDocument class. The following one works similar to the one of ArangoDocument Class but use a different HTTP request. For this reason the performance could be different.
+To use ArangoEdge, the Collection of the Edge needs to be added to the EdgeCollections of the chosen Graph.
 
 ``` ruby
-myEdge = ArangoE.new key: "newVertex", body: {"value" => 3}, from: myArangoDoc, to: myArangoDoc, collection: "myCollection", graph: "myGraph", database: "myDatabase"
+myEdge = ArangoEdge.new key: "newVertex", body: {"value" => 3}, from: myArangoDocument, to: myArangoDocument, collection: "myCollection", graph: "myGraph", database: "myDatabase"
 myEdge.create # create a new Document of type Edge in the Graph
 myEdge.retrieve # retrieve a Document
 myEdge.replace body: {"value" => 6} # replace the Document
@@ -437,14 +437,14 @@ myEdge.update body: {"value" => 6} # update the Document
 myEdge.destroy # delete the Document
 ```
 
-<a name="arangot"></a>
-## ArangoT - ArangoDB Traversal
+<a name="ArangoTraversal"></a>
+## ArangoTraversal
 
-ArangoT is used to administrate the traversal.
-ArangoT needs to know the vertex from where the traversal starts, the direction the traversal is going and either the Graph or the EdgeCollection we want to analize.
+ArangoTraversal is used to administrate the traversals.
+ArangoTraversal needs to know the vertex from where the traversal starts, the direction the traversal is going and either the Graph or the EdgeCollection we want to analize.
 
 ``` ruby
-myTraversal = ArangoT.new # create new ArangoTraversal
+myTraversal = ArangoTraversal.new # create new ArangoTraversal
 myTraversal.vertex = myVertex # define starting Vertex
 myTraversal.graph = myGraph  # define used Graph
 myTraversal.edgeCollection = myEdgeCollection # define used Edge
@@ -462,9 +462,9 @@ myTraversal.execute
 ```
 
 <a name="arangoaql"></a>
-## ArangoAQL - ArangoDB Query Language
+## ArangoAQL - ArangoDatabase Query Language
 
-ArangoAQL is used to manage the ArangoDB query languages. To instantiate a query use:
+ArangoAQL is used to manage the ArangoDatabase query languages. To instantiate a query use:
 
 ``` ruby
 myQuery = ArangoAQL.new(query: "FOR v,e,p IN 1..6 ANY 'Year/2016' GRAPH 'MyGraph' FILTER p.vertices[1].num == 6 && p.vertices[2].num == 22 && p.vertices[6]._key == '424028e5-e429-4885-b50b-007867208c71' RETURN [p.vertices[4].value, p.vertices[5].data]")

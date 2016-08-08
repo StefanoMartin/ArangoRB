@@ -1,6 +1,6 @@
 # === INDEXES ===
 
-class ArangoI < ArangoS
+class ArangoIndex < ArangoServer
   def initialize(collection: @@collection, database: @@database, body: {}, id: nil, type: nil, unique: nil, fields:, sparse: nil)
     if collection.is_a?(String)
       @collection = collection
@@ -78,7 +78,7 @@ class ArangoI < ArangoS
         else
           result.delete("error")
           result.delete("code")
-          result["indexes"] = result["indexes"].map{|x| ArangoI.new(body: x, id: x["id"], database: @database, collection: @collection, type: x["type"], unique: x["unique"], fields: x["fields"], sparse: x["sparse"])}
+          result["indexes"] = result["indexes"].map{|x| ArangoIndex.new(body: x, id: x["id"], database: @database, collection: @collection, type: x["type"], unique: x["unique"], fields: x["fields"], sparse: x["sparse"])}
           result
         end
       end

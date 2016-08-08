@@ -1,28 +1,9 @@
 require_relative './../../spec_helper'
 
-describe ArangoT do
-  # before :all do
-  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-  #   ArangoS.database = "MyDatabase"
-  #   ArangoS.collection = "MyCollection"
-  #   ArangoS.graph = "MyGraph"
-  #   ArangoDB.new.create
-  #   @myGraph = ArangoG.new.create
-  #   @myCollection = ArangoC.new.create
-  #   @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
-  #   @myGraph.addEdgeCollection collection: "MyEdgeCollection", from: "MyCollection", to: "MyCollection"
-  #   @myTraversal = ArangoT.new
-  #   @myDoc = @myCollection.create_document document: [{"num" => 1, "_key" => "FirstKey"}, {"num" => 2}, {"num" => 3}, {"num" => 4}, {"num" => 5}, {"num" => 6}, {"num" => 7}]
-  #   @myEdgeCollection.create_edge from: [@myDoc[0].id, @myDoc[1].id, @myDoc[2].id, @myDoc[3].id], to: [@myDoc[4].id, @myDoc[5].id, @myDoc[6].id]
-  # end
-  #
-  # after :all do
-  #   ArangoDB.new.destroy
-  # end
-
+describe ArangoTraversal do
   context "#new" do
     it "create a new Traversal instance" do
-      myTraversal = ArangoT.new
+      myTraversal = ArangoTraversal.new
       expect(myTraversal.database).to eq "MyDatabase"
     end
 

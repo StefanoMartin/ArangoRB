@@ -1,6 +1,6 @@
 # === TRAVERSAL ===
 
-class ArangoT < ArangoS
+class ArangoTraversal < ArangoServer
   def initialize(body: {}, database: @@database, graph: nil, edgeCollection: nil)
     @sort        = body["sort"]
     @direction   = body["direction"]
@@ -29,30 +29,30 @@ class ArangoT < ArangoS
   def startVertex=(startVertex)
     if startVertex.is_a?(String)
       @startVertex = startVertex
-    elsif startVertex.is_a?(ArangoDoc)
+    elsif startVertex.is_a?(ArangoDocument)
       @startVertex = startVertex.id
     else
-      raise "startVertex should be a String or an ArangoDoc instance, not a #{startVertex.class}"
+      raise "startVertex should be a String or an ArangoDocument instance, not a #{startVertex.class}"
     end
   end
 
   def graphName=(graphName)
     if graphName.is_a?(String) || graphName.nil?
       @graphName = graphName
-    elsif graphName.is_a?(ArangoG)
+    elsif graphName.is_a?(ArangoGraph)
       @graphName = graphName.graph
     else
-      raise "graphName should be a String or an ArangoG instance, not a #{graphName.class}"
+      raise "graphName should be a String or an ArangoGraph instance, not a #{graphName.class}"
     end
   end
 
   def edgeCollection=(edgeCollection)
     if edgeCollection.is_a?(String) || edgeCollection.nil?
       @edgeCollection = edgeCollection
-    elsif edgeCollection.is_a?(ArangoC)
+    elsif edgeCollection.is_a?(ArangoCollection)
       @edgeCollection = edgeCollection.collection
     else
-      raise "edgeCollection should be a String or an ArangoC instance, not a #{edgeCollection.class}"
+      raise "edgeCollection should be a String or an ArangoCollection instance, not a #{edgeCollection.class}"
     end
   end
 
@@ -107,14 +107,14 @@ class ArangoT < ArangoS
       if result["error"]
         return @@verbose ? result : result["errorMessage"]
       else
-        @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDoc.new(
+        @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDocument.new(
           key: x["_key"],
           collection: x["_id"].split("/")[0],
           database: @database,
           body: x
         )}
         @paths = result["result"]["visited"]["paths"].map{|x|
-          { "edges" => x["edges"].map{|e| ArangoDoc.new(
+          { "edges" => x["edges"].map{|e| ArangoDocument.new(
               key: e["_key"],
               collection: e["_id"].split("/")[0],
               database: @database,
@@ -122,7 +122,7 @@ class ArangoT < ArangoS
               from: e["_from"],
               to: e["_to"]
             )},
-              "vertices" => x["vertices"].map{|v| ArangoDoc.new(
+              "vertices" => x["vertices"].map{|v| ArangoDocument.new(
               key: v["_key"],
               collection: v["_id"].split("/")[0],
               database: @database,

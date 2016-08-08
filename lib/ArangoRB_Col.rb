@@ -1,6 +1,6 @@
 # === COLLECTION ===
 
-class ArangoC < ArangoS
+class ArangoCollection < ArangoServer
   def initialize(collection: @@collection, database: @@database, body: {}, type: nil)
     if collection.is_a?(String)
       @collection = collection
@@ -44,7 +44,7 @@ class ArangoC < ArangoS
   def properties
     result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/properties", @@request)
     result = self.return_result result: result
-    return result.is_a?(ArangoC) ? result.body : result
+    return result.is_a?(ArangoCollection) ? result.body : result
   end
 
   def count
@@ -104,28 +104,28 @@ class ArangoC < ArangoS
   def create_document(document: {}, waitForSync: nil, returnNew: nil)
     if document.is_a? Hash
       body = document
-    elsif document.is_a? ArangoDoc
+    elsif document.is_a? ArangoDocument
       body = document.body
     elsif document.is_a? Array
-      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDoc) ? x.body : nil}
+      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
     else
-      raise "document should be Hash, an ArangoDoc instance or an Array of Hashes or ArangoDoc instances"
+      raise "document should be Hash, an ArangoDocument instance or an Array of Hashes or ArangoDocument instances"
     end
-    ArangoDoc.create(body: body, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
+    ArangoDocument.create(body: body, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
   end
   alias create_vertex create_document
 
   def create_edge(document: {}, from:, to:, waitForSync: nil, returnNew: nil)
     if document.is_a? Hash
       body = document
-    elsif document.is_a? ArangoDoc
+    elsif document.is_a? ArangoDocument
       body = document.body
     elsif document.is_a? Array
-      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDoc) ? x.body : nil}
+      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
     else
-      raise "document should be Hash, an ArangoDoc instance or an Array of Hashes or ArangoDoc instances"
+      raise "document should be Hash, an ArangoDocument instance or an Array of Hashes or ArangoDocument instances"
     end
-    ArangoDoc.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
+    ArangoDocument.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
   end
 
   # === DELETE ===
@@ -191,7 +191,7 @@ class ArangoC < ArangoS
           if result["error"]
             result["errorMessage"]
           else
-            result["result"].map{|x| value = self.class.get(x).parsed_response; ArangoDoc.new(key: value["_key"], collection: @collection, body: value)}
+            result["result"].map{|x| value = self.class.get(x).parsed_response; ArangoDocument.new(key: value["_key"], collection: @collection, body: value)}
           end
         end
       else
@@ -219,7 +219,7 @@ class ArangoC < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+          result["result"].map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, body: x)}
         end
       end
     end
@@ -245,7 +245,7 @@ class ArangoC < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          result["result"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+          result["result"].map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, body: x)}
         end
       end
     end
@@ -268,14 +268,14 @@ class ArangoC < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+          ArangoDocument.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
         end
       end
     end
   end
 
   def documentByKeys(keys:)
-    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil} if keys.is_a? Array
+    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDocument) ? x.key : nil} if keys.is_a? Array
     keys = [keys] if keys.is_a? String
     body = { "collection" => @collection, "keys" => keys }
     request = @@request.merge({ :body => body })
@@ -290,7 +290,7 @@ class ArangoC < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          result["documents"].map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, body: x)}
+          result["documents"].map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, body: x)}
         end
       end
     end
@@ -310,14 +310,14 @@ class ArangoC < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          ArangoDoc.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
+          ArangoDocument.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
         end
       end
     end
   end
 
   def removeByKeys(keys:, options: nil)
-    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDoc) ? x.key : nil}
+    keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDocument) ? x.key : nil}
     body = { "collection" => @collection, "keys" => keys, "options" => options }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/remove-by-keys", request)
@@ -458,7 +458,7 @@ class ArangoC < ArangoS
         if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
           result = result["result"]
         else
-          result = result["result"].map{|x| ArangoDoc.new(
+          result = result["result"].map{|x| ArangoDocument.new(
             key: x["_key"],
             collection: @collection,
             database: @database,
@@ -490,7 +490,7 @@ class ArangoC < ArangoS
           if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
             result = result["result"]
           else
-            result = result["result"].map{|x| ArangoDoc.new(
+            result = result["result"].map{|x| ArangoDocument.new(
               key: x["_key"],
               collection: @collection,
               database: @database,
@@ -517,7 +517,7 @@ class ArangoC < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          ArangoI.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
+          ArangoIndex.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
         end
       end
     end
@@ -539,7 +539,7 @@ class ArangoC < ArangoS
         else
           result.delete("error")
           result.delete("code")
-          result["indexes"] = result["indexes"].map{|x| ArangoI.new(body: x, id: x["id"], database: @database, collection: @collection, type: x["type"], unique: x["unique"], fields: x["fields"])}
+          result["indexes"] = result["indexes"].map{|x| ArangoIndex.new(body: x, id: x["id"], database: @database, collection: @collection, type: x["type"], unique: x["unique"], fields: x["fields"])}
           result
         end
       end
@@ -563,7 +563,7 @@ class ArangoC < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          ArangoI.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
+          ArangoIndex.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
         end
       end
     end

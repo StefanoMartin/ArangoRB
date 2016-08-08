@@ -1,6 +1,6 @@
 # === SERVER ===
 
-class ArangoS
+class ArangoServer
   include HTTParty
 
   @@verbose = false
@@ -58,10 +58,10 @@ class ArangoS
   def self.database=(database)
     if database.is_a? String
       @@database = database
-    elsif database.is_a? ArangoDB
+    elsif database.is_a? ArangoDatabase
       @@database = database.database
     else
-      raise "database should be a String or an ArangoDB instance, not a #{database.class}"
+      raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
     end
   end
 
@@ -72,10 +72,10 @@ class ArangoS
   def self.graph=(graph)
     if graph.is_a? String
       @@graph = graph
-    elsif graph.is_a? ArangoG
+    elsif graph.is_a? ArangoGraph
       @@graph = graph.graph
     else
-      raise "graph should be a String or an ArangoG instance, not a #{graph.class}"
+      raise "graph should be a String or an ArangoGraph instance, not a #{graph.class}"
     end
   end
 
@@ -86,10 +86,10 @@ class ArangoS
   def self.collection=(collection)
     if collection.is_a? String
       @@collection = collection
-    elsif collection.is_a? ArangoC
+    elsif collection.is_a? ArangoCollection
       @@collection = collection.collection
     else
-      raise "graph should be a String or an ArangoC instance, not a #{collection.class}"
+      raise "graph should be a String or an ArangoCollection instance, not a #{collection.class}"
     end
   end
 
@@ -100,10 +100,10 @@ class ArangoS
   def self.user=(user)
     if user.is_a? String
       @@user = user
-    elsif user.is_a? ArangoU
+    elsif user.is_a? ArangoUser
       @@user = user.user
     else
-      raise "graph should be a String or an ArangoU instance, not a #{user.class}"
+      raise "graph should be a String or an ArangoUser instance, not a #{user.class}"
     end
   end
 
@@ -120,7 +120,6 @@ class ArangoS
   def self.log
     result = get("/_admin/log", @@request)
     return_result result: result
-    # @@verbose ? result : result["error"] ? result["errorMessage"] : result
   end
 
   def self.reload
@@ -165,14 +164,14 @@ class ArangoS
     if @@async == "store"
       result.headers["x-arango-async-id"]
     else
-      result.parsed_response
+      result = result.parsed_response
       if @@verbose
         return result
       else
         if result["error"]
           return result["errorMessage"]
         else
-          return result["result"].map{|x| ArangoU.new(user: x["user"], active: x["active"], extra: x["extra"])}
+          return result["result"].map{|x| ArangoUser.new(user: x["user"], active: x["active"], extra: x["extra"])}
         end
       end
     end
@@ -277,7 +276,107 @@ class ArangoS
 # === TASKS ===
 
   def self.tasks
-    result = get("/_admin/tasks", @@request)
+    result = get("/_api/tasks", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result.is_a?(Hash) && result["error"]
+          result["errorMessage"]
+        else
+          result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
+        end
+      end
+    end
+  end
+
+# === MISCELLANEOUS FUNCTIONS ===
+
+  def self.version(details: nil)
+    query = {"details": details}
+    request = @@request.merge({ "query" => query })
+    result = get("/_api/version", request)
+    return_result result: result
+  end
+
+  def self.flushWAL(waitForSync: nil, waitForCollector: nil)
+    body = {
+      "waitForSync" => waitForSync,
+      "waitForCollector" => waitForCollector
+    }.delete_if{|k,v| v.nil?}.to_json
+    request = @@request.merge({ :body => body })
+    result = put("/_admin/wal/flush", request)
+    return_result result: result, caseTrue: true
+  end
+
+  def self.propertyWAL
+    result = put("/_admin/wal/properties", @@request)
+    return_result result: result
+  end
+
+  def self.changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil, historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil)
+    body = {
+      "allowOversizeEntries" => allowOversizeEntries,
+      "logfileSize" => allowOversizeEntries,
+      "historicLogfiles" => historicLogfiles,
+      "reserveLogfiles" => reserveLogfiles,
+      "throttleWait" => throttleWait,
+      "throttleWhenPending" => throttleWhenPending
+    }.delete_if{|k,v| v.nil?}.to_json
+    request = @@request.merge({ :body => body })
+    result = put("/_admin/wal/properties", request)
+    return_result result: result
+  end
+
+  def self.transactions
+    result = get("/_admin/wal/transactions", @@request)
+    return_result result: result
+  end
+
+  def self.time
+    result = get("/_admin/time", @@request)
+    return_result result: result
+  end
+
+  def self.echo
+    result = get("/_admin/echo", @@request)
+    return_result result: result
+  end
+
+  def self.longEcho
+    result = get("/_admin/long_echo", @@request)
+    return_result result: result
+  end
+
+  def self.databaseVersion
+    result = get("/_admin/database/target-version", @@request)
+    return_result result: result
+  end
+
+  def self.sleep(duration:)
+    query = {"duration": duration}
+    request = @@request.merge({ "query" => query })
+    result = get("/_admin/database/target-version", request)
+    return_result result: result
+  end
+
+  def self.shutdown
+    result = delete("/_admin/shutdown", @@request)
+    return_result result: result, caseTrue: true
+  end
+
+  def self.test(body:)
+    request = @@request.merge({ "body" => body.to_json })
+    result = post("/_admin/test", request)
+    return_result result: result
+  end
+
+  def self.execute(body:)
+    request = @@request.merge({ "body" => body.to_json })
+    result = post("/_admin/execute", request)
     return_result result: result
   end
 

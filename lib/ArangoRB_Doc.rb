@@ -1,13 +1,13 @@
 # ==== DOCUMENT ====
 
-class ArangoDoc < ArangoS
+class ArangoDocument < ArangoServer
   def initialize(key: nil, collection: @@collection, database: @@database, body: {}, from: nil, to: nil)
     if collection.is_a?(String)
       @collection = collection
-    elsif collection.is_a?(ArangoC)
+    elsif collection.is_a?(ArangoCollection)
       @collection = collection.collection
     else
-      raise "collection should be a String or an ArangoC instance, not a #{collection.class}"
+      raise "collection should be a String or an ArangoCollection instance, not a #{collection.class}"
     end
 
     if database.is_a?(String)
@@ -34,20 +34,20 @@ class ArangoDoc < ArangoS
 
     if from.is_a?(String)
       @body["_from"] = from
-    elsif from.is_a?(ArangoDoc)
+    elsif from.is_a?(ArangoDocument)
       @body["_from"] = from.id
     elsif from.nil?
     else
-      raise "from should be a String or an ArangoDoc instance, not a #{from.class}"
+      raise "from should be a String or an ArangoDocument instance, not a #{from.class}"
     end
 
     if to.is_a?(String)
       @body["_to"] = to
-    elsif to.is_a?(ArangoDoc)
+    elsif to.is_a?(ArangoDocument)
       @body["_to"] = to.id
     elsif to.nil?
     else
-      raise "to should be a String or an ArangoDoc instance, not a #{to.class}"
+      raise "to should be a String or an ArangoDocument instance, not a #{to.class}"
     end
   end
 
@@ -68,7 +68,7 @@ class ArangoDoc < ArangoS
     return result.headers["x-arango-async-id"] if @@async == "store"
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["edges"].map{|edge|
-      ArangoDoc.new(key: edge["_key"], collection: collection, database: @database, body: edge)
+      ArangoDocument.new(key: edge["_key"], collection: collection, database: @database, body: edge)
     }
   end
 
@@ -89,7 +89,7 @@ class ArangoDoc < ArangoS
     collection = result["_id"].split("/")[0]
     return result.headers["x-arango-async-id"] if @@async == "store"
     result = result.parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDoc.new(key: result["_key"], collection: collection, database: @database, body: result)
+    @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["_key"], collection: collection, database: @database, body: result)
   end
 
   def to
@@ -97,7 +97,7 @@ class ArangoDoc < ArangoS
     collection = result["_id"].split("/")[0]
     return result.headers["x-arango-async-id"] if @@async == "store"
     result = result.parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDoc.new(key: result["_key"], collection: collection, database: @database, body: result)
+    @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["_key"], collection: collection, database: @database, body: result)
   end
 
   # def header
@@ -120,7 +120,7 @@ class ArangoDoc < ArangoS
       i = -1
       return result.headers["x-arango-async-id"] if @@async == "store"
       result = result.parsed_response
-      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDocument.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
     end
   end
   alias create_document create
@@ -134,14 +134,14 @@ class ArangoDoc < ArangoS
       body["_key"] = @key if body["_key"].nil? && !@key.nil?
       request = @@request.merge({ :body => body.to_json, :query => query })
       result = post("/_db/#{database}/_api/document/#{collection}", request)
-      ArangoDoc.new.return_result result: result, body: body, newo: true
+      ArangoDocument.new.return_result result: result, body: body, newo: true
     else
       request = @@request.merge({ :body => body.to_json, :query => query })
       result = post("/_db/#{database}/_api/document/#{collection}", request)
       i = -1
       return result.headers["x-arango-async-id"] if @@async == "store"
       result = result.parsed_response
-      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDocument.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
     end
   end
 
@@ -161,7 +161,7 @@ class ArangoDoc < ArangoS
     end
     edges = edges[0] if edges.length == 1
     create(body: edges, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
-    # ArangoDoc.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
+    # ArangoDocument.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
   end
 
   def self.create_edge(body: {}, from:, to:, waitForSync: nil, returnNew: nil, database: @@database, collection: @@collection)
@@ -201,7 +201,7 @@ class ArangoDoc < ArangoS
       i = -1
       return result.headers["x-arango-async-id"] if @@async == "store"
       result = result.parsed_response
-      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
     end
   end
 
@@ -242,7 +242,7 @@ class ArangoDoc < ArangoS
       i = -1
       return result.headers["x-arango-async-id"] if @@async == "store"
       result = result.parsed_response
-      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDoc.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
+      @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
     end
   end
 
@@ -310,9 +310,9 @@ class ArangoDoc < ArangoS
           result["errorMessage"]
         else
           if newo
-            ArangoDoc.new key: result["_key"], collection: result["_id"].split("/")[0], body: body
+            ArangoDocument.new key: result["_key"], collection: result["_id"].split("/")[0], body: body
           else
-            return true if caseTrue        
+            return true if caseTrue
             result.delete("error")
             result.delete("code")
             @key = result["_key"]
@@ -328,16 +328,4 @@ class ArangoDoc < ArangoS
       end
     end
   end
-
-  # def self.return_result(result, body)
-  #   if @@verbose
-  #     result
-  #   else
-  #     if result["error"]
-  #       result["errorMessage"]
-  #     else
-  #       ArangoDoc.new key: result["_key"], collection: result["_id"].split("/")[0], body: body
-  #     end
-  #   end
-  # end
 end

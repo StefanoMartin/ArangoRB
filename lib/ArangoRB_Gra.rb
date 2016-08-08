@@ -1,6 +1,6 @@
 # ==== GRAPH ====
 
-class ArangoG < ArangoS
+class ArangoGraph < ArangoServer
   def initialize(graph: @@graph, database: @@database, edgeDefinitions: [], orphanCollections: [])
     if database.is_a?(String)
       @database = database
@@ -10,7 +10,6 @@ class ArangoG < ArangoS
 
     if graph.is_a?(String)
       @graph = graph
-      ArangoS.graph = graph
     else
       raise "graph should be a String, not a #{graph.class}"
     end
@@ -86,7 +85,7 @@ class ArangoG < ArangoS
       result.headers["x-arango-async-id"]
     else
       result = result.parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoC.new(collection: x)}
+      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
     end
   end
 
@@ -140,13 +139,13 @@ class ArangoG < ArangoS
       result.headers["x-arango-async-id"]
     else
       result = result.parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoC.new(collection: x)}
+      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
     end
   end
 
   def addEdgeCollection(collection:, from:, to:, replace: false)
-    from = from.is_a?(String) ? [from] : from.is_a?(ArangoC) ? [from.collection] : from
-    to = to.is_a?(String) ? [to] : to.is_a?(ArangoC) ? [to.collection] : to
+    from = from.is_a?(String) ? [from] : from.is_a?(ArangoCollection) ? [from.collection] : from
+    to = to.is_a?(String) ? [to] : to.is_a?(ArangoCollection) ? [to.collection] : to
     body = {}
     collection = collection.is_a?(String) ? collection : collection.collection
     body["collection"] = collection

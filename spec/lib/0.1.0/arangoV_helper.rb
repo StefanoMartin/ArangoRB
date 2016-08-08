@@ -1,31 +1,14 @@
 require_relative './../../spec_helper'
 
-describe ArangoV do
-  # before :all do
-  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-  #   ArangoS.database = "MyDatabase"
-  #   ArangoS.collection = "MyCollection"
-  #   ArangoS.graph = "MyGraph"
-  #   ArangoDB.new.create
-  #   @myGraph = ArangoG.new.create
-  #   @myCollection = ArangoC.new.create
-  #   @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
-  #   @myVertex = ArangoV.new body: {"Hello" => "World", "num" => 1}, key: "FirstDocument"
-  #   @myGraph.addVertexCollection collection: "MyCollection"
-  # end
-  #
-  # after :all do
-  #   ArangoDB.new.destroy
-  # end
-
+describe ArangoVertex do
   context "#new" do
     it "create a new Document instance without global" do
-      myVertex = ArangoV.new collection: "MyCollection", database: "MyDatabase", graph: "MyGraph"
+      myVertex = ArangoVertex.new collection: "MyCollection", database: "MyDatabase", graph: "MyGraph"
       expect(myVertex.collection).to eq "MyCollection"
     end
 
     it "create a new instance with global" do
-      myVertex = ArangoV.new key: "myKey", body: {"Hello" => "World"}
+      myVertex = ArangoVertex.new key: "myKey", body: {"Hello" => "World"}
       expect(myVertex.key).to eq "myKey"
     end
   end

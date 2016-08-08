@@ -1,32 +1,19 @@
 require_relative './../../spec_helper'
 
-describe ArangoC do
-  # before :all do
-  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-  #   ArangoS.database = "MyDatabase"
-  #   ArangoS.collection = "MyCollection"
-  #   ArangoDB.new.create
-  #   @myCollection = ArangoC.new
-  #   @myEdgeCollection = ArangoC.new collection: "MyEdgeCollection"
-  # end
-  #
-  # after :all do
-  #   ArangoDB.new.destroy
-  # end
-
+describe ArangoCollection do
   context "#new" do
     it "create a new instance without global" do
-      myCollection = ArangoC.new collection: "MyCollection"
+      myCollection = ArangoCollection.new collection: "MyCollection"
       expect(myCollection.collection).to eq "MyCollection"
     end
 
     it "create a new instance with global" do
-      myCollection = ArangoC.new
+      myCollection = ArangoCollection.new
       expect(myCollection.collection).to eq "MyCollection"
     end
 
     it "create a new instance with type Edge" do
-      myCollection = ArangoC.new collection: "MyCollection", type: "Edge"
+      myCollection = ArangoCollection.new collection: "MyCollection", type: "Edge"
       expect(myCollection.type).to eq "Edge"
     end
   end

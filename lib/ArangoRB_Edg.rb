@@ -1,21 +1,21 @@
 # === GRAPH EDGE ===
 
-class ArangoE < ArangoDoc
+class ArangoEdge < ArangoDocument
   def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database, body: {}, from: nil, to: nil)
     if collection.is_a?(String)
       @collection = collection
-    elsif collection.is_a?(ArangoC)
+    elsif collection.is_a?(ArangoCollection)
       @collection = collection.collection
     else
-      raise "collection should be a String or an ArangoC instance, not a #{collection.class}"
+      raise "collection should be a String or an ArangoCollection instance, not a #{collection.class}"
     end
 
     if graph.is_a?(String)
       @graph = graph
-    elsif graph.is_a?(ArangoG)
+    elsif graph.is_a?(ArangoGraph)
       @graph = graph.graph
     else
-      raise "graph should be a String or an ArangoG instance, not a #{graph.class}"
+      raise "graph should be a String or an ArangoGraph instance, not a #{graph.class}"
     end
 
     if database.is_a?(String)
@@ -42,20 +42,20 @@ class ArangoE < ArangoDoc
 
     if from.is_a?(String)
       @body["_from"] = from
-    elsif from.is_a?(ArangoDoc)
+    elsif from.is_a?(ArangoDocument)
       @body["_from"] = from.id
     elsif from.nil?
     else
-      raise "from should be a String or an ArangoDoc instance, not a #{from.class}"
+      raise "from should be a String or an ArangoDocument instance, not a #{from.class}"
     end
 
     if to.is_a?(String)
       @body["_to"] = to
-    elsif to.is_a?(ArangoDoc)
+    elsif to.is_a?(ArangoDocument)
       @body["_to"] = to.id
     elsif to.nil?
     else
-      raise "to should be a String or an ArangoDoc instance, not a #{to.class}"
+      raise "to should be a String or an ArangoDocument instance, not a #{to.class}"
     end
   end
 

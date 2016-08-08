@@ -1,6 +1,6 @@
 require_relative './../../spec_helper'
 
-describe ArangoC do
+describe ArangoCollection do
   context "#get" do
     it "revision" do
       expect(@myCollection.revision.to_i).to be >= 1
@@ -32,19 +32,19 @@ describe ArangoC do
   context "#export" do
     it "export" do
       result = @myCollection.export
-      expect(result[0].class).to be ArangoDoc
+      expect(result[0].class).to be ArangoDocument
     end
 
     it "exportNext" do
       result = @myCollection.export batchSize: 3
       result = @myCollection.exportNext
-      expect(result[0].class).to be ArangoDoc
+      expect(result[0].class).to be ArangoDocument
     end
   end
 
   context "#indexes" do
     it "indexes" do
-      expect(@myCollection.indexes["indexes"][0].class).to be ArangoI
+      expect(@myCollection.indexes["indexes"][0].class).to be ArangoIndex
     end
 
     it "retrieve" do
@@ -66,5 +66,4 @@ describe ArangoC do
       expect(@myCollection.data.length).to be > 100
     end
   end
-
 end

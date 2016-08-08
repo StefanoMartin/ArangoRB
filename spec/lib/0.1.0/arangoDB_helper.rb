@@ -1,20 +1,15 @@
 require_relative './../../spec_helper'
 
-describe ArangoDB do
-  # before :all do
-  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-  #   ArangoS.database = "MyDatabase"
-  #   @myDatabase = ArangoDB.new
-  # end
+describe ArangoDatabase do
 
   context "#new" do
     it "create a new instance without global" do
-      myDatabase = ArangoDB.new database: "MyDatabase"
+      myDatabase = ArangoDatabase.new database: "MyDatabase"
       expect(myDatabase.database).to eq "MyDatabase"
     end
 
     it "create a new instance with global" do
-      myDatabase = ArangoDB.new
+      myDatabase = ArangoDatabase.new
       expect(myDatabase.database).to eq "MyDatabase"
     end
   end
@@ -34,12 +29,12 @@ describe ArangoDB do
 
   context "#info" do
     it "obtain general info" do
-      info = ArangoDB.info
+      info = ArangoDatabase.info
       expect(info["name"]).to eq "_system"
     end
 
     it "list databases" do
-      list = ArangoDB.databases
+      list = ArangoDatabase.databases
       expect(list.length).to be >= 1
     end
 

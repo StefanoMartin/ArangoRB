@@ -1,35 +1,21 @@
 require_relative './../../spec_helper'
 
-describe ArangoDoc do
-  # before :all do
-  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-  #   ArangoS.database = "MyDatabase"
-  #   ArangoS.collection = "MyCollection"
-  #   ArangoDB.new.create
-  #   @myCollection = ArangoC.new.create
-  #   @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
-  #   @myDocument = ArangoDoc.new body: {"Hello" => "World", "num" => 1}, key: "FirstDocument"
-  # end
-  #
-  # after :all do
-  #   ArangoDB.new.destroy
-  # end
-
+describe ArangoDocument do
   context "#new" do
     it "create a new Document instance without global" do
-      myDocument = ArangoDoc.new collection: "MyCollection", database: "MyDatabase"
+      myDocument = ArangoDocument.new collection: "MyCollection", database: "MyDatabase"
       expect(myDocument.collection).to eq "MyCollection"
     end
 
     it "create a new instance with global" do
-      myDocument = ArangoDoc.new key: "myKey", body: {"Hello" => "World"}
+      myDocument = ArangoDocument.new key: "myKey", body: {"Hello" => "World"}
       expect(myDocument.key).to eq "myKey"
     end
 
     it "create a new Edge instance" do
-      a = ArangoDoc.new(key: "myA", body: {"Hello" => "World"}).create
-      b = ArangoDoc.new(key: "myB", body: {"Hello" => "World"}).create
-      myEdgeDocument = ArangoDoc.new collection: "MyEdgeCollection", from: a, to: b
+      a = ArangoDocument.new(key: "myA", body: {"Hello" => "World"}).create
+      b = ArangoDocument.new(key: "myB", body: {"Hello" => "World"}).create
+      myEdgeDocument = ArangoDocument.new collection: "MyEdgeCollection", from: a, to: b
       expect(myEdgeDocument.body["_from"]).to eq a.id
     end
   end
@@ -48,7 +34,7 @@ describe ArangoDoc do
 
     it "create a new Edge" do
       myDoc = @myCollection.create_document document: [{"A" => "B", "num" => 1}, {"C" => "D", "num" => 3}]
-      myEdge = ArangoDoc.new collection: "MyEdgeCollection", from: myDoc[0].id, to: myDoc[1].id
+      myEdge = ArangoDocument.new collection: "MyEdgeCollection", from: myDoc[0].id, to: myDoc[1].id
       myEdge = myEdge.create
       expect(myEdge.body["_from"]).to eq myDoc[0].id
     end

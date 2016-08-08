@@ -1,6 +1,6 @@
 # === DATABASE ===
 
-class ArangoDB < ArangoS
+class ArangoDatabase < ArangoServer
   def initialize(database: @@database)
     if database.is_a?(String)
       @database = database
@@ -44,9 +44,9 @@ class ArangoDB < ArangoS
   # === LISTS ===
 
   def self.databases(user: nil)
-    user = user.user if user.is_a?(ArangoU)
+    user = user.user if user.is_a?(ArangoUser)
     result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}", @@request)
-    @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : result.parsed_response["result"].map{|x| ArangoDB.new(database: x)}
+    @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : result.parsed_response["result"].map{|x| ArangoDatabase.new(database: x)}
   end
 
   def collections(excludeSystem: true)
@@ -63,7 +63,7 @@ class ArangoDB < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          result["result"].map{|x| ArangoC.new(database: @database, collection: x["name"])}
+          result["result"].map{|x| ArangoCollection.new(database: @database, collection: x["name"])}
         end
       end
     end
@@ -81,7 +81,7 @@ class ArangoDB < ArangoS
         if result["error"]
           result["errorMessage"]
         else
-          result["graphs"].map{|x| ArangoG.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
+          result["graphs"].map{|x| ArangoGraph.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
         end
       end
     end
@@ -350,11 +350,11 @@ class ArangoDB < ArangoS
     result = self.class.put("/_db/#{@database}/_api/replication/make-slave", @@request)
     self.class.return_result result: result
   end
-  
+
   # === USER ===
 
   def grant(user: @@user)
-    user = user.user if user.is_a?(ArangoU)
+    user = user.user if user.is_a?(ArangoUser)
     body = { "grant" => "rw" }.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_api/user/#{user}/database/#{@database}", request)
@@ -362,7 +362,7 @@ class ArangoDB < ArangoS
   end
 
   def revoke(user: @@user)
-    user = user.user if user.is_a?(ArangoU)
+    user = user.user if user.is_a?(ArangoUser)
     body = { "grant" => "none" }.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_api/user/#{user}/database/#{@database}", request)

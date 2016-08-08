@@ -1,31 +1,14 @@
 require_relative './../../spec_helper'
 
-describe ArangoG do
-  # before :all do
-  #   ArangoS.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-  #   ArangoS.database = "MyDatabase"
-  #   ArangoS.collection = "MyCollection"
-  #   ArangoDB.new.create
-  #   @myCollection = ArangoC.new.create
-  #   @myCollectionB = ArangoC.new(collection: "MyCollectionB").create
-  #   @myCollectionC = ArangoC.new(collection: "MyCollectionC").create
-  #   @myCollectionD = ArangoC.new(collection: "MyCollectionD").create
-  #   @myEdgeCollection = ArangoC.new(collection: "MyEdgeCollection").create_edge_collection
-  #   @myGraph = ArangoG.new graph: "MyGraph"
-  # end
-  #
-  # after :all do
-  #   ArangoDB.new.destroy
-  # end
-
+describe ArangoGraph do
   context "#new" do
     it "create a new Graph instance without global" do
-      myGraph = ArangoG.new graph: "MyGraph", database: "MyDatabase"
+      myGraph = ArangoGraph.new graph: "MyGraph", database: "MyDatabase"
       expect(myGraph.graph).to eq "MyGraph"
     end
 
     it "create a new instance with global" do
-      myGraph = ArangoG.new
+      myGraph = ArangoGraph.new
       expect(myGraph.graph).to eq "MyGraph"
     end
   end
