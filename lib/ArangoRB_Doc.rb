@@ -254,13 +254,12 @@ class ArangoDocument < ArangoServer
       "returnOld" => returnOld,
       "ignoreRevs" => ignoreRevs
     }.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :query => query })
+    request = @@request.merge({ :body => body.to_json, :query => query })
 
     unless body.is_a? Array
       result = self.class.delete("/_db/#{@database}/_api/document/#{@id}", request)
       return_result result: result, caseTrue: true
     else
-      new_Document = { :body => body.to_json, :query => query }
       result = self.class.delete("/_db/#{@database}/_api/document/#{@collection}", request)
       return_result result: result, caseTrue: true
     end

@@ -347,7 +347,7 @@ class ArangoDatabase < ArangoServer
       "chunkSize" => chunkSize
     }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json })
-    result = self.class.put("/_db/#{@database}/_api/replication/make-slave", @@request)
+    result = self.class.put("/_db/#{@database}/_api/replication/make-slave", request)
     self.class.return_result result: result
   end
 

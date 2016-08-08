@@ -22,7 +22,7 @@ ArangoRB has the following classes.
 * [ArangoDocument](#ArangoDocument): to manage a Document
 * [ArangoVertex](#ArangoVertex): to manage a Vertex
 * [ArangoEdge](#ArangoEdge): to manage an Edge
-* [ArangoG](#arangog): to manage a Graph
+* [ArangoGraph](#ArangoGraph): to manage a Graph
 * [ArangoTraversal](#ArangoTraversal): to manage a Traverse operation
 * [ArangoAQL](#arangoaql): to manage an AQL instance
 
@@ -367,15 +367,15 @@ myDocument.update body: {"value" => 3} # We update or add a value
 myDocument.replace body: {"value" => 3} # We replace a value
 ```
 
-<a name="arangog"></a>
-## ArangoG - ArangoDatabase Graph
+<a name="ArangoGraph"></a>
+## ArangoGraph
 
-ArangoG are used to manage graphs. You can create an ArangoG instance in one of the following way:
+ArangoGraph are used to manage graphs. You can create an ArangoGraph instance in one of the following way:
 
 ``` ruby
-myGraph = ArangoG.new(database: "MyDatabase", graph: "MyGraph")
-myGraph = ArangoG.new(graph: "MyGraph") # If the database has been already defined with ArangoServer
-myGraph = ArangoG.new # If the database and the graph have been already defined with ArangoServer
+myGraph = ArangoGraph.new(database: "MyDatabase", graph: "MyGraph")
+myGraph = ArangoGraph.new(graph: "MyGraph") # If the database has been already defined with ArangoServer
+myGraph = ArangoGraph.new # If the database and the graph have been already defined with ArangoServer
 ```
 
 ### Create, Retrieve and Destroy a Graph
