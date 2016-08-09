@@ -3,7 +3,7 @@
 # ==== DOCUMENT ====
 
 class ArangoVertex < ArangoDocument
-  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database,  body: {})
+  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database,  body: {}) # TESTED
     if collection.is_a?(String)
       @collection = collection
     elsif collection.is_a?(ArangoCollection)
@@ -47,7 +47,7 @@ class ArangoVertex < ArangoDocument
 
   # === GET ===
 
-  def retrieve
+  def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -69,7 +69,7 @@ class ArangoVertex < ArangoDocument
 
 # === POST ====
 
-  def create(body: @body, waitForSync: nil)
+  def create(body: @body, waitForSync: nil) # TESTED
     query = {"waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
     body["_key"] = @key if body["_key"].nil? && !@key.nil?
     request = @@request.merge({ :body => body.to_json, :query => query })
@@ -80,14 +80,14 @@ class ArangoVertex < ArangoDocument
 
 # === MODIFY ===
 
-  def replace(body: {}, waitForSync: nil)
+  def replace(body: {}, waitForSync: nil) # TESTED
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)
     return_result result: result, body: body
   end
 
-  def update(body: {}, waitForSync: nil, keepNull: nil)
+  def update(body: {}, waitForSync: nil, keepNull: nil) # TESTED
     query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)
@@ -118,7 +118,7 @@ class ArangoVertex < ArangoDocument
 
 # === DELETE ===
 
-  def destroy(waitForSync: nil)
+  def destroy(waitForSync: nil) # TESTED
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :query => query })
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)

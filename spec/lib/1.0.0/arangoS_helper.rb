@@ -9,6 +9,10 @@ describe ArangoServer do
     it "username" do
       expect(ArangoServer.username).to eq "root"
     end
+
+    it "request" do
+      expect(ArangoServer.request[":body"].class).to be NilClass
+    end
   end
 
   context "#user" do
@@ -105,7 +109,54 @@ describe ArangoServer do
   context "#task" do
     it "tasks" do
       result = ArangoServer.tasks
-      expect(result[0].id).to eq "statistics-gc"
+      expect(result[0].id.class).to be String
     end
   end
+
+  context "#miscellaneous" do
+    it "version" do
+      expect(ArangoServer.version["server"]).to eq "arango"
+    end
+
+    it "propertyWAL" do
+      ArangoServer.changePropertyWAL historicLogfiles: 14
+      expect(ArangoServer.propertyWAL["historicLogfiles"]).to eq 14
+    end
+
+    it "flushWAL" do
+      expect(ArangoServer.flushWAL).to be true
+    end
+
+    it "transactions" do
+      expect(ArangoServer.transactions["runningTransactions"]).to eq 0
+    end
+
+    it "time" do
+      expect(ArangoServer.time.class).to be Float
+    end
+
+    it "echo" do
+      expect(ArangoServer.echo["user"]).to eq "root"
+    end
+
+    it "databaseVersion" do
+      expect(ArangoServer.databaseVersion.to_i).to be >= 1
+    end
+
+    it "sleep" do
+      expect(ArangoServer.sleep duration: 10).to be >= 1
+    end
+
+    # it "shutdown" do
+    #   result = ArangoServer.shutdown
+    #   `sudo service arangodb restart`
+    #   expect(result).to eq "OK"
+    # end
+
+    # it "test" do
+    #   print ArangoServer.test body: {"num" => 1}
+    # end
+  end
+
+
 end

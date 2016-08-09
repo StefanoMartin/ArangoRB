@@ -1,7 +1,7 @@
 # ==== DOCUMENT ====
 
 class ArangoDocument < ArangoServer
-  def initialize(key: nil, collection: @@collection, database: @@database, body: {}, from: nil, to: nil)
+  def initialize(key: nil, collection: @@collection, database: @@database, body: {}, from: nil, to: nil) # TESTED
     if collection.is_a?(String)
       @collection = collection
     elsif collection.is_a?(ArangoCollection)
@@ -55,12 +55,12 @@ class ArangoDocument < ArangoServer
 
   # === GET ===
 
-  def retrieve
+  def retrieve  # TESTED
     result = self.class.get("/_db/#{@database}/_api/document/#{@id}", @@request)
     self.return_result result: result
   end
 
-  def retrieve_edges(collection: , direction: nil)
+  def retrieve_edges(collection: , direction: nil)  # TESTED
     query = {"vertex" => @id, "direction" => direction }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :query => query })
     collection = collection.is_a?(String) ? collection : collection.collection
@@ -72,19 +72,19 @@ class ArangoDocument < ArangoServer
     }
   end
 
-  def in(collection)
+  def in(collection)  # TESTED
     self.retrieve_edges collection: collection, direction: "in"
   end
 
-  def out(collection)
+  def out(collection)  # TESTED
     self.retrieve_edges collection: collection, direction: "out"
   end
 
-  def any(collection)
+  def any(collection)  # TESTED
     self.retrieve_edges collection: collection
   end
 
-  def from
+  def from  # TESTED
     result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_from"]}", @@request)
     collection = result["_id"].split("/")[0]
     return result.headers["x-arango-async-id"] if @@async == "store"
@@ -92,7 +92,7 @@ class ArangoDocument < ArangoServer
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["_key"], collection: collection, database: @database, body: result)
   end
 
-  def to
+  def to  # TESTED
     result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_to"]}", @@request)
     collection = result["_id"].split("/")[0]
     return result.headers["x-arango-async-id"] if @@async == "store"
@@ -107,7 +107,7 @@ class ArangoDocument < ArangoServer
 
 # === POST ====
 
-  def create(body: @body, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)
+  def create(body: @body, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)  # TESTED
     query = {"waitForSync" => waitForSync, "returnNew" => returnNew}.delete_if{|k,v| v.nil?}
     unless body.is_a? Array
       body["_key"] = @key if body["_key"].nil? && !@key.nil?
@@ -126,7 +126,7 @@ class ArangoDocument < ArangoServer
   alias create_document create
   alias create_vertex create
 
-  def self.create(body: {}, waitForSync: nil, returnNew: nil, database: @@database, collection: @@collection)
+  def self.create(body: {}, waitForSync: nil, returnNew: nil, database: @@database, collection: @@collection)  # TESTED
     collection = collection.is_a?(String) ? collection : collection.collection
     database = database.is_a?(String) ? database : database.database
     query = {"waitForSync" => waitForSync, "returnNew" => returnNew}.delete_if{|k,v| v.nil?}
@@ -145,7 +145,7 @@ class ArangoDocument < ArangoServer
     end
   end
 
-  def create_edge(body: [{}], from:, to:, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)
+  def create_edge(body: [{}], from:, to:, waitForSync: nil, returnNew: nil, database: @database, collection: @collection)  # TESTED
     edges = []
     from = [from] unless from.is_a? Array
     to = [to] unless to.is_a? Array
@@ -161,10 +161,9 @@ class ArangoDocument < ArangoServer
     end
     edges = edges[0] if edges.length == 1
     create(body: edges, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
-    # ArangoDocument.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: database, collection: collection)
   end
 
-  def self.create_edge(body: {}, from:, to:, waitForSync: nil, returnNew: nil, database: @@database, collection: @@collection)
+  def self.create_edge(body: {}, from:, to:, waitForSync: nil, returnNew: nil, database: @@database, collection: @@collection)  # TESTED
     edges = []
     from = [from] unless from.is_a? Array
     to = [to] unless to.is_a? Array
@@ -184,7 +183,7 @@ class ArangoDocument < ArangoServer
 
 # === MODIFY ===
 
-  def replace(body: {}, waitForSync: nil, ignoreRevs: nil, returnOld: nil, returnNew: nil)
+  def replace(body: {}, waitForSync: nil, ignoreRevs: nil, returnOld: nil, returnNew: nil) # TESTED
     query = {
       "waitForSync" => waitForSync,
       "returnNew" => returnNew,
@@ -205,7 +204,7 @@ class ArangoDocument < ArangoServer
     end
   end
 
-  def update(body: {}, waitForSync: nil, ignoreRevs: nil, returnOld: nil, returnNew: nil, keepNull: nil, mergeObjects: nil)
+  def update(body: {}, waitForSync: nil, ignoreRevs: nil, returnOld: nil, returnNew: nil, keepNull: nil, mergeObjects: nil)  # TESTED
     query = {
       "waitForSync" => waitForSync,
       "returnNew" => returnNew,
@@ -248,7 +247,7 @@ class ArangoDocument < ArangoServer
 
 # === DELETE ===
 
-  def destroy(body: nil, waitForSync: nil, ignoreRevs: nil, returnOld: nil)
+  def destroy(body: nil, waitForSync: nil, ignoreRevs: nil, returnOld: nil)  # TESTED
     query = {
       "waitForSync" => waitForSync,
       "returnOld" => returnOld,
@@ -266,28 +265,6 @@ class ArangoDocument < ArangoServer
   end
 
 # === UTILITY ===
-
-#   def return_result(result, body)
-#     if @@verbose
-#       unless result["error"]
-#         @key = result["_key"]
-#         @id = "#{@collection}/#{@key}"
-#         @body = body
-#       end
-#       result
-#     else
-#       if result["error"]
-#         result["errorMessage"]
-#       else
-#         @key = result["_key"]
-#         @id = "#{@collection}/#{@key}"
-#         @body = body
-#         self
-#       end
-#     end
-#   end
-#
-# # === UTILITY ===
 
   def return_result(result:, body: {}, caseTrue: false, key: nil, newo: false)
     if @@async == "store"

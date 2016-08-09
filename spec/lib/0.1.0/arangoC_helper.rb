@@ -70,7 +70,7 @@ describe ArangoCollection do
     end
 
     it "statistics" do
-      info = @myCollection.stats
+      info = @myCollection.statistics
       expect(info["lastTick"]).to eq "0"
     end
 
@@ -94,10 +94,42 @@ describe ArangoCollection do
       expect(info.collection).to eq "MyCollection"
     end
 
+    it "search Document by key match" do
+      docs = @myCollection.create_document document: [{"_key" => "ThisIsATest1", "test" => "fantastic"}, {"_key" => "ThisIsATest2"}]
+      result = @myCollection.documentByKeys keys: ["ThisIsATest1", docs[1]]
+      expect(result[0].body["test"]).to eq "fantastic"
+    end
+
+    it "remove Document by key match" do
+      docs = @myCollection.create_document document: [{"_key" => "ThisIsATest3", "test" => "fantastic"}, {"_key" => "ThisIsATest4"}]
+      result = @myCollection.removeByKeys keys: ["ThisIsATest3", docs[1]]
+      expect(result).to eq 2
+    end
+
+    it "remove Document by match" do
+      @myCollection.create_document document: [{"_key" => "ThisIsATest5", "test" => "fantastic"}, {"_key" => "ThisIsATest6"}]
+      result = @myCollection.removeMatch match: {"test" => "fantastic"}
+      expect(result).to eq 2
+    end
+
+    it "replace Document by match" do
+      @myCollection.create_document document: {"test" => "fantastic", "val" => 4}
+      result = @myCollection.replaceMatch match: {"test" => "fantastic"}, newValue: {"val" => 5}
+      expect(result).to eq 1
+    end
+
+    it "update Document by match" do
+      @myCollection.create_document document: {"test" => "fantastic2", "val" => 5}
+      result = @myCollection.updateMatch match: {"val" => 5}, newValue: {"val" => 6}
+      expect(result).to eq 2
+    end
+
     it "search random Document" do
       info = @myCollection.random
       expect(info.collection).to eq "MyCollection"
     end
+
+
   end
 
   context "#modify" do

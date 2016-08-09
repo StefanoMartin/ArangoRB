@@ -1,7 +1,7 @@
 # === COLLECTION ===
 
 class ArangoCollection < ArangoServer
-  def initialize(collection: @@collection, database: @@database, body: {}, type: nil)
+  def initialize(collection: @@collection, database: @@database, body: {}, type: nil) # TESTED
     if collection.is_a?(String)
       @collection = collection
     else
@@ -36,33 +36,33 @@ class ArangoCollection < ArangoServer
 
   # === GET ===
 
-  def retrieve
+  def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}", @@request)
     self.return_result result: result, checkType: true
   end
 
-  def properties
+  def properties # TESTED
     result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/properties", @@request)
     result = self.return_result result: result
     return result.is_a?(ArangoCollection) ? result.body : result
   end
 
-  def count
+  def count # TESTED
     result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/count", @@request)
     self.return_result result: result, key: "count"
   end
 
-  def stats
+  def statistics # TESTED
     result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/figures", @@request)
     self.return_result result: result, key: "figures"
   end
 
-  def revision
+  def revision # TESTED
     result = self.class.get("/_db/#{@database}/_api/collection/#{@collection}/revision", @@request)
     self.return_result result: result, key: "revision"
   end
 
-  def checksum(withRevisions: nil, withData: nil)
+  def checksum(withRevisions: nil, withData: nil) # TESTED
     query = {
       "withRevisions": withRevisions,
       "withData": withData
@@ -74,7 +74,7 @@ class ArangoCollection < ArangoServer
 
   # === POST ===
 
-  def create(type: nil, journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil)
+  def create(type: nil, journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil) # TESTED
     body = {
       "name" => collection,
       "type" => type,
@@ -97,11 +97,11 @@ class ArangoCollection < ArangoServer
   alias create_document_collection create
   alias create_vertex_collection create
 
-  def create_edge_collection(journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil)
+  def create_edge_collection(journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil) # TESTED
     self.create type: 3, journalSize: journalSize, keyOptions: keyOptions, waitForSync: waitForSync, doCompact: doCompact, isVolatile: isVolatile, shardKeys: shardKeys, numberOfShards: numberOfShards, isSystem: isSystem, indexBuckets: indexBuckets
   end
 
-  def create_document(document: {}, waitForSync: nil, returnNew: nil)
+  def create_document(document: {}, waitForSync: nil, returnNew: nil) # TESTED
     if document.is_a? Hash
       body = document
     elsif document.is_a? ArangoDocument
@@ -115,7 +115,7 @@ class ArangoCollection < ArangoServer
   end
   alias create_vertex create_document
 
-  def create_edge(document: {}, from:, to:, waitForSync: nil, returnNew: nil)
+  def create_edge(document: {}, from:, to:, waitForSync: nil, returnNew: nil) # TESTED
     if document.is_a? Hash
       body = document
     elsif document.is_a? ArangoDocument
@@ -130,29 +130,29 @@ class ArangoCollection < ArangoServer
 
   # === DELETE ===
 
-  def destroy
+  def destroy # TESTED
     result = self.class.delete("/_db/#{@database}/_api/collection/#{@collection}", @@request)
     self.return_result result: result, caseTrue: true
   end
 
-  def truncate
+  def truncate # TESTED
     result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/truncate", @@request)
     self.return_result result: result
   end
 
   # === MODIFY ===
 
-  def load
+  def load # TESTED
     result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/load", @@request)
     self.return_result result: result
   end
 
-  def unload
+  def unload # TESTED
     result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/unload", @@request)
     self.return_result result: result
   end
 
-  def change(waitForSync: nil, journalSize: nil)
+  def change(waitForSync: nil, journalSize: nil) # TESTED
     body = {
       "journalSize" => journalSize,
       "waitForSync" => waitForSync
@@ -163,7 +163,7 @@ class ArangoCollection < ArangoServer
     self.return_result result: result
   end
 
-  def rename(newName)
+  def rename(newName) # TESTED
     body = { "name" => newName }
     request = @@request.merge({ :body => body.to_json })
     result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/rename", request)
@@ -173,7 +173,7 @@ class ArangoCollection < ArangoServer
 
   # === SIMPLE FUNCTIONS ===
 
-  def documents(type: nil) # "path", "id", "key"
+  def documents(type: nil) # "path", "id", "key" # TESTED
     body = {
       "collection" => @collection,
       "type" => type
@@ -200,7 +200,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def allDocuments(skip: nil, limit: nil, batchSize: nil)
+  def allDocuments(skip: nil, limit: nil, batchSize: nil) # TESTED
     body = {
       "collection" => @collection,
       "skip" => skip,
@@ -225,7 +225,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def documentsMatch(match:, skip: nil, limit: nil, batchSize: nil)
+  def documentsMatch(match:, skip: nil, limit: nil, batchSize: nil) # TESTED
     body = {
       "collection" => @collection,
       "example" => match,
@@ -251,7 +251,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def documentMatch(match:)
+  def documentMatch(match:) # TESTED
     body = {
       "collection" => @collection,
       "example" => match
@@ -274,11 +274,11 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def documentByKeys(keys:)
+  def documentByKeys(keys:) # TESTED
     keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDocument) ? x.key : nil} if keys.is_a? Array
     keys = [keys] if keys.is_a? String
     body = { "collection" => @collection, "keys" => keys }
-    request = @@request.merge({ :body => body })
+    request = @@request.merge({ :body => body.to_json })
     result = self.class.put("/_db/#{@database}/_api/simple/lookup-by-keys", request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -296,7 +296,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def random
+  def random # TESTED
     body = { "collection" => @collection }.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/any", request)
@@ -316,52 +316,52 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def removeByKeys(keys:, options: nil)
+  def removeByKeys(keys:, options: nil) # TESTED
     keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDocument) ? x.key : nil}
     body = { "collection" => @collection, "keys" => keys, "options" => options }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/remove-by-keys", request)
-    self.return_result result: result, caseTrue: true
+    self.return_result result: result, key: "removed"
   end
 
-  def removeMatch(match:, options: nil)
+  def removeMatch(match:, options: nil) # TESTED
     body = {
       "collection" => @collection,
       "example" => match,
-      "options" => option
+      "options" => options
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/remove-by-example", request)
-    self.return_result result: result, caseTrue: true
+    self.return_result result: result, key: "deleted"
   end
 
-  def replaceMatch(match:, newValue:, options: nil)
+  def replaceMatch(match:, newValue:, options: nil) # TESTED
     body = {
       "collection" => @collection,
       "example" => match,
-      "options" => option,
+      "options" => options,
       "newValue" => newValue
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/replace-by-example", request)
-    self.return_result result: result
+    self.return_result result: result, key: "replaced"
   end
 
-  def updateMatch(match:, newValue:, options: nil)
+  def updateMatch(match:, newValue:, options: nil) # TESTED
     body = {
       "collection" => @collection,
       "example" => match,
-      "options" => option,
+      "options" => options,
       "newValue" => newValue
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/update-by-example", request)
-    self.return_result result: result
+    self.return_result result: result, key: "updated"
   end
 
 # === IMPORT ===
 
-  def import(attributes:, values:, from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
+  def import(attributes:, values:, from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)  # TESTED
     query = {
       "collection": @collection,
       "fromPrefix": from,
@@ -399,7 +399,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def importJSON(body:, type: "auto", from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
+  def importJSON(body:, type: "auto", from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)  # TESTED
     query = {
       "collection": @collection,
       "type": type,
@@ -433,7 +433,7 @@ class ArangoCollection < ArangoServer
 
 # === EXPORT ===
 
-  def export(count: nil, restrict: nil, batchSize: nil, flush: nil, limit: nil, ttl: nil)
+  def export(count: nil, restrict: nil, batchSize: nil, flush: nil, limit: nil, ttl: nil)  # TESTED
     query = { "collection": @collection }
     body = {
       "count" => count,
@@ -470,7 +470,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def exportNext
+  def exportNext  # TESTED
     unless @hasMoreExport
       print "No other results"
     else
@@ -505,7 +505,7 @@ class ArangoCollection < ArangoServer
 
 # === INDEXES ===
 
-  def retrieveIndex(id:)
+  def retrieveIndex(id:)  # TESTED
     result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -523,7 +523,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def indexes
+  def indexes  # TESTED
     query = { "collection": @collection }
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/index", request)
@@ -546,7 +546,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def createIndex(body: {}, unique: nil, type:, fields:)
+  def createIndex(body: {}, unique: nil, type:, fields:) # TESTED
     body["fields"] = fields.is_a?(Array) ? fields : [fields]
     body["unique"] = unique unless unique.nil?
     body["type"] = type unless type.nil?
@@ -569,7 +569,7 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def deleteIndex(id:)
+  def deleteIndex(id:) # TESTED
     result = self.class.delete("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -589,7 +589,7 @@ class ArangoCollection < ArangoServer
 
 # === REPLICATION ===
 
-  def data(from: nil, to: nil, chunkSize: nil, includeSystem: false, failOnUnknown: nil, ticks: nil, flush: nil)
+  def data(from: nil, to: nil, chunkSize: nil, includeSystem: false, failOnUnknown: nil, ticks: nil, flush: nil) # TESTED
     query = {
       "collection": @collection,
       "from": from,

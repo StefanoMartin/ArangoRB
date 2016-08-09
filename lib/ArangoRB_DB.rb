@@ -1,7 +1,7 @@
 # === DATABASE ===
 
 class ArangoDatabase < ArangoServer
-  def initialize(database: @@database)
+  def initialize(database: @@database)  # TESTED
     if database.is_a?(String)
       @database = database
     else
@@ -9,11 +9,11 @@ class ArangoDatabase < ArangoServer
     end
   end
 
-  attr_reader :database
+  attr_reader :database # TESTED
 
   # === GET ===
 
-  def self.info
+  def self.info  # TESTED
     result = get("/_api/database/current", @@request)
     return_result result: result, key: "result"
     # @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
@@ -21,7 +21,7 @@ class ArangoDatabase < ArangoServer
 
   # === POST ===
 
-  def create(username: nil, passwd: nil, users: nil)
+  def create(username: nil, passwd: nil, users: nil)  # TESTED
     body = {
       "name" => @database,
       "username" => username,
@@ -36,20 +36,20 @@ class ArangoDatabase < ArangoServer
 
   # === DELETE ===
 
-  def destroy
+  def destroy  # TESTED
     result = self.class.delete("/_api/database/#{@database}", @@request)
     self.class.return_result(result: result, caseTrue: true)
   end
 
   # === LISTS ===
 
-  def self.databases(user: nil)
+  def self.databases(user: nil)  # TESTED
     user = user.user if user.is_a?(ArangoUser)
     result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}", @@request)
     @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : result.parsed_response["result"].map{|x| ArangoDatabase.new(database: x)}
   end
 
-  def collections(excludeSystem: true)
+  def collections(excludeSystem: true)  # TESTED
     query = { "excludeSystem": excludeSystem }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/collection", request)
@@ -69,7 +69,7 @@ class ArangoDatabase < ArangoServer
     end
   end
 
-  def graphs
+  def graphs  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -87,39 +87,39 @@ class ArangoDatabase < ArangoServer
     end
   end
 
-  def functions
+  def functions  # TESTED
     result = self.class.get("/_db/#{@database}/_api/aqlfunction", @@request)
     self.class.return_result result: result
   end
 
   # === QUERY ===
 
-  def propertiesQuery
+  def propertiesQuery  # TESTED
     result = self.class.get("/_db/#{@database}/_api/query/properties", @@request)
     self.class.return_result result: result
   end
 
-  def currentQuery
+  def currentQuery  # TESTED
     result = self.class.get("/_db/#{@database}/_api/query/current", @@request)
     self.class.return_result result: result
   end
 
-  def slowQuery
+  def slowQuery  # TESTED
     result = self.class.get("/_db/#{@database}/_api/query/slow", @@request)
     self.class.return_result result: result
   end
 
-  def stopSlowQuery
+  def stopSlowQuery  # TESTED
     result = self.class.delete("/_db/#{@database}/_api/query/slow", @@request)
     self.class.return_result result: result, caseTrue: true
   end
 
-  def killQuery(id:)
+  def killQuery(id:)  # TESTED
     result = self.class.delete("/_db/#{@database}/_api/query/#{id}", @@request)
     self.class.return_result result: result, caseTrue: true
   end
 
-  def changePropertiesQuery(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)
+  def changePropertiesQuery(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)  # TESTED
     body = {
       "slowQueryThreshold" => slowQueryThreshold,
       "enabled" => enabled,
@@ -134,17 +134,17 @@ class ArangoDatabase < ArangoServer
 
 # === CACHE ===
 
-  def clearCache
+  def clearCache  # TESTED
     result = self.class.delete("/_db/#{@database}/_api/query-cache", @@request)
     self.class.return_result result: result, caseTrue: true
   end
 
-  def propertyCache
+  def propertyCache  # TESTED
     result = self.class.get("/_db/#{@database}/_api/query-cache/properties", @@request)
     self.class.return_result result: result
   end
 
-  def changePropertyCache(mode: nil, maxResults: nil)
+  def changePropertyCache(mode: nil, maxResults: nil)  # TESTED
     body = { "mode" => mode, "maxResults" => maxResults }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json })
     result = self.class.put("/_db/#{@database}/_api/query-cache/properties", request)
@@ -153,7 +153,7 @@ class ArangoDatabase < ArangoServer
 
   # === AQL FUNCTION ===
 
-  def createFunction(code:, name:, isDeterministic: nil)
+  def createFunction(code:, name:, isDeterministic: nil)  # TESTED
     body = {
       "code" => code,
       "name" => name,
@@ -164,76 +164,76 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result
   end
 
-  def deleteFunction(name:)
+  def deleteFunction(name:) # TESTED
     result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}", @@request)
     self.class.return_result result: result, caseTrue: true
   end
 
   # === ASYNC ===
 
-  def pendingAsync
+  def pendingAsync # TESTED
     result = self.class.get("/_db/#{@database}/_api/job/pending")
     return_result_async result: result
   end
 
-  def fetchAsync(id:)
+  def fetchAsync(id:) # TESTED
     result = self.class.put("/_db/#{@database}/_api/job/#{id}")
     return_result_async result: result
   end
 
-  def retrieveAsync(type:)
+  def retrieveAsync(type:) # TESTED
     result = self.class.get("/_db/#{@database}/_api/job/#{type}")
     return_result_async result: result
   end
 
-  def retrieveDoneAsync
+  def retrieveDoneAsync # TESTED
     retrieveAsync(type: "done")
   end
 
-  def retrievePendingAsync
+  def retrievePendingAsync # TESTED
     retrieveAsync(type: "pending")
   end
 
-  def cancelAsync(id:)
+  def cancelAsync(id:) # TESTED
     result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel")
     return_result_async result: result
   end
 
-  def destroyAsync(type:)
+  def destroyAsync(type:) # TESTED
     result = self.class.delete("/_db/#{@database}/_api/job/#{type}")
     return_result_async result: result, caseTrue: true
   end
 
-  def destroyAllAsync
+  def destroyAllAsync # TESTED
     destroyAsync(type: "all")
   end
 
-  def destroyExpiredAsync
+  def destroyExpiredAsync # TESTED
     destroyAsync(type: "expired")
   end
 
   # === REPLICATION ===
 
-  def inventory(includeSystem: false)
+  def inventory(includeSystem: false) # TESTED
     query = { "includeSystem": includeSystem }
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/replication/inventory", request)
     self.class.return_result result: result
   end
 
-  def clusterInventory(includeSystem: false)
+  def clusterInventory(includeSystem: false) # TESTED
     query = { "includeSystem": includeSystem }
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/replication/clusterInventory", request)
     self.class.return_result result: result
   end
 
-  def logger
+  def logger # TESTED
     result = self.class.get("/_db/#{@database}/_api/replication/logger-state")
     self.class.return_result result: result
   end
 
-  def loggerFollow(from: nil, to: nil, chunkSize: nil, includeSystem: false)
+  def loggerFollow(from: nil, to: nil, chunkSize: nil, includeSystem: false) # TESTED
     query = {
       "from": from,
       "to": to,
@@ -245,12 +245,12 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result
   end
 
-  def firstTick
+  def firstTick # TESTED
     result = self.class.get("/_db/#{@database}/_api/replication/logger-first-tick")
     self.class.return_result result: result, key: "firstTick"
   end
 
-  def rangeTick
+  def rangeTick # TESTED
     result = self.class.get("/_db/#{@database}/_api/replication/logger-tick-ranges")
     self.class.return_result result: result
   end
@@ -272,12 +272,12 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result
   end
 
-  def configurationReplication
+  def configurationReplication # TESTED
     result = self.class.get("/_db/#{@database}/_api/replication/applier-config", @@request)
     self.class.return_result result: result
   end
 
-  def modifyConfigurationReplication(endpoint: "tcp://#{@@server}:#{@@port}", username: @@username, password: @@password, database: @database, includeSystem: false, verbose: false, connectTimeout: nil, autoResync: nil, idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil, initialSyncMaxWaitTime: nil, maxConnectRetries: nil, autoStart: nil, adaptivePolling: nil, connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil)
+  def modifyConfigurationReplication(endpoint: "tcp://#{@@server}:#{@@port}", username: @@username, password: @@password, database: @database, includeSystem: false, verbose: false, connectTimeout: nil, autoResync: nil, idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil, initialSyncMaxWaitTime: nil, maxConnectRetries: nil, autoStart: nil, adaptivePolling: nil, connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil) # TESTED
     body = {
       "username" => username,
       "password" => password,
@@ -353,7 +353,7 @@ class ArangoDatabase < ArangoServer
 
   # === USER ===
 
-  def grant(user: @@user)
+  def grant(user: @@user) # TESTED
     user = user.user if user.is_a?(ArangoUser)
     body = { "grant" => "rw" }.to_json
     request = @@request.merge({ :body => body })
@@ -361,7 +361,7 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result, caseTrue: true
   end
 
-  def revoke(user: @@user)
+  def revoke(user: @@user) # TESTED
     user = user.user if user.is_a?(ArangoUser)
     body = { "grant" => "none" }.to_json
     request = @@request.merge({ :body => body })

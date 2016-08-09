@@ -4,7 +4,7 @@ describe ArangoDatabase do
   context "#async" do
     it "pendingAsync" do
       ArangoServer.async = "store"
-      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
       expect(@myDatabase.pendingAsync).to eq []
     end
 
@@ -16,7 +16,7 @@ describe ArangoDatabase do
 
     it "retrieveAsync" do
       ArangoServer.async = "store"
-      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
       expect(@myDatabase.retrievePendingAsync).to eq []
     end
 

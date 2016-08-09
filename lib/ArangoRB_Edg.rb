@@ -1,7 +1,7 @@
 # === GRAPH EDGE ===
 
 class ArangoEdge < ArangoDocument
-  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database, body: {}, from: nil, to: nil)
+  def initialize(key: nil, collection: @@collection, graph: @@graph, database: @@database, body: {}, from: nil, to: nil) # TESTED
     if collection.is_a?(String)
       @collection = collection
     elsif collection.is_a?(ArangoCollection)
@@ -63,7 +63,7 @@ class ArangoEdge < ArangoDocument
 
   # === GET ===
 
-  def retrieve #DONE
+  def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@id}", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -85,7 +85,7 @@ class ArangoEdge < ArangoDocument
 
 # === POST ====
 
-  def create(body: {}, from: @body["_from"], to: @body["_to"], waitForSync: nil) #DONE
+  def create(body: {}, from: @body["_from"], to: @body["_to"], waitForSync: nil) # TESTED
     query = {"waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
     body["_key"] = @key if body["_key"].nil? && !@key.nil?
     body["_from"] = from.is_a?(String) ? from : from.id
@@ -99,14 +99,14 @@ class ArangoEdge < ArangoDocument
 
 # === MODIFY ===
 
-  def replace(body: {}, waitForSync: nil)
+  def replace(body: {}, waitForSync: nil) # TESTED
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@id}", request)
     return_result result: result, body: body
   end
 
-  def update(body: {}, waitForSync: nil, keepNull: nil) #DONE
+  def update(body: {}, waitForSync: nil, keepNull: nil) # TESTED
     query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@id}", request)
@@ -137,7 +137,7 @@ class ArangoEdge < ArangoDocument
 
 # === DELETE ===
 
-  def destroy(body: nil, waitForSync: nil) #OONE
+  def destroy(body: nil, waitForSync: nil) # TESTED
     query = { "waitForSync" => waitForSync }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :query => query })
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{@id}", request)

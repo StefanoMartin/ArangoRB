@@ -1,7 +1,7 @@
 # ==== GRAPH ====
 
 class ArangoGraph < ArangoServer
-  def initialize(graph: @@graph, database: @@database, edgeDefinitions: [], orphanCollections: [])
+  def initialize(graph: @@graph, database: @@database, edgeDefinitions: [], orphanCollections: [])  # TESTED
     if database.is_a?(String)
       @database = database
     else
@@ -31,7 +31,7 @@ class ArangoGraph < ArangoServer
 
 # === GET ===
 
-  def retrieve
+  def retrieve  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -53,7 +53,7 @@ class ArangoGraph < ArangoServer
 
 # === POST ===
 
-  def create
+  def create  # TESTED
     body = { "name" => @graph, "edgeDefinitions" => @edgeDefinitions, "orphanCollections" => @orphanCollections }
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/gharial", request)
@@ -67,7 +67,7 @@ class ArangoGraph < ArangoServer
 
 # === DELETE ===
 
-  def destroy
+  def destroy  # TESTED
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -79,7 +79,7 @@ class ArangoGraph < ArangoServer
 
 # === VERTEX COLLECTION  ===
 
-  def vertexCollections
+  def vertexCollections  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -89,7 +89,7 @@ class ArangoGraph < ArangoServer
     end
   end
 
-  def addVertexCollection(collection:)
+  def addVertexCollection(collection:)  # TESTED
     collection = collection.is_a?(String) ? collection : collection.collection
     body = { "collection" => collection }.to_json
     request = @@request.merge({ :body => body })
@@ -111,7 +111,7 @@ class ArangoGraph < ArangoServer
     end
   end
 
-  def removeVertexCollection(collection:)
+  def removeVertexCollection(collection:)  # TESTED
     collection = collection.is_a?(String) ? collection : collection.collection
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{collection}", @@request)
     if @@async == "store"
@@ -133,7 +133,7 @@ class ArangoGraph < ArangoServer
 
 # === EDGE COLLECTION ===
 
-  def edgeCollections
+  def edgeCollections  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/edge", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -143,7 +143,7 @@ class ArangoGraph < ArangoServer
     end
   end
 
-  def addEdgeCollection(collection:, from:, to:, replace: false)
+  def addEdgeCollection(collection:, from:, to:, replace: false)  # TESTED
     from = from.is_a?(String) ? [from] : from.is_a?(ArangoCollection) ? [from.collection] : from
     to = to.is_a?(String) ? [to] : to.is_a?(ArangoCollection) ? [to.collection] : to
     body = {}
@@ -181,11 +181,11 @@ class ArangoGraph < ArangoServer
     end
   end
 
-  def replaceEdgeCollection(collection:, from:, to:)
+  def replaceEdgeCollection(collection:, from:, to:)  # TESTED
     self.addEdgeCollection(collection: collection, from: from, to: to, replace: true)
   end
 
-  def removeEdgeCollection(collection:)
+  def removeEdgeCollection(collection:)  # TESTED
     collection = collection.is_a?(String) ? collection : collection.collection
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", @@request)
 

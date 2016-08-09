@@ -1,7 +1,7 @@
 # === AQL ===
 
 class ArangoAQL < ArangoServer
-  def initialize(query: nil, batchSize: nil, ttl: nil, cache: nil, options: nil, bindVars: nil, database: @@database)
+  def initialize(query: nil, batchSize: nil, ttl: nil, cache: nil, options: nil, bindVars: nil, database: @@database)  # TESTED
     if query.is_a?(String)
       @query = query
     elsif query.is_a?(ArangoAQL)
@@ -29,7 +29,7 @@ class ArangoAQL < ArangoServer
 
 # === EXECUTE QUERY ===
 
-  def execute(count: true)
+  def execute(count: true) # TESTED
     body = {
       "query" => @query,
       "count" => count,
@@ -66,7 +66,7 @@ class ArangoAQL < ArangoServer
     end
   end
 
-  def next
+  def next  # TESTED
     unless @hasMore
       print "No other results"
     else
@@ -99,7 +99,7 @@ class ArangoAQL < ArangoServer
 
   # === PROPERTY QUERY ===
 
-  def explain
+  def explain  # TESTED
     body = {
       "query" => @query,
       "options" => @options,
@@ -110,41 +110,41 @@ class ArangoAQL < ArangoServer
     return_result result: result
   end
 
-  def parse
+  def parse # TESTED
     body = { "query" => @query }
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/query", request)
     return_result result: result
   end
 
-  def properties
+  def properties # TESTED
     result = self.class.get("/_db/#{@database}/_api/query/properties", @@request)
     return_result result: result
   end
 
-  def current
+  def current # TESTED
     result = self.class.get("/_db/#{@database}/_api/query/current", @@request)
     return_result result: result
   end
 
-  def slow
+  def slow # TESTED
     result = self.class.get("/_db/#{@database}/_api/query/slow", @@request)
     return_result result: result
   end
 
 # === DELETE ===
 
-  def stopSlow
+  def stopSlow # TESTED
     result = self.class.delete("/_db/#{@database}/_api/query/slow", @@request)
     return_result result: result, caseTrue: true
   end
 
-  def kill(id: @id)
+  def kill(id: @id) # TESTED
     result = self.class.delete("/_db/#{@database}/_api/query/#{id}", @@request)
     return_result result: result, caseTrue: true
   end
 
-  def changeProperties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)
+  def changeProperties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil) # TESTED
     body = {
       "slowQueryThreshold" => slowQueryThreshold,
       "enabled" => enabled,
@@ -154,48 +154,6 @@ class ArangoAQL < ArangoServer
     }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json })
     result = self.class.put("/_db/#{@database}/_api/query/properties", request)
-    return_result result: result
-  end
-
-# === CACHE ===
-
-  def clearCache
-    result = self.class.delete("/_db/#{@database}/_api/query-cache", @@request)
-    return_result result: result, caseTrue: true
-  end
-
-  def propertyCache
-    result = self.class.get("/_db/#{@database}/_api/query-cache/properties", @@request)
-    return_result result: result
-  end
-
-  def changePropertyCache(mode: nil, maxResults: nil)
-    body = { "mode" => mode, "maxResults" => maxResults }.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :body => body.to_json })
-    result = self.class.put("/_db/#{@database}/_api/query-cache/properties", request)
-    return_result result: result
-  end
-
-# === AQL FUNCTION ===
-
-  def createFunction(code:, name:, isDeterministic: nil)
-    body = {
-      "code" => code,
-      "name" => name,
-      "isDeterministic" => isDeterministic
-    }.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :body => body.to_json })
-    result = self.class.post("/_db/#{@database}/_api/aqlfunction", request)
-    return_result result: result
-  end
-
-  def deleteFunction(name:)
-    result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}", @@request)
-    return_result result: result, caseTrue: true
-  end
-
-  def functions
-    result = self.class.get("/_db/#{@database}/_api/aqlfunction", @@request)
     return_result result: result
   end
 

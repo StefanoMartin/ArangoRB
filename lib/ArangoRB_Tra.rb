@@ -1,7 +1,7 @@
 # === TRAVERSAL ===
 
 class ArangoTraversal < ArangoServer
-  def initialize(body: {}, database: @@database, graph: nil, edgeCollection: nil)
+  def initialize(body: {}, database: @@database, graph: nil, edgeCollection: nil) # TESTED
     @sort        = body["sort"]
     @direction   = body["direction"]
     @maxDepth    = body["maxDepth"]
@@ -26,7 +26,7 @@ class ArangoTraversal < ArangoServer
   attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander, :vertices, :paths, :database
   attr_reader :startVertex, :graphName, :edgeCollection
 
-  def startVertex=(startVertex)
+  def startVertex=(startVertex) # TESTED
     if startVertex.is_a?(String)
       @startVertex = startVertex
     elsif startVertex.is_a?(ArangoDocument)
@@ -36,7 +36,7 @@ class ArangoTraversal < ArangoServer
     end
   end
 
-  def graphName=(graphName)
+  def graphName=(graphName) # TESTED
     if graphName.is_a?(String) || graphName.nil?
       @graphName = graphName
     elsif graphName.is_a?(ArangoGraph)
@@ -46,7 +46,7 @@ class ArangoTraversal < ArangoServer
     end
   end
 
-  def edgeCollection=(edgeCollection)
+  def edgeCollection=(edgeCollection) # TESTED
     if edgeCollection.is_a?(String) || edgeCollection.nil?
       @edgeCollection = edgeCollection
     elsif edgeCollection.is_a?(ArangoCollection)
@@ -56,15 +56,15 @@ class ArangoTraversal < ArangoServer
     end
   end
 
-  def in
+  def in # TESTED
     @direction = "inbound"
   end
 
-  def out
+  def out # TESTED
     @direction = "outbound"
   end
 
-  def any
+  def any # TESTED
     @direction = "any"
   end
 
@@ -79,7 +79,7 @@ class ArangoTraversal < ArangoServer
   alias graph graphName
   alias graph= graphName=
 
-  def execute
+  def execute # TESTED
     body = {
       "sort"        => @sort,
       "direction"   => @direction,

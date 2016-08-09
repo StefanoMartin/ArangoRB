@@ -37,7 +37,7 @@ To setup your server use:
 ArangoServer.default_server user: "Username", password: "MyPass", server: "localhost", port: "8529"
 ```
 
-Default value for the server are user: "root", server: "localhost", port: "8529". Password must be defined.
+Default value for the server are user: "root", password: "", server: "localhost", and port: "8529".
 
 ### Global variables
 

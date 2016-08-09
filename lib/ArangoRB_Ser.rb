@@ -15,7 +15,7 @@ class ArangoServer
   @@server = "localhost"
   @@port = "8529"
 
-  def self.default_server(user: @@username, password: @@password = "", server: @@server, port: @@port)
+  def self.default_server(user: @@username, password: @@password = "", server: @@server, port: @@port) # TESTED
     base_uri "http://#{server}:#{port}"
     basic_auth user, password
     @@username = user
@@ -24,23 +24,23 @@ class ArangoServer
     @@port = port
   end
 
-  def self.address
+  def self.address  # TESTED
     "#{@@server}:#{@@port}"
   end
 
-  def self.username
+  def self.username  # TESTED
     @@username
   end
 
-  def self.verbose=(verbose)
+  def self.verbose=(verbose) # TESTED
     @@verbose = verbose
   end
 
-  def self.verbose
+  def self.verbose  # TESTED
     @@verbose
   end
 
-  def self.async=(async)
+  def self.async=(async)  # TESTED
     @@async = async
     if async == true || async == "true"
       @@request[:headers] = {"x-arango-async" => "true"}
@@ -51,11 +51,11 @@ class ArangoServer
     end
   end
 
-  def self.async
+  def self.async  # TESTED
     @@async
   end
 
-  def self.database=(database)
+  def self.database=(database)  # TESTED
     if database.is_a? String
       @@database = database
     elsif database.is_a? ArangoDatabase
@@ -65,11 +65,11 @@ class ArangoServer
     end
   end
 
-  def self.database
+  def self.database  # TESTED
     @@database
   end
 
-  def self.graph=(graph)
+  def self.graph=(graph)  # TESTED
     if graph.is_a? String
       @@graph = graph
     elsif graph.is_a? ArangoGraph
@@ -79,11 +79,11 @@ class ArangoServer
     end
   end
 
-  def self.graph
+  def self.graph  # TESTED
     @@graph
   end
 
-  def self.collection=(collection)
+  def self.collection=(collection)  # TESTED
     if collection.is_a? String
       @@collection = collection
     elsif collection.is_a? ArangoCollection
@@ -93,7 +93,7 @@ class ArangoServer
     end
   end
 
-  def self.collection
+  def self.collection  # TESTED
     @@collection
   end
 
@@ -107,59 +107,59 @@ class ArangoServer
     end
   end
 
-  def self.user
+  def self.user # TESTED
     @@user
   end
 
-  def self.request
+  def self.request # TESTED
     @@request
   end
 
 # === MONITORING ===
 
-  def self.log
+  def self.log  # TESTED
     result = get("/_admin/log", @@request)
     return_result result: result
   end
 
-  def self.reload
+  def self.reload # TESTED
     result = post("/_admin/routing/reload", @@request)
     return_result result: result, caseTrue: true
   end
 
-  def self.statistics
+  def self.statistics # TESTED
     result = get("/_admin/statistics", @@request)
     return_result result: result
   end
 
-  def self.statisticsDescription
+  def self.statisticsDescription # TESTED
     result = get("/_admin/statistics-description", @@request)
     return_result result: result
   end
 
-  def self.role
+  def self.role # TESTED
     result = get("/_admin/server/role", @@request)
     return_result result: result, key: "role"
   end
 
-  def self.server
+  def self.server # TESTED
     result = get("/_admin/server/id", @@request)
     return_result result: result
   end
 
-  def self.clusterStatistics
+  def self.clusterStatistics # TESTED
     result = get("/_admin/clusterStatistics", @@request)
     return_result result: result
   end
 
 # === ENDPOINTS ===
 
-  def self.endpoints
+  def self.endpoints # TESTED
     result = get("/_api/endpoint", @@request)
     return_result result: result
   end
 
-  def self.users
+  def self.users # TESTED
     result = get("/_api/user", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -179,7 +179,7 @@ class ArangoServer
 
   # === BATCH ===
 
-  def self.batch(queries:)
+  def self.batch(queries:) # TESTED
     headers = {
       "Content-Type": "multipart/form-data",
       "boundary": "XboundaryX"
@@ -200,7 +200,7 @@ class ArangoServer
     return_result result: result
   end
 
-  def self.destroyDumpBatch(id:, dbserver: nil)
+  def self.destroyDumpBatch(id:, dbserver: nil) # TESTED
     query = {"DBserver" => dbserver}.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :query => query })
     result = delete("/_api/replication/batch/#{id}", request)
@@ -208,7 +208,7 @@ class ArangoServer
     return result["errorMessage"] if result["error"]
   end
 
-  def self.createDumpBatch(ttl:, dbserver: nil)
+  def self.createDumpBatch(ttl:, dbserver: nil) # TESTED
     query = {"DBserver" => dbserver}.delete_if{|k,v| v.nil?}
     body = { "ttl" => ttl }
     request = @@request.merge({ :body => body.to_json, :query => query })
@@ -216,7 +216,7 @@ class ArangoServer
     return_result result: result, key: "id"
   end
 
-  def self.prolongDumpBatch(id:, ttl:, dbserver: nil)
+  def self.prolongDumpBatch(id:, ttl:, dbserver: nil) # TESTED
     query = {"DBserver" => dbserver}.delete_if{|k,v| v.nil?}
     body = { "ttl" => ttl }
     request = @@request.merge({ :body => body.to_json, :query => query })
@@ -226,7 +226,7 @@ class ArangoServer
 
 # === REPLICATION ===
 
-  def self.serverId
+  def self.serverId # TESTED
     result = get("/_api/replication/server-id", @@request)
     return_result result: result, key: "serverId"
   end
@@ -275,7 +275,7 @@ class ArangoServer
 
 # === TASKS ===
 
-  def self.tasks
+  def self.tasks # TESTED
     result = get("/_api/tasks", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -295,14 +295,14 @@ class ArangoServer
 
 # === MISCELLANEOUS FUNCTIONS ===
 
-  def self.version(details: nil)
+  def self.version(details: nil) # TESTED
     query = {"details": details}
     request = @@request.merge({ "query" => query })
     result = get("/_api/version", request)
     return_result result: result
   end
 
-  def self.flushWAL(waitForSync: nil, waitForCollector: nil)
+  def self.flushWAL(waitForSync: nil, waitForCollector: nil) # TESTED
     body = {
       "waitForSync" => waitForSync,
       "waitForCollector" => waitForCollector
@@ -312,12 +312,12 @@ class ArangoServer
     return_result result: result, caseTrue: true
   end
 
-  def self.propertyWAL
+  def self.propertyWAL # TESTED
     result = put("/_admin/wal/properties", @@request)
     return_result result: result
   end
 
-  def self.changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil, historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil)
+  def self.changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil, historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil) # TESTED
     body = {
       "allowOversizeEntries" => allowOversizeEntries,
       "logfileSize" => allowOversizeEntries,
@@ -331,41 +331,46 @@ class ArangoServer
     return_result result: result
   end
 
-  def self.transactions
+  def self.transactions # TESTED
     result = get("/_admin/wal/transactions", @@request)
     return_result result: result
   end
 
-  def self.time
+  def self.time # TESTED
     result = get("/_admin/time", @@request)
-    return_result result: result
+    return_result result: result, key: "time"
   end
 
-  def self.echo
+  def self.echo # TESTED
     result = get("/_admin/echo", @@request)
     return_result result: result
   end
 
-  def self.longEcho
-    result = get("/_admin/long_echo", @@request)
-    return_result result: result
-  end
+  # def self.longEcho body: {}
+  #   request = @@request.merge({ :body => body.to_json })
+  #   result = get("/_admin/long_echo", request)
+  #   return_result result: result
+  # end
 
-  def self.databaseVersion
+  def self.databaseVersion # TESTED
     result = get("/_admin/database/target-version", @@request)
-    return_result result: result
+    return_result result: result, key: "version"
   end
 
-  def self.sleep(duration:)
+  def self.sleep(duration:) # TESTED
     query = {"duration": duration}
     request = @@request.merge({ "query" => query })
-    result = get("/_admin/database/target-version", request)
-    return_result result: result
+    result = get("/_admin/sleep", request)
+    return_result result: result, key: "duration"
   end
 
-  def self.shutdown
+  def self.shutdown # TESTED
     result = delete("/_admin/shutdown", @@request)
     return_result result: result, caseTrue: true
+  end
+
+  def self.restart
+    `sudo service arangodb restart`
   end
 
   def self.test(body:)

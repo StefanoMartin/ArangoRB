@@ -47,7 +47,7 @@ describe ArangoDocument do
     end
 
     it "retrieve Edges" do
-      testmy = @myEdgeCollection.create_edge from: ["MyCollection/myA", "MyCollection/myB"], to: @myDocument
+      @myEdgeCollection.create_edge from: ["MyCollection/myA", "MyCollection/myB"], to: @myDocument
       myEdges = @myDocument.retrieve_edges(collection: @myEdgeCollection)
       expect(myEdges.length).to eq 2
     end

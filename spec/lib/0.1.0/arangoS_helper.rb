@@ -21,4 +21,17 @@ describe ArangoServer do
       expect(ArangoServer.collection).to eq "MyCollection"
     end
   end
+
+  context "#verbose" do
+    it "try verbose" do
+      ArangoServer.verbose = true
+      result = ArangoCollection.new(collection: "Test").create
+      expect(result.class).to be Hash
+    end
+
+    it "print verbose" do
+      ArangoServer.verbose = true
+      expect(ArangoServer.verbose).to be true
+    end
+  end
 end

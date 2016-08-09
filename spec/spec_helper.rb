@@ -9,6 +9,7 @@ RSpec.configure do |config|
 		ArangoServer.collection = "MyCollection"
 		ArangoServer.graph = "MyGraph"
 		ArangoServer.user = "MyUser"
+		ArangoServer.verbose = false
 		ArangoServer.async = false
 		@myDatabase = ArangoDatabase.new.create
 		@myGraph = ArangoGraph.new.create
