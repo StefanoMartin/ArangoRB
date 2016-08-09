@@ -20,8 +20,10 @@ class ArangoEdge < ArangoDocument
 
     if database.is_a?(String)
       @database = database
+    elsif database.is_a?(ArangoDatabase)
+      @database = database.database
     else
-      raise "database should be a String, not a #{database.class}"
+      raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
     end
 
     if key.is_a?(String) || key.nil?

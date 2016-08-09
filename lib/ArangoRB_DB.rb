@@ -4,8 +4,10 @@ class ArangoDatabase < ArangoServer
   def initialize(database: @@database)  # TESTED
     if database.is_a?(String)
       @database = database
+    elsif database.is_a?(ArangoDatabase)
+      @database = database.database
     else
-      raise "database should be a String, not a #{database.class}"
+      raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
     end
   end
 

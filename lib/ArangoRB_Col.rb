@@ -4,14 +4,18 @@ class ArangoCollection < ArangoServer
   def initialize(collection: @@collection, database: @@database, body: {}, type: nil) # TESTED
     if collection.is_a?(String)
       @collection = collection
+    elsif collection.is_a?(ArangoCollection)
+      @collection = collection.collection
     else
-      raise "collection should be a String, not a #{collection.class}"
+      raise "collection should be a String or an ArangoCollection instance, not a #{collection.class}"
     end
 
     if database.is_a?(String)
       @database = database
+    elsif database.is_a?(ArangoDatabase)
+      @database = database.database
     else
-      raise "database should be a String, not a #{database.class}"
+      raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
     end
 
     if body.is_a?(Hash)
@@ -546,10 +550,11 @@ class ArangoCollection < ArangoServer
     end
   end
 
-  def createIndex(body: {}, unique: nil, type:, fields:) # TESTED
+  def createIndex(body: {}, unique: nil, type:, fields:, id: nil) # TESTED
     body["fields"] = fields.is_a?(Array) ? fields : [fields]
     body["unique"] = unique unless unique.nil?
     body["type"] = type unless type.nil?
+    body["id"] = id unless type.nil?
     query = { "collection": @collection }
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/index", request)

@@ -26,7 +26,7 @@ RSpec.configure do |config|
 		@vertexA = ArangoVertex.new(body: {"Hello" => "World", "num" => 1}).create
 	  @vertexB = ArangoVertex.new(body: {"Hello" => "Moon", "num" => 2}).create
 	  @myEdge = ArangoEdge.new(from: @vertexA, to: @vertexB, collection: "MyEdgeCollection").create
-		@myIndex = @myCollection.createIndex unique: false, fields: "num", type: "hash"
+		@myIndex = @myCollection.createIndex unique: false, fields: "num", type: "hash", id: "MyIndex"
 		@myTraversal = ArangoTraversal.new
 		@myUser = ArangoUser.new.create
 	end
@@ -34,5 +34,6 @@ RSpec.configure do |config|
 	config.after(:all) do
 		ArangoDatabase.new.destroy
 		ArangoUser.new.destroy
+		@myIndex.destroy
 	end
 end

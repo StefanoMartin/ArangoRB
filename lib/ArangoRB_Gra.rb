@@ -4,14 +4,18 @@ class ArangoGraph < ArangoServer
   def initialize(graph: @@graph, database: @@database, edgeDefinitions: [], orphanCollections: [])  # TESTED
     if database.is_a?(String)
       @database = database
+    elsif database.is_a?(ArangoDatabase)
+      @database = database.database
     else
-      raise "database should be a String, not a #{collection.class}"
+      raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
     end
 
     if graph.is_a?(String)
       @graph = graph
+    elsif database.is_a?(ArangoGraph)
+      @graph = graph.graph
     else
-      raise "graph should be a String, not a #{graph.class}"
+      raise "graph should be a String or an ArangoGraph instance, not a #{graph.class}"
     end
 
     if edgeDefinitions.is_a?(Array)
