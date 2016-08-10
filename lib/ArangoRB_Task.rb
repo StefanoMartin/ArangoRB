@@ -1,21 +1,27 @@
 # === AQL ===
 
 class ArangoTask < ArangoServer
-  def initialize(id:, name: nil, type: nil, period: nil, created: nil, command: nil, database: nil, params: {})
+  def initialize(database: @@database, id: nil, name: nil, type: nil, period: nil, command: nil, params: {}, created: nil) # TESTED
+    if database.is_a?(String)
+      @database = database
+    elsif database.is_a?(ArangoDatabase)
+      @database = database.database
+    else
+      raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
+    end
     @id = id
     @name = name
     @type = type
     @period = period
-    @created = created
     @command = command
-    @database = database
     @params = params
+    @created = created
   end
 
-  attr_reader :id, :name, :type, :period, :created, :command, :database
+  attr_reader :id, :name, :type, :period, :created, :command, :database, :params
 
-  def retrieve
-    result = self.class.get("/_api/tasks/#{@id}")
+  def retrieve # TESTED
+    result = self.class.get("/_db/#{@database}/_api/tasks/#{@id}")
     if @@async == "store"
       result.headers["x-arango-async-id"]
     else
@@ -46,19 +52,37 @@ class ArangoTask < ArangoServer
     end
   end
 
-  def create params: nil, offset: nil
+  def self.tasks # TESTED
+    result = get("/_db/#{@@database}/_api/tasks", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result.is_a?(Hash) && result["error"]
+          result["errorMessage"]
+        else
+          result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
+        end
+      end
+    end
+  end
+
+  def create offset: nil # TESTED
     body = {
       "name" => @name,
       "command" => @command,
       "period" => @period,
       "offset" => offset,
-      "param" => params
+      "params" => @params
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     if @id.nil?
-      result = self.class.post("/_api/tasks", request)
+      result = self.class.post("/_db/#{@database}/_api/tasks", request)
     else
-      result = self.class.put("/_api/tasks/#{@id}", request)
+      result = self.class.put("/_db/#{@database}/_api/tasks/#{@id}", request)
     end
     if @@async == "store"
       result.headers["x-arango-async-id"]
@@ -92,8 +116,8 @@ class ArangoTask < ArangoServer
     end
   end
 
-  def destroy
-    result = self.class.delete("/_api/tasks/#{@id}", @@request)
+  def destroy # TESTED
+    result = self.class.delete("/_db/#{@database}/_api/tasks/#{@id}", @@request)
     if @@async == "store"
       result.headers["x-arango-async-id"]
     else
