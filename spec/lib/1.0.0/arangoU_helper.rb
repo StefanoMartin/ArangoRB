@@ -18,6 +18,7 @@ describe ArangoUser do
       @myUser.destroy
       @myUser = ArangoUser.new user: "MyUser", password: "Test"
       result = @myUser.create
+      print result
       expect(result.user).to eq "MyUser"
     end
 

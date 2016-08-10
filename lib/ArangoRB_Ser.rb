@@ -14,6 +14,7 @@ class ArangoServer
   @@username = ""
   @@server = "localhost"
   @@port = "8529"
+  @@cluster = "cluster-test"
 
   def self.default_server(user: @@username, password: @@password = "", server: @@server, port: @@port) # TESTED
     base_uri "http://#{server}:#{port}"
@@ -115,6 +116,14 @@ class ArangoServer
     @@request
   end
 
+  def self.cluster
+    @@cluster
+  end
+
+  def self.cluster=(cluster)
+    @@cluster = cluster
+  end
+
 # === MONITORING ===
 
   def self.log  # TESTED
@@ -127,13 +136,12 @@ class ArangoServer
     return_result result: result, caseTrue: true
   end
 
-  def self.statistics # TESTED
-    result = get("/_admin/statistics", @@request)
-    return_result result: result
-  end
-
-  def self.statisticsDescription # TESTED
-    result = get("/_admin/statistics-description", @@request)
+  def self.statistics description: false # TESTED
+    if description
+      result = get("/_admin/statistics-description", @@request)
+    else
+      result = get("/_admin/statistics", @@request)
+    end
     return_result result: result
   end
 
@@ -142,17 +150,19 @@ class ArangoServer
     return_result result: result, key: "role"
   end
 
-  def self.server # TESTED
+  def self.server
     result = get("/_admin/server/id", @@request)
     return_result result: result
   end
 
-  def self.clusterStatistics # TESTED
-    result = get("/_admin/clusterStatistics", @@request)
+  def self.clusterStatistics dbserver:
+    query = {"DBserver": dbserver}
+    request = @@request.merge({ :query => query })
+    result = get("/_admin/clusterStatistics", request)
     return_result result: result
   end
 
-# === ENDPOINTS ===
+# === LISTS ===
 
   def self.endpoints # TESTED
     result = get("/_api/endpoint", @@request)
@@ -175,6 +185,72 @@ class ArangoServer
         end
       end
     end
+  end
+
+  def self.databases(user: nil) # TESTED
+    ArangoDatabase.databases user: user
+  end
+
+
+  def self.tasks # TESTED
+    result = get("/_api/tasks", @@request)
+    if @@async == "store"
+      result.headers["x-arango-async-id"]
+    else
+      result = result.parsed_response
+      if @@verbose
+        result
+      else
+        if result.is_a?(Hash) && result["error"]
+          result["errorMessage"]
+        else
+          result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
+        end
+      end
+    end
+  end
+
+  # === ASYNC ===
+
+  def self.pendingAsync # TESTED
+    result = get("/_api/job/pending")
+    return_result_async result: result
+  end
+
+  def self.fetchAsync(id:) # TESTED
+    result = put("/_api/job/#{id}")
+    return_result_async result: result
+  end
+
+  def self.retrieveAsync(type: nil, id: nil) # TESTED
+    result = id.nil? ? get("/_api/job/#{type}") : get("/_api/job/#{id}")
+    return_result_async result: result
+  end
+
+  def self.retrieveDoneAsync # TESTED
+    retrieveAsync(type: "done")
+  end
+
+  def self.retrievePendingAsync # TESTED
+    retrieveAsync(type: "pending")
+  end
+
+  def self.cancelAsync(id:) # TESTED
+    result = put("/_api/job/#{id}/cancel")
+    return_result_async result: result
+  end
+
+  def self.destroyAsync(type: nil, id: nil) # TESTED
+    result = id.nil? ? delete("/_api/job/#{type}") : delete("/_api/job/#{id}")
+    return_result_async result: result, caseTrue: true
+  end
+
+  def self.destroyAllAsync # TESTED
+    destroyAsync(type: "all")
+  end
+
+  def self.destroyExpiredAsync # TESTED
+    destroyAsync(type: "expired")
   end
 
   # === BATCH ===
@@ -233,36 +309,36 @@ class ArangoServer
 
 # === SHARDING ===
 
-  def self.clusterRoundtrip
-    result = get("/_admin/cluster-test", @@request)
+  def self.clusterRoundtrip(cluster: @@cluster)
+    result = get("/_admin/#{cluster}", @@request)
     return_result result: result
   end
 
-  def self.executeCluster(body:)
+  def self.executeCluster(body:, cluster: @@cluster)
     request = @@request.merge({ "body" => body.to_json })
-    result = post("/_admin/cluster-test", request)
+    result = post("/_admin/#{cluster}", request)
     return_result result: result
   end
 
-  def self.executeCluster2(body:)
+  def self.executeClusterPut(body:, cluster: @@cluster)
     request = @@request.merge({ "body" => body.to_json })
-    result = put("/_admin/cluster-test", request)
+    result = put("/_admin/#{cluster}", request)
     return_result result: result
   end
 
-  def self.destroyCluster
-    result = delete("/_admin/cluster-test", @@request)
+  def self.destroyCluster(cluster: @@cluster)
+    result = delete("/_admin/#{cluster}", @@request)
     return_result result: result, caseTrue: true
   end
 
-  def self.updateCluster(body:)
+  def self.updateCluster(body:, cluster: @@cluster)
     request = @@request.merge({ "body" => body.to_json })
-    result = patch("/_admin/cluster-test", request)
+    result = patch("/_admin/#{cluster}", request)
     return_result result: result, caseTrue: true
   end
 
-  def self.headCluster(body:)
-    result = head("/_admin/cluster-test", @@request)
+  def self.executeClusterHead(body:, cluster: @@cluster)
+    result = head("/_admin/#{cluster}", @@request)
     return_result result: result
   end
 
@@ -271,26 +347,6 @@ class ArangoServer
     request = @@request.merge({ "query" => query })
     result = get("/_admin/clusterCheckPort", request)
     return_result result: result
-  end
-
-# === TASKS ===
-
-  def self.tasks # TESTED
-    result = get("/_api/tasks", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result.is_a?(Hash) && result["error"]
-          result["errorMessage"]
-        else
-          result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
-        end
-      end
-    end
   end
 
 # === MISCELLANEOUS FUNCTIONS ===
@@ -405,6 +461,23 @@ class ArangoServer
           else
             result[key]
           end
+        end
+      end
+    end
+  end
+
+  def self.return_result_async(result:, caseTrue: false)
+    result = result.parsed_response
+    if @@verbose || !result.is_a?(Hash)
+      result
+    else
+      if result["error"]
+        result["errorMessage"]
+      else
+        if caseTrue
+          true
+        else
+          result.delete_if{|k,v| k == "error" || k == "code"}
         end
       end
     end

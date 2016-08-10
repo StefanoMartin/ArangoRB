@@ -17,50 +17,191 @@ This Gem was created from [Seluxit ApS](http://seluxit.com/).
 ArangoRB has the following classes.
 
 * [ArangoServer](#ArangoServer): to manage the global variables for the management of the database
-* [ArangoDatabase](#ArangoDatabase): to manage a Database
-* [ArangoCollection](#ArangoCollection): to manage a Collection
-* [ArangoDocument](#ArangoDocument): to manage a Document
-* [ArangoVertex](#ArangoVertex): to manage a Vertex
-* [ArangoEdge](#ArangoEdge): to manage an Edge
-* [ArangoGraph](#ArangoGraph): to manage a Graph
-* [ArangoTraversal](#ArangoTraversal): to manage a Traverse operation
-* [ArangoAQL](#arangoaql): to manage an AQL instance
+* [ArangoDatabase](#ArangoDatabase): to manage Databases
+* [ArangoCollection](#ArangoCollection): to manage Collections
+* [ArangoDocument](#ArangoDocument): to manage Documents
+* [ArangoVertex](#ArangoVertex): to manage Vertexes
+* [ArangoEdge](#ArangoEdge): to manage Edges
+* [ArangoGraph](#ArangoGraph): to manage Graphs
+* [ArangoTraversal](#ArangoTraversal): to manage Traversal operations
+* [ArangoAQL](#arangoaql): to manage AQL instances
+* [ArangoUser](#ArangoUser): to manage Users
+* [ArangoIndex](#ArangoIndex): to manage Indexes
+* [ArangoTask](#ArangoTask): to manage Tasks
+* [ArangoTransaction](#ArangoTransaction): to manage Transactions
 
 <a name="ArangoServer"></a>
 ## ArangoServer
 
-ArangoServer is used to manage global variables for the management of the database and it is the mandatory step to start your database.
+ArangoServer is used to manage the default Database, Collection, User and Graph.
+It is used to give your login credentials and it is the mandatory step to start your database.
+Further it helps to manage the Server connected with ArangoDB.
 
-To setup your server use:
-
-``` ruby
-ArangoServer.default_server user: "Username", password: "MyPass", server: "localhost", port: "8529"
-```
-
-Default value for the server are user: "root", password: "", server: "localhost", and port: "8529".
-
-### Global variables
-
-The databases, graphs and collections used in your program can be defined every time. But often the user needs to use only a single database, a single graph and a single collection.
-If this is the case, the user can use ArangoServer to define this value once for all the ArangoRB instances.
+To setup your credentials use:
 
 ``` ruby
-ArangoServer.database = "MyDatabase"
-ArangoServer.graph = "MyGraph"
-ArangoServer.collection = "MyCollection"
+ArangoServer.default_server user: "MyUsername", password: "MyPassword", server: "localhost", port: "8529"
 ```
 
-By default the global database is "\_system".
+If not declared, the default values are user: "root", password: "", server: "localhost", port: "8529".
+
+### Default variables
+
+Databases, Graphs and Collections used in your program can be defined each time. But often it is convenient to have some default one.
+If this is the case, the user can use ArangoServer to define some default values.
+
+``` ruby
+ArangoServer.database = "MyDatabase" # Setup default Database
+ArangoServer.graph = "MyGraph" # Setup default Graph
+ArangoServer.collection = "MyCollection" # Setup default Collection
+ArangoServer.user = "MyUser"  # Setup default User
+```
+
+By default the default database is "\_system".
 
 ### Verbose
 
-For Debugging reasons the user sometimes would like to receive the original JSON file from the database. To do this you can use the verbose command.
+For Debugging reasons the user can receive the original JSON file from the database by setting verbose on true (false by default).
 
 ``` ruby
 ArangoServer.verbose = true
 ```
 
 Remember that verbose is only for testing reason: to work efficiently verbose should be false.
+
+### Information
+
+Basic informations can be retrieved with these command.
+
+``` ruby
+ArangoServer.database # Check name default Database
+ArangoServer.graph   # Check name default Graph
+ArangoServer.collection  # Check name default Collection
+ArangoServer.user  # Check name default User
+ArangoServer.address  # Check address used to connect with the server
+ArangoServer.username  # Check name used to connect with the server
+ArangoServer.verbose # Check if verbose is true or false
+ArangoServer.async # Check the status of async
+ArangoServer.request # Check the default request sent to the server
+```
+
+To retrieve lists
+
+``` ruby
+ArangoServer.endpoints # Lists of endpoints used
+ArangoServer.users # Lists of available users
+ArangoServer.databases # Lists of available databases
+ArangoServer.tasks # Lists of available tasks
+```
+
+To monitoring the server you can use the following commands
+
+``` ruby
+ArangoServer.log # Return log files
+ArangoServer.reload # Reloads the routing information from the collection routing.
+ArangoServer.statistics # Returns the statistics information
+ArangoServer.statistics description: true # Fetch descriptive info of statistics
+ArangoServer.role # Get to know whether this server is a Coordinator or DB-Server
+ArangoServer.serverId # Fetch this servers uniq identifier
+```
+
+### Manage Async
+
+With ArangoServer you can manage Async results.
+
+``` ruby
+ArangoServer.async = false # default
+ArangoServer.async = true # fire and forget
+ArangoServer.async = "store" # fire and store
+```
+
+If Async is "store", then the commands of ArangoRB will return the id of the Async requests.
+ArangoServer provides different methods to manage these Async requests.
+
+``` ruby
+ArangoServer.pendingAsync # Querying the status of a pending job
+ArangoServer.fetchAsync id: id # Fetches a job result and removes it from the queue
+ArangoServer.retrieveAsync id: id # Returns the status of a specific job
+ArangoServer.retrieveAsync type: type # Returns the ids of job results with a specific status
+# Type can be "done" or "pending"
+ArangoServer.retrieveDoneAsync # Equivalent to ArangoServer.retrieveAsync type: "done"
+ArangoServer.retrievePendingAsync # Equivalent to ArangoServer.retrieveAsync type: "pending"
+ArangoServer.cancelAsync id: id # Cancels an async job
+ArangoServer.destroyAsync id: id # Deletes an async job result
+ArangoServer.destroyAsync type: type # Deletes async jobs with a specific status
+# Type can be "all" or "expired"
+ArangoServer.destroyAllAsync # Equivalent to ArangoServer.destroyAsync type: "all"
+ArangoServer.destroyExpiredAsync # Equivalent to ArangoServer.destroyAsync type: "expired"
+```
+
+### Batch
+
+ArangoDB offers a batch request API that clients can use to send multiple operations in one batch to ArangoDB. To manage it you can use the following way.
+
+``` ruby
+queries = [
+  {
+    "type": "POST",
+    "address": "/_db/MyDatabase/_api/collection",
+    "body": {"name": "newCOLLECTION"},
+    "id": "1"
+  },
+  {
+    "type": "GET",
+    "address": "/_api/database",
+    "id": "2"
+  }
+]
+ArangoServer.batch queries: queries
+```
+
+To manage these batch, ArangoServer offers the following functions:
+
+``` ruby
+ArangoServer.createDumpBatch ttl: 10 # Create a new dump batch with 10 second time-to-live (return id of the dumpBatch)
+ArangoServer.prolongDumpBatch id: idDumpBatch, ttl: 20 # Prolong the life of a batch for 20 seconds
+ArangoServer.destroyDumpBatch id: idDumpBatch # Delete a selected batch
+```
+
+### Miscellaneous
+
+``` ruby
+ArangoServer.version # Returns the server version number
+ArangoServer.flushWAL # Flushes the write-ahead log
+ArangoServer.propertyWAL # Retrieves the configuration of the write-ahead log
+ArangoServer.changePropertyWAL # Configures the write-ahead log
+ArangoServer.transactions # Returns information about the currently running transactions
+ArangoServer.time # Get the current time of the system
+ArangoServer.echo # Return current request
+ArangoServer.databaseVersion # Return the required version of the database
+ArangoServer.sleep duration: 10 # Sleep for a specified amount of seconds
+ArangoServer.shutdown # Initiate shutdown sequence
+ArangoServer.restart # Restart ArangoDB (requires administration access)
+```
+
+UNTESTED
+
+``` ruby
+ArangoServer.test body: body # Runs tests on server
+ArangoServer.execute body: body # Execute a script on the server.
+```
+
+### Sharding (EXPERIMENTAL and UNTESTED)
+
+ArangoDB permits the sharding of the database. Although these methods has not been tested with ArangoRB.
+
+``` ruby
+ArangoServer.cluster # Default cluster
+ArangoServer.getCluster body: body, cluster: cluster # Retrieve cluster
+ArangoServer.executeCluster body: body, cluster: cluster # Execute cluster
+ArangoServer.executeClusterPut body: body, cluster: cluster # Execute cluster
+ArangoServer.executeClusterHead body: body, cluster: cluster # Execute cluster
+ArangoServer.destroyCluster cluster: cluster # Delete cluster
+ArangoServer.updateCluster body: body, cluster: cluster # Update cluster
+ArangoServer.checkPort port: port # Allows to check whether a given port is usable
+ArangoServer.server # Returns the id of a server in a cluster.
+ArangoServer.clusterStatistics dbserver: dbserver # Allows to query the statistics of a DBserver in the cluster
+```
 
 <a name="ArangoDatabase"></a>
 ## ArangoDatabase

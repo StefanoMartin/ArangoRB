@@ -36,33 +36,37 @@ describe ArangoServer do
     end
 
     it "statisticsDescription" do
-      expect(ArangoServer.statisticsDescription["groups"][0].nil?).to be false
+      expect(ArangoServer.statistics(description: true)["groups"][0].nil?).to be false
     end
 
     it "role" do
       expect(ArangoServer.role.class).to eq String
     end
 
-    it "server" do
-      expect(ArangoServer.server.class).to eq String
-    end
+    # it "server" do
+    #   expect(ArangoServer.server.class).to eq String
+    # end
 
     it "serverID" do
       expect(ArangoServer.serverId.to_i).to be >= 1
     end
 
-    it "clusterStatistics" do
-      expect(ArangoServer.clusterStatistics.class).to eq String
-    end
+    # it "clusterStatistics" do
+    #   expect(ArangoServer.clusterStatistics.class).to eq String
+    # end
   end
 
-  context "#endpoints" do
+  context "#lists" do
     it "endpoints" do
       expect(ArangoServer.endpoints[0].keys[0]).to eq "endpoint"
     end
 
     it "users" do
-      expect(ArangoServer.users.length).to be >= 1
+      expect(ArangoServer.users[0].class).to be ArangoUser
+    end
+
+    it "databases" do
+      expect(ArangoServer.databases[0].class).to be ArangoDatabase
     end
   end
 
@@ -70,6 +74,36 @@ describe ArangoServer do
     it "create async" do
       ArangoServer.async = "store"
       expect(ArangoServer.async).to eq "store"
+    end
+
+    it "pendingAsync" do
+      ArangoServer.async = "store"
+      ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(ArangoServer.pendingAsync).to eq []
+    end
+
+    it "fetchAsync" do
+      ArangoServer.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(ArangoServer.fetchAsync(id: id)["count"]).to eq 18
+    end
+
+    it "retrieveAsync" do
+      ArangoServer.async = "store"
+      ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(ArangoServer.retrievePendingAsync).to eq []
+    end
+
+    it "cancelAsync" do
+      ArangoServer.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(ArangoServer.cancelAsync(id: id)).to eq "not found"
+    end
+
+    it "destroyAsync" do
+      ArangoServer.async = "store"
+      id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
+      expect(ArangoServer.destroyAsync type: id).to be true
     end
   end
 

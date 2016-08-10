@@ -171,48 +171,48 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result, caseTrue: true
   end
 
-  # === ASYNC ===
-
-  def pendingAsync # TESTED
-    result = self.class.get("/_db/#{@database}/_api/job/pending")
-    return_result_async result: result
-  end
-
-  def fetchAsync(id:) # TESTED
-    result = self.class.put("/_db/#{@database}/_api/job/#{id}")
-    return_result_async result: result
-  end
-
-  def retrieveAsync(type:) # TESTED
-    result = self.class.get("/_db/#{@database}/_api/job/#{type}")
-    return_result_async result: result
-  end
-
-  def retrieveDoneAsync # TESTED
-    retrieveAsync(type: "done")
-  end
-
-  def retrievePendingAsync # TESTED
-    retrieveAsync(type: "pending")
-  end
-
-  def cancelAsync(id:) # TESTED
-    result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel")
-    return_result_async result: result
-  end
-
-  def destroyAsync(type:) # TESTED
-    result = self.class.delete("/_db/#{@database}/_api/job/#{type}")
-    return_result_async result: result, caseTrue: true
-  end
-
-  def destroyAllAsync # TESTED
-    destroyAsync(type: "all")
-  end
-
-  def destroyExpiredAsync # TESTED
-    destroyAsync(type: "expired")
-  end
+  # # === ASYNC ===
+  #
+  # def pendingAsync # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/job/pending")
+  #   return_result_async result: result
+  # end
+  #
+  # def fetchAsync(id:) # TESTED
+  #   result = self.class.put("/_db/#{@database}/_api/job/#{id}")
+  #   return_result_async result: result
+  # end
+  #
+  # def retrieveAsync(type:) # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/job/#{type}")
+  #   return_result_async result: result
+  # end
+  #
+  # def retrieveDoneAsync # TESTED
+  #   retrieveAsync(type: "done")
+  # end
+  #
+  # def retrievePendingAsync # TESTED
+  #   retrieveAsync(type: "pending")
+  # end
+  #
+  # def cancelAsync(id:) # TESTED
+  #   result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel")
+  #   return_result_async result: result
+  # end
+  #
+  # def destroyAsync(type:) # TESTED
+  #   result = self.class.delete("/_db/#{@database}/_api/job/#{type}")
+  #   return_result_async result: result, caseTrue: true
+  # end
+  #
+  # def destroyAllAsync # TESTED
+  #   destroyAsync(type: "all")
+  # end
+  #
+  # def destroyExpiredAsync # TESTED
+  #   destroyAsync(type: "expired")
+  # end
 
   # === REPLICATION ===
 
@@ -371,22 +371,22 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result, caseTrue: true
   end
 
-  # === UTILITY ===
-
-  def return_result_async(result:, caseTrue: false)
-    result = result.parsed_response
-    if @@verbose || !result.is_a?(Hash)
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        if caseTrue
-          true
-        else
-          result.delete_if{|k,v| k == "error" || k == "code"}
-        end
-      end
-    end
-  end
+  # # === UTILITY ===
+  #
+  # def return_result_async(result:, caseTrue: false)
+  #   result = result.parsed_response
+  #   if @@verbose || !result.is_a?(Hash)
+  #     result
+  #   else
+  #     if result["error"]
+  #       result["errorMessage"]
+  #     else
+  #       if caseTrue
+  #         true
+  #       else
+  #         result.delete_if{|k,v| k == "error" || k == "code"}
+  #       end
+  #     end
+  #   end
+  # end
 end
