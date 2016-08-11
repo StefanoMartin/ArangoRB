@@ -11,12 +11,12 @@ class ArangoServer
   @@user = nil
   @@request = {:body => {}, :headers => {}, :query => {}}
   @@password = ""
-  @@username = ""
+  @@username = "root"
   @@server = "localhost"
   @@port = "8529"
   @@cluster = "cluster-test"
 
-  def self.default_server(user: @@username, password: @@password = "", server: @@server, port: @@port) # TESTED
+  def self.default_server(user: @@username, password: @@password, server: @@server, port: @@port) # TESTED
     base_uri "http://#{server}:#{port}"
     basic_auth user, password
     @@username = user

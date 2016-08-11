@@ -29,8 +29,8 @@ describe ArangoDatabase do
 
   context "#info" do
     it "obtain general info" do
-      info = ArangoDatabase.info
-      expect(info["name"]).to eq "_system"
+      info = @myDatabase.info
+      expect(info["name"]).to eq "MyDatabase"
     end
 
     it "list databases" do

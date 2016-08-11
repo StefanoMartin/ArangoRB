@@ -15,10 +15,11 @@ class ArangoDatabase < ArangoServer
 
   # === GET ===
 
-  def self.info  # TESTED
-    result = get("/_api/database/current", @@request)
-    return_result result: result, key: "result"
-    # @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"]
+  def info  # TESTED
+    result = self.class.get("/_db/#{@database}/_api/database/current", @@request)
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].delete_if{|k,v| k == "error" || k == "code"}
   end
 
   # === POST ===
@@ -48,7 +49,9 @@ class ArangoDatabase < ArangoServer
   def self.databases(user: nil)  # TESTED
     user = user.user if user.is_a?(ArangoUser)
     result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}", @@request)
-    @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : result.parsed_response["result"].map{|x| ArangoDatabase.new(database: x)}
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDatabase.new(database: x)}
   end
 
   def collections(excludeSystem: true)  # TESTED

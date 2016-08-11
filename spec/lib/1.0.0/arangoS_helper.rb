@@ -162,7 +162,7 @@ describe ArangoServer do
     end
 
     it "transactions" do
-      expect(ArangoServer.transactions["runningTransactions"]).to eq 0
+      expect(ArangoServer.transactions["runningTransactions"]).to be >= 0
     end
 
     it "time" do
