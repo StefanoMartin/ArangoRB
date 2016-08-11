@@ -186,7 +186,7 @@ ArangoServer.test body: body # Runs tests on server
 ArangoServer.execute body: body # Execute a script on the server.
 ```
 
-### Sharding (EXPERIMENTAL and UNTESTED)
+### Sharding (UNTESTED)
 
 ArangoDB permits the sharding of the database. Although these methods has not been tested with ArangoRB.
 
@@ -209,10 +209,10 @@ ArangoServer.clusterStatistics dbserver: dbserver # Allows to query the statisti
 ArangoDatabase is used to manage your Database. You can create an instance in the following way:
 
 ``` ruby
-myDatabase = ArangoDatabase.new(database: "MyDatabase")
+myDatabase = ArangoDatabase.new database: "MyDatabase"
 ```
 
-Alternatively, you can use ArangoServer:
+Alternatively, you can use the default values provided by ArangoServer:
 
 ``` ruby
 ArangoServer.database = "MyDatabase"
@@ -222,8 +222,8 @@ myDatabase = ArangoDatabase.new
 ### Create and Destroy a Database
 
 ``` ruby
-myDatabase.create
-mmyDatabase.destroy
+myDatabase.create # Create a new Database
+myDatabase.destroy # Delete the selected Database
 ```
 
 ### Retrieve information
@@ -233,20 +233,25 @@ ArangoDatabase.info # Obtain general info about the databases
 ArangoDatabase.databases # Obtain an Array with the available databases
 myDatabase.collections # Obtain an Array with the available collections in the selected Database
 myDatabase.graphs #  Obtain an Array with the available graphs in the selected Database
+myDatabase.functions #  Obtain an Array with the available functions in the selected Database
 ```
 
 ### Query
+
+ArangoDatabase instances can manage the queries used in their Database.
 
 ``` ruby
 myDatabase.propertiesQuery; # See property of the Query
 myDatabase.currentQuery; # Check the current Query
 myDatabase.slowQuery; # Find slow queries
 myDatabase.stopSlowQuery; # Stop slow queries
-myDatabase.kill id: myQuery.id # Kill a Query
+myDatabase.kill query: myQuery # Kill a Query
 myDatabase.changePropertiesQuery maxSlowQueries: 65 # Change properties of a Query
 ```
 
 ### Cache
+
+To manage the cache ArangoDatabase provides the following three functions.
 
 ``` ruby
 myDatabase.clearCache # Clear Cache
@@ -261,15 +266,43 @@ myDatabase.createFunction code: "function(){return 1+1;}", name: "myFunction" # 
 myDatabase.deleteFunction name: "myFunction" # Delete a function
 myDatabase.functions # Retrieve a list of the available functions
 ```
+
+### User
+
+You can manage the right of a user to access the database.
+
+``` ruby
+@myDatabase.grant user: myUser # Grant access to database
+@myDatabase.revoke user: myUser # Revoke access to database
+```
+
+### Replication (UNTESTED)
+
+``` ruby
+@myDatabase.inventory # Returns an overview of collections and their indexes
+@myDatabase.clusterInventory # Return cluster inventory of collections and indexes
+@myDatabase.logger # Return replication logger state
+@myDatabase.loggerFollow # Returns log entries
+@myDatabase.firstTick # Returns the first available tick value
+@myDatabase.rangeTick # Return the tick ranges available in the WAL logfiles
+@myDatabase.sync # Synchronize data from a remote endpoint
+@myDatabase.configurationReplication # Return configuration of replication applier
+@myDatabase.modifyConfigurationReplication # Adjust configuration of replication applier
+@myDatabase.startReplication # Start replication applier
+@myDatabase.stateReplication # State of the replication applier
+@myDatabase.stopReplication # Stop replication applier
+@myDatabase.enslave # Turn the server into a slave of another
+```
+
 <a name="ArangoCollection"></a>
 ## ArangoCollection
 
 ArangoDatabase is used to manage your Collections. You can create an ArangoCollection instance in one of the following way:
 
 ``` ruby
-myCollection = ArangoCollection.new(database: "MyDatabase", collection: "MyCollection")
-myCollection = ArangoCollection.new(collection: "MyCollection") # If the database has been already defined with ArangoServer
-myCollection = ArangoCollection.new # If the database and the collection have been already defined with ArangoServer
+myCollection = ArangoCollection.new database: "MyDatabase", collection: "MyCollection"
+myCollection = ArangoCollection.new collection: "MyCollection"  # Using the default database
+myCollection = ArangoCollection.new # Using the default database and collection
 ```
 
 A Collection can be of two types: "Document" and "Edge". If you want to specify it, uses:
@@ -288,13 +321,13 @@ To create an Edge Collection you can use one of the next three options:
 
 ``` ruby
 myCollection.create_edge_collection
-myCollection.create type: 3
-myCollectionB = ArangoCollection.new(collection: "MyCollectionB", type: "Edge");  myCollectionB.create
+myCollection.create type: "Edge"
+myCollectionB = ArangoCollection.new collection: "MyCollectionB", type: "Edge";  myCollectionB.create
 ```
 
 ### Destroy or Truncate a Collections
 
-Destroy will delete from the Database the selected Collection.
+Destroy will delete the selected Collection from the Database.
 
 `myCollection.destroy`
 
@@ -306,10 +339,13 @@ Truncate will delete all the Documents inside the selected Collection.
 
 ``` ruby
 myCollection.retrieve # Retrieve the selected Collection
+myCollection.indexes # Return a list of all used Indexes in the Collection
+myCollection.data # Returns the whole content of one collection
 myCollection.properties # Properties of the Collection
 myCollection.count # Number of Documents in the Collection
 myCollection.stats # Statistics of the Collection
-myCollection.checksum
+myCollection.revision # Return collection revision id
+myCollection.checksum # Return checksum for the Collection
 ```
 
 To retrieve the documents of a Collection you can use:
@@ -345,6 +381,48 @@ myCollection.load # Load the Collection
 myCollection.unload  # Unload the Collection
 myCollection.change waitForSync: true  # Change a property of the Collection
 myCollection.rename "myCollectionC"  # Rename the Collection
+myCollection.rotate # Rotate journal of a collection
+```
+
+### Import and Export Documents
+
+For the standard way to import one or more Documents (or Edges) we refer to the [dedicated ArangoDocument section](#create_doc).
+However it is possible to import a huge quantity of documents in a Collection with only one requests with the command import.
+
+<strong>Import one Document with Array</strong>
+I import one document with the following structure {"value": "uno", "num": 1, "name": "ONE"}.
+``` ruby
+attributes = ["value", "num", "name"]
+values = ["uno",1,"ONE"]
+myCollection.import attributes: attributes, values: values
+```
+
+<strong>Import more Documents with Array</strong>
+I import three Documents with the following structure {"value": "uno", "num": 1, "name": "ONE"}, {"value": "due", "num": 2, "name": "TWO"}, {"value": "tre", "num": 3, "name": "THREE"}.
+``` ruby
+attributes = ["value", "num", "name"]
+values = [["uno",1,"ONE"],["due",2,"TWO"],["tre",3,"THREE"]]
+myCollection.import attributes: attributes, values: values
+```
+
+<strong>Import more Documents with JSON</strong>
+I import two Documents with the following structure {"value": "uno", "num": 1, "name": "ONE"}, {"value": "due", "num": 2, "name": "TWO"}.
+``` ruby
+body = [{"value": "uno", "num": 1, "name": "ONE"}, {"value": "due", "num": 2, "name": "DUE"}]
+myCollection.importJSON body: body
+```
+
+As it is possible to import files, it is possible to export all the Document of a Collection with the following command.
+``` ruby
+myCollection.export
+```
+
+Alternatively it is possible to retrieve all the Documents in a Collection gradually.
+
+``` ruby
+myCollection.export batchSize: 3 # First three Documents of the Collection
+myCollection.exportNext # Next three Documents
+myCollection.exportNext # Next three Documents
 ```
 
 ### Other operations
@@ -363,53 +441,52 @@ An Arango Document is an element of a Collection. Edges are documents with "\_fr
 You can create an ArangoCollection instance in one of the following way:
 
 ``` ruby
-myDocument = ArangoDocument.new(database: "MyDatabase", collection: "MyCollection", key: "myKey")
-myDocument = ArangoDocument.new(collection: "MyCollection", key: "myKey") # If the database has been already defined with ArangoServer
-myDocument = ArangoDocument.new(collection: myCollection, key: "myKey") # If the database has been already defined with ArangoServer and myCollection is an ArangoCollection instance
-myDocument = ArangoDocument.new(key: "myKey") # If the database and the collection have been already defined with ArangoServer
-myDocument = ArangoDocument.new # If the database and the collection have been already defined with ArangoServer and I don't want to define a key for my Instance
+myDocument = ArangoDocument.new database: "MyDatabase", collection: "MyCollection", key: "myKey"
+myDocument = ArangoDocument.new collection: "MyCollection", key: "myKey"  # Using default Database
+myDocument = ArangoDocument.new key: "myKey" # Using default Collection and Database
+myDocument = ArangoDocument.new #  Using default Collection and Database and I don't want to define a key for my Instance
 ```
 
-In the case you want to define a Edge, it is convenient to introduce them during the instance.
+In the case you want to define a Edge, it is convenient to introduce the parameters "from" and "to" in the instance.
 
 ``` ruby
 myEdge = ArangoDocument.new from: myDocA, to: myDocB
 ```
 
 where myDocA and myDocB are the IDs of two Documents or are two ArangoDocument instances.
-
-When you do the instance of an ArangoDocument is a good idea to define a Body for the Document you want:
+During the instance, it is possible to define a Body for the Document.
 
 ``` ruby
-myDocument = ArangoDocument.new(body: {"value" => 17})
+myDocument = ArangoDocument.new body: {"value" => 17}
 ```
 
+<a name="create_doc"></a>
 ### Create one or more Documents
 
-You have three way to create a single Document.
+ArangoRB provides several way to create a single Document.
 
 ``` ruby
 myDocument.create
 myCollection.create_document document: myDocument # myDocument is an ArangoDocument instance or a Hash
-ArangoDocument.create(body: {"value" => 17}, collection: myDocument)
+ArangoDocument.create body: {"value" => 17}, collection: myDocument
 ```
 
-You have two way to create more Documents.
+Or more Documents.
 
 ``` ruby
 myCollection.create_document document: [myDocumentA, myDocumentB, {"value" => 17}] # Array of ArangoDocument instances and Hashes
-ArangoDocument.create(body: [{"value" => 17}, {"value" => 18}, {"value" => 3}], collection: myDocument)  # Array of only Hashes
+ArangoDocument.create body: [myDocumentA, {"value" => 18}, {"value" => 3}], collection: myDocument  # Array of ArangoDocument instances and Hash
 ```
 
 ### Create one or more Edges
 
-We have different way to create one or multiple edges. Here some example:
+ArangoRB has different way to create one or multiple edges. Here some example:
 
 ``` ruby
 myEdge = ArangoDocument.new from: myDocA, to: myDocB; myEdge.create
 myEdge.create_edge from: myDocA, to: myDocB # myDocA and myDocB are ArangoDocument ids or ArangoDocument instances
 myEdgeCollection.create_edge document: myEdge, from: myDocA, to: myDocB
-ArangoDocument.create_edge(body: {"value" => 17}, from: myDocA, to: myDocB, collection: myEdgeCollection)
+ArangoDocument.create_edge body: {"value" => 17}, from: myDocA, to: myDocB, collection: myEdgeCollection
 ```
 
 Further we have the possibility to create different combination of Edges in only one line of code
@@ -467,7 +544,7 @@ myDocument.destroy
 
 ``` ruby
 myDocument.retrieve # Retrieve Document
-myDocument.retrieve_edges(collection: myEdgeCollection) # Retrieve all myEdgeCollection edges connected with the Document
+myDocument.retrieve_edges collection: myEdgeCollection  # Retrieve all myEdgeCollection edges connected with the Document
 myDocument.any(myEdgeCollection) # Retrieve all myEdgeCollection edges connected with the Document
 myDocument.in(myEdgeCollection)  # Retrieve all myEdgeCollection edges coming in the Document
 myDocument.out(myEdgeCollection) # Retrieve all myEdgeCollection edges going out the Document
@@ -511,12 +588,12 @@ myDocument.replace body: {"value" => 3} # We replace a value
 <a name="ArangoGraph"></a>
 ## ArangoGraph
 
-ArangoGraph are used to manage graphs. You can create an ArangoGraph instance in one of the following way:
+ArangoGraph are used to manage Graphs. You can create an ArangoGraph instance in one of the following way.
 
 ``` ruby
-myGraph = ArangoGraph.new(database: "MyDatabase", graph: "MyGraph")
-myGraph = ArangoGraph.new(graph: "MyGraph") # If the database has been already defined with ArangoServer
-myGraph = ArangoGraph.new # If the database and the graph have been already defined with ArangoServer
+myGraph = ArangoGraph.new database: "MyDatabase", graph: "MyGraph"
+myGraph = ArangoGraph.new graph: "MyGraph" # By using the default Database
+myGraph = ArangoGraph.new # By using the defauly Database and Graph
 ```
 
 ### Create, Retrieve and Destroy a Graph
@@ -531,32 +608,32 @@ myGraph.destroy # destroy the Graph
 
 ``` ruby
 myGraph.vertexCollections # Retrieve all the vertexCollections of the Graph
-myGraph.addVertexCollection(collection: "myCollection") # Add a Vertex Collection to our Graph
-myGraph.removeVertexCollection(collection: "myCollection") # Remove a Vertex Collection to our Graph
+myGraph.addVertexCollection collection: "myCollection"  # Add a Vertex Collection to our Graph
+myGraph.removeVertexCollection collection: "myCollection"  # Remove a Vertex Collection to our Graph
 ```
 
 ### Manage Edge Collections
 
 ``` ruby
 myGraph.edgeCollections # Retrieve all the edgeCollections of the Graph
-myGraph.addEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB") # Add an Edge Collection to our Graph
-myGraph.replaceEdgeCollections(collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB") # Replace an Edge Collection to our Graph
-myGraph.removeEdgeCollections(collection: "myEdgeCollection") # Remove an Edge Collection to our Graph
+myGraph.addEdgeCollections collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB"  # Add an Edge Collection to our Graph
+myGraph.replaceEdgeCollections collection: "myEdgeCollection", from: "myCollectionA", to: "myCollectionB"  # Replace an Edge Collection to our Graph
+myGraph.removeEdgeCollections collection: "myEdgeCollection"  # Remove an Edge Collection to our Graph
 ```
 
 <a name="ArangoVertex"></a><a name="ArangoEdge"></a>
 ## ArangoVertex and ArangoEdge
 
 Both these two classes inherit the class ArangoDocument.
-These two classes have been created since ArangoDatabase offers, in connection of the chosen graph, other possible HTTP requests to fetch Vertexes and Edges. We recommend the reader to read carefully the section on ArangoDocument instances before to use ArangoVertex and ArangoEdge instances.
+These two classes have been created since ArangoDatabase offers, in connection of the chosen graph, different HTTP requests to manage Vertexes and Edges. We recommend the reader to read carefully the section on [ArangoDocument instances](#ArangoDocument) before to start to use ArangoVertex and ArangoEdge instances.
 
 ### ArangoVertex methods
 
-ArangoVertex inherit all the methods of ArangoDocument class. The following one works similar to the one of ArangoDocument Class but use a different HTTP request. For this reason the performance could be different.
-To use ArangoVertex, the Collection of the Vertex needs to be added to the VertexCollections of the chosen Graph.
+ArangoVertex inherit all the methods of ArangoDocument class. The following one works similar to the one of ArangoDocument Class but use different HTTP requests. For this reason the performance could be different.
+To use ArangoVertex, the Collection of the Vertex needs to be added either to the VertexCollections or to the EdgeCollections of the chosen Graph.
 
 ``` ruby
-myVertex = ArangoVertex.new key: "newVertex", body: {"value" => 3}, collection: "myCollection", graph: "myGraph", database: "myDatabase"
+myVertex = ArangoVertex.new key: "newVertex", body: {"value" => 3}, collection: "myCollection", graph: "myGraph", database: "myDatabase" # create a new instance
 myVertex.create # create a new Document in the Graph
 myVertex.retrieve  # retrieve a Document
 myVertex.replace body: {"value" => 6} # replace the Document
@@ -570,7 +647,7 @@ ArangoEdge inherit all the methods of ArangoDocument class. The following one wo
 To use ArangoEdge, the Collection of the Edge needs to be added to the EdgeCollections of the chosen Graph.
 
 ``` ruby
-myEdge = ArangoEdge.new key: "newVertex", body: {"value" => 3}, from: myArangoDocument, to: myArangoDocument, collection: "myCollection", graph: "myGraph", database: "myDatabase"
+myEdge = ArangoEdge.new key: "newVertex", body: {"value" => 3}, from: myArangoDocument, to: myArangoDocument, collection: "myCollection", graph: "myGraph", database: "myDatabase" # create a new instance
 myEdge.create # create a new Document of type Edge in the Graph
 myEdge.retrieve # retrieve a Document
 myEdge.replace body: {"value" => 6} # replace the Document
@@ -605,10 +682,10 @@ myTraversal.execute
 <a name="arangoaql"></a>
 ## ArangoAQL - ArangoDatabase Query Language
 
-ArangoAQL is used to manage the ArangoDatabase query languages. To instantiate a query use:
+ArangoAQL is used to manage the ArangoDB query language. To instantiate a query
 
 ``` ruby
-myQuery = ArangoAQL.new(query: "FOR v,e,p IN 1..6 ANY 'Year/2016' GRAPH 'MyGraph' FILTER p.vertices[1].num == 6 && p.vertices[2].num == 22 && p.vertices[6]._key == '424028e5-e429-4885-b50b-007867208c71' RETURN [p.vertices[4].value, p.vertices[5].data]")
+myQuery = ArangoAQL.new query: "FOR v,e,p IN 1..6 ANY 'Year/2016' GRAPH 'MyGraph' FILTER p.vertices[1].num == 6 && p.vertices[2].num == 22 && p.vertices[6]._key == '424028e5-e429-4885-b50b-007867208c71' RETURN [p.vertices[4].value, p.vertices[5].data]"
 ```
 
 To execute it use:
@@ -616,7 +693,7 @@ To execute it use:
 myQuery.execute
 ```
 
-If the query is too big, you can divide the fetching in piece, for example:
+If the query is too big, you can divide the fetching in pieces, for example:
 ``` ruby
 myQuery.size = 10
 myQuery.execute # First 10 documents
@@ -640,4 +717,80 @@ myQuery.changeProperties maxSlowQueries: 65 # Change Properties
 ``` ruby
 myQuery.stopSlow; # Stop Slow query
 myQuery.kill; # Kill Query
+```
+
+<a name="ArangoUser"></a>
+## ArangoUser
+
+ArangoUser manages the users.
+To initialize an user:
+
+``` ruby
+myUser = ArangoUser.new user: "MyUser", password: "password"
+```
+
+### User management
+
+``` ruby
+myUser.retrieve # Retrieve User
+myUser.create # Create a new User
+myUser.replace active: false # Replace User
+myUser.update active: false # Update User
+myUser.destroy # Delete User
+```
+
+### Database management
+
+``` ruby
+myUser.databases # Check permission Databases
+myUser.grant database: "MyDatabase" # Grant access to a database
+myUser.revoke database: "MyDatabase" # Revoke access to a database
+```
+
+<a name="ArangoIndex"></a>
+## ArangoIndex
+
+ArangoIndex manages the indexes.
+To initialize an index:
+
+``` ruby
+myIndex = ArangoIndex.new fields: "num", unique: false, id: "myIndex"
+```
+
+### Index management
+
+``` ruby
+myIndex.retrieve # Retrieve Index
+myIndex.create # Create a new Index
+ArangoIndex.indexes collection: "MyCollection" # List indexes
+myIndex.destroy # Delete Index
+```
+
+Alternatively, you can create an Index of a Collection directly from its Collection.
+
+``` ruby
+myCollection.createIndex unique: false, fields: "num", type: "hash"
+```
+
+<a name="ArangoTransaction"></a>
+## ArangoTransaction
+
+Transactions are managed by ArangoTransaction. This class has only initialization and execution.
+
+``` ruby
+myArangoTransaction = ArangoTransaction.new action: "function(){ var db = require('@arangodb').db; db.MyCollection.save({}); return db.MyCollection.count(); }", write: myCollection # Or read
+myArangoTransaction.execute # Return the result of the execution
+```
+
+<a name="ArangoTask"></a>
+## ArangoTask
+
+Tasks are managed by ArangoTask.
+
+``` ruby
+myArangoTask = ArangoTask.new id: "mytaskid", name: "MyTaskID", command: "(function(params) { require('@arangodb').print(params); })(params)", params: {"foo" => "bar", "bar" => "foo"}, period: 2 # Initialize a  Task Instance that will be alive for 2 seconds
+myArangoTask.create # Create a new Task
+ArangoTask.tasks # Retrieve a list of active tasks
+myArangoTask.retrieve # Retrieve a Task
+myArangoTask.destroy # Delete a Task
 ```

@@ -138,6 +138,7 @@ class ArangoDocument < ArangoServer
       result = post("/_db/#{database}/_api/document/#{collection}", request)
       ArangoDocument.new.return_result result: result, body: body, newo: true
     else
+      body = body.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
       request = @@request.merge({ :body => body.to_json, :query => query })
       result = post("/_db/#{database}/_api/document/#{collection}", request)
       i = -1
@@ -152,12 +153,13 @@ class ArangoDocument < ArangoServer
     from = [from] unless from.is_a? Array
     to = [to] unless to.is_a? Array
     body = [body] unless body.is_a? Array
+    body = body.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
     body.each do |b|
       from.each do |f|
         b["_from"] = f.is_a?(String) ? f : f.id
         to.each do |t|
           b["_to"] = t.is_a?(String) ? t : t.id
-          edges << b.clone
+          edges << tempBody
         end
       end
     end
@@ -170,6 +172,7 @@ class ArangoDocument < ArangoServer
     from = [from] unless from.is_a? Array
     to = [to] unless to.is_a? Array
     body = [body] unless body.is_a? Array
+    body = body.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
     body.each do |b|
       from.each do |f|
         b["_from"] = f.is_a?(String) ? f : f.id

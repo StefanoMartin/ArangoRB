@@ -116,7 +116,8 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result, caseTrue: true
   end
 
-  def killQuery(id:)  # TESTED
+  def killQuery(query:)  # TESTED
+    id = query.is_a?(ArangoAQL) ? query.id : query.is_a?(String) ? query : nil
     result = self.class.delete("/_db/#{@database}/_api/query/#{id}", @@request)
     self.class.return_result result: result, caseTrue: true
   end

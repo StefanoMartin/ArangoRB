@@ -5,6 +5,10 @@ describe ArangoCollection do
     it "revision" do
       expect(@myCollection.revision.to_i).to be >= 1
     end
+
+    it "collection" do
+      expect(@myCollection.rotate).to eq "could not rotate journal: no journal"
+    end
   end
 
   context "#import" do
@@ -46,19 +50,19 @@ describe ArangoCollection do
     it "indexes" do
       expect(@myCollection.indexes["indexes"][0].class).to be ArangoIndex
     end
-
-    it "retrieve" do
-      expect((@myCollection.retrieveIndex id: 0).unique).to be true
-    end
-
+    #
+    # it "retrieve" do
+    #   expect((@myCollection.retrieveIndex id: 0).unique).to be true
+    # end
+    #
     it "create" do
       myIndex = @myCollection.createIndex unique: false, fields: "num", type: "hash"
       expect(myIndex.fields).to eq ["num"]
     end
-
-    it "delete" do
-      expect(@myCollection.deleteIndex id: @myIndex.key).to eq true
-    end
+    #
+    # it "delete" do
+    #   expect(@myCollection.deleteIndex id: @myIndex.key).to eq true
+    # end
   end
 
   context "#replication" do

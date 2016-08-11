@@ -69,7 +69,11 @@ describe ArangoDatabase do
     end
 
     it "kill" do
-      expect(@myDatabase.killQuery(id: "4353453463443").class).to be String
+      @myCollection = ArangoCollection.new.create
+      @myCollection.create_document document: [{"num" => 1, "_key" => "FirstKey"}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3}, {"num" => 2}, {"num" => 5}, {"num" => 2}]
+      @myAQL.size = 3
+      @myAQL.execute
+      expect((@myDatabase.killQuery query: @myAQL).split(" ")[0]).to eq "cannot"
     end
 
     it "changeProperties" do

@@ -69,6 +69,8 @@ class ArangoIndex < ArangoServer
   end
 
   def self.indexes(database: @@database, collection: @@collection) # TESTED
+    database = database.database if database.is_a?(ArangoDatabase)
+    collection = collection.collection if collection.is_a?(ArangoCollection)
     query = { "collection": collection }
     request = @@request.merge({ :query => query })
     result = get("/_db/#{database}/_api/index", request)

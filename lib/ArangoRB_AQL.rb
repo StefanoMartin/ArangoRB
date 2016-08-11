@@ -9,7 +9,15 @@ class ArangoAQL < ArangoServer
     else
       raise "query should be String or ArangoAQL instance, not a #{query.class}"
     end
-    @database = database
+
+    if database.is_a?(String)
+      @database = database
+    elsif database.is_a?(ArangoDatabase)
+      @database = database.database
+    else
+      raise "databaseshould be String or ArangoDatabase instance, not a #{database.class}"
+    end
+
     @batchSize = batchSize
     @ttl = ttl
     @cache = cache

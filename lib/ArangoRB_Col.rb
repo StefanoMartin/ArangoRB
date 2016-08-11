@@ -79,6 +79,8 @@ class ArangoCollection < ArangoServer
   # === POST ===
 
   def create(type: nil, journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil) # TESTED
+    type = 3 if type == "Edge"
+    type = nil if type == "Document"
     body = {
       "name" => collection,
       "type" => type,
@@ -106,30 +108,30 @@ class ArangoCollection < ArangoServer
   end
 
   def create_document(document: {}, waitForSync: nil, returnNew: nil) # TESTED
-    if document.is_a? Hash
-      body = document
-    elsif document.is_a? ArangoDocument
-      body = document.body
-    elsif document.is_a? Array
-      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
-    else
-      raise "document should be Hash, an ArangoDocument instance or an Array of Hashes or ArangoDocument instances"
-    end
-    ArangoDocument.create(body: body, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
+    # if document.is_a? Hash
+    #   body = document
+    # elsif document.is_a? ArangoDocument
+    #   body = document.body
+    # elsif document.is_a? Array
+    #   body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
+    # else
+    #   raise "document should be Hash, an ArangoDocument instance or an Array of Hashes or ArangoDocument instances"
+    # end
+    ArangoDocument.create(body: document, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
   end
   alias create_vertex create_document
 
   def create_edge(document: {}, from:, to:, waitForSync: nil, returnNew: nil) # TESTED
-    if document.is_a? Hash
-      body = document
-    elsif document.is_a? ArangoDocument
-      body = document.body
-    elsif document.is_a? Array
-      body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
-    else
-      raise "document should be Hash, an ArangoDocument instance or an Array of Hashes or ArangoDocument instances"
-    end
-    ArangoDocument.create_edge(body: body, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
+    # if document.is_a? Hash
+    #   body = document
+    # elsif document.is_a? ArangoDocument
+    #   body = document.body
+    # elsif document.is_a? Array
+    #   body = document.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
+    # else
+    #   raise "document should be Hash, an ArangoDocument instance or an Array of Hashes or ArangoDocument instances"
+    # end
+    ArangoDocument.create_edge(body: document, from: from, to: to, waitForSync: waitForSync, returnNew: returnNew, database: @database, collection: @collection)
   end
 
   # === DELETE ===
@@ -173,6 +175,11 @@ class ArangoCollection < ArangoServer
     result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/rename", request)
     @collection = newName unless result.parsed_response["error"]
     self.return_result result: result
+  end
+
+  def rotate
+    result = self.class.put("/_db/#{@database}/_api/collection/#{@collection}/rotate", @@request)
+    self.return_result result: result, caseTrue: true
   end
 
   # === SIMPLE FUNCTIONS ===
@@ -509,23 +516,23 @@ class ArangoCollection < ArangoServer
 
 # === INDEXES ===
 
-  def retrieveIndex(id:)  # TESTED
-    result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          ArangoIndex.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
-        end
-      end
-    end
-  end
+  # def retrieveIndex(id:)  # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
+  #   if @@async == "store"
+  #     result.headers["x-arango-async-id"]
+  #   else
+  #     result = result.parsed_response
+  #     if @@verbose
+  #       result
+  #     else
+  #       if result["error"]
+  #         result["errorMessage"]
+  #       else
+  #         ArangoIndex.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
+  #       end
+  #     end
+  #   end
+  # end
 
   def indexes  # TESTED
     query = { "collection": @collection }
@@ -573,24 +580,24 @@ class ArangoCollection < ArangoServer
       end
     end
   end
-
-  def deleteIndex(id:) # TESTED
-    result = self.class.delete("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          true
-        end
-      end
-    end
-  end
+  #
+  # def deleteIndex(id:) # TESTED
+  #   result = self.class.delete("/_db/#{@database}/_api/index/#{@collection}/#{id}", @@request)
+  #   if @@async == "store"
+  #     result.headers["x-arango-async-id"]
+  #   else
+  #     result = result.parsed_response
+  #     if @@verbose
+  #       result
+  #     else
+  #       if result["error"]
+  #         result["errorMessage"]
+  #       else
+  #         true
+  #       end
+  #     end
+  #   end
+  # end
 
 # === REPLICATION ===
 

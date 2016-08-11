@@ -34,6 +34,7 @@ RSpec.configure do |config|
 	config.after(:all) do
 		ArangoDatabase.new.destroy
 		ArangoUser.new.destroy
-		@myIndex.destroy
+		@myUser.destroy unless @myUser.nil?
+		@myIndex.destroy unless @myIndex.nil?
 	end
 end
