@@ -64,10 +64,11 @@ class ArangoServer
     else
       raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
     end
+    ArangoDatabase.new(database: @@database)
   end
 
   def self.database  # TESTED
-    @@database
+    ArangoDatabase.new(database: @@database)
   end
 
   def self.graph=(graph)  # TESTED
@@ -78,10 +79,11 @@ class ArangoServer
     else
       raise "graph should be a String or an ArangoGraph instance, not a #{graph.class}"
     end
+    ArangoGraph.new(database: @@database, graph: @@graph)
   end
 
   def self.graph  # TESTED
-    @@graph
+    ArangoGraph.new(database: @@database, graph: @@graph)
   end
 
   def self.collection=(collection)  # TESTED
@@ -92,10 +94,11 @@ class ArangoServer
     else
       raise "graph should be a String or an ArangoCollection instance, not a #{collection.class}"
     end
+    ArangoCollection.new(database: @@database, collection: @@collection)
   end
 
   def self.collection  # TESTED
-    @@collection
+    ArangoCollection.new(database: @@database, collection: @@collection)
   end
 
   def self.user=(user)
@@ -106,10 +109,11 @@ class ArangoServer
     else
       raise "graph should be a String or an ArangoUser instance, not a #{user.class}"
     end
+    ArangoUser.new(user: @@user)
   end
 
   def self.user # TESTED
-    @@user
+    ArangoUser.new(user: @@user)
   end
 
   def self.request # TESTED
@@ -171,20 +175,9 @@ class ArangoServer
 
   def self.users # TESTED
     result = get("/_api/user", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        return result
-      else
-        if result["error"]
-          return result["errorMessage"]
-        else
-          return result["result"].map{|x| ArangoUser.new(user: x["user"], active: x["active"], extra: x["extra"])}
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoUser.new(user: x["user"], active: x["active"], extra: x["extra"])}
   end
 
   def self.databases(user: nil) # TESTED
@@ -194,20 +187,9 @@ class ArangoServer
 
   def self.tasks # TESTED
     result = get("/_api/tasks", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result.is_a?(Hash) && result["error"]
-          result["errorMessage"]
-        else
-          result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : (result.is_a?(Hash) && result["error"]) ? result["errorMessage"] : result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
   end
 
   # === ASYNC ===
@@ -444,42 +426,16 @@ class ArangoServer
 # === UTILITY ===
 
   def self.return_result(result:, caseTrue: false, key: nil)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose || !result.is_a?(Hash)
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          if caseTrue
-            true
-          elsif key.nil?
-            result.delete_if{|k,v| k == "error" || k == "code"}
-          else
-            result[key]
-          end
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    return result if @@verbose || !result.is_a?(Hash)
+    return result["errorMessage"] if result["error"]
+    return true if caseTrue
+    return key.nil? ? result.delete_if{|k,v| k == "error" || k == "code"} : result[key]
   end
 
   def self.return_result_async(result:, caseTrue: false)
     result = result.parsed_response
-    if @@verbose || !result.is_a?(Hash)
-      result
-    else
-      if result["error"]
-        result["errorMessage"]
-      else
-        if caseTrue
-          true
-        else
-          result.delete_if{|k,v| k == "error" || k == "code"}
-        end
-      end
-    end
+    (@@verbose || !result.is_a?(Hash)) ? result : result["error"] ? result["errorMessage"] : caseTrue ? true : result.delete_if{|k,v| k == "error" || k == "code"}
   end
 end

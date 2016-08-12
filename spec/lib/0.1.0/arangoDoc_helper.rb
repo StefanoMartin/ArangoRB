@@ -4,7 +4,7 @@ describe ArangoDocument do
   context "#new" do
     it "create a new Document instance without global" do
       myDocument = ArangoDocument.new collection: "MyCollection", database: "MyDatabase"
-      expect(myDocument.collection).to eq "MyCollection"
+      expect(myDocument.collection.name).to eq "MyCollection"
     end
 
     it "create a new instance with global" do

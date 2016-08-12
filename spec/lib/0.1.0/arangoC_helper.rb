@@ -91,7 +91,7 @@ describe ArangoCollection do
 
     it "search Document by match" do
       info = @myCollection.documentMatch match: {"num" => 1}
-      expect(info.collection).to eq "MyCollection"
+      expect(info.collection.name).to eq "MyCollection"
     end
 
     it "search Document by key match" do
@@ -126,7 +126,7 @@ describe ArangoCollection do
 
     it "search random Document" do
       info = @myCollection.random
-      expect(info.collection).to eq "MyCollection"
+      expect(info.collection.name).to eq "MyCollection"
     end
 
 

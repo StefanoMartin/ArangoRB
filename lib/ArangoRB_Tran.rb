@@ -18,7 +18,20 @@ class ArangoTransaction < ArangoServer
     @waitForSync = waitForSync
   end
 
-  attr_reader :action, :collections, :params, :lockTimeout, :waitForSync
+  attr_reader :action, :params, :lockTimeout, :waitForSync
+
+  ### RETRIEVE ###
+
+  def collections
+    result = {}
+    result["write"] = @collections["write"].map{|x| ArangoCollection.new(database: @database, collection: x)} unless @collections["write"].nil?
+    result["read"] = @collections["read"].map{|x| ArangoCollection.new(database: @database, collection: x)} unless @collections["read"].nil?
+    result
+  end
+
+  def database
+    ArangoDatabase.new(database: @database)
+  end
 
   def execute # TESTED
     body = {
@@ -30,19 +43,8 @@ class ArangoTransaction < ArangoServer
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.post("/_db/#{@database}/_api/transaction", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          {"message": result["errorMessage"], "stacktrace": result["stacktrace"]}
-        else
-          result["result"]
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? {"message": result["errorMessage"], "stacktrace": result["stacktrace"]} : result["result"]
   end
 end

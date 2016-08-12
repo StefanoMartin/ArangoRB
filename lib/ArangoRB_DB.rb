@@ -12,6 +12,18 @@ class ArangoDatabase < ArangoServer
   end
 
   attr_reader :database # TESTED
+  alias name database
+
+  # === RETRIEVE ===
+
+  def [](collection_name)
+    ArangoCollection.new(collection: collection_name, database: @database)
+  end
+  alias collection []
+
+  def graph(graph_name)
+     ArangoGraph.new(graph: graph_name, database: @database)
+  end
 
   # === GET ===
 
@@ -58,38 +70,16 @@ class ArangoDatabase < ArangoServer
     query = { "excludeSystem": excludeSystem }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/collection", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          result["result"].map{|x| ArangoCollection.new(database: @database, collection: x["name"])}
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoCollection.new(database: @database, collection: x["name"])}
   end
 
   def graphs  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          result["graphs"].map{|x| ArangoGraph.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["graphs"].map{|x| ArangoGraph.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
   end
 
   def functions  # TESTED
@@ -174,49 +164,6 @@ class ArangoDatabase < ArangoServer
     result = self.class.delete("/_db/#{@database}/_api/aqlfunction/#{name}", @@request)
     self.class.return_result result: result, caseTrue: true
   end
-
-  # # === ASYNC ===
-  #
-  # def pendingAsync # TESTED
-  #   result = self.class.get("/_db/#{@database}/_api/job/pending")
-  #   return_result_async result: result
-  # end
-  #
-  # def fetchAsync(id:) # TESTED
-  #   result = self.class.put("/_db/#{@database}/_api/job/#{id}")
-  #   return_result_async result: result
-  # end
-  #
-  # def retrieveAsync(type:) # TESTED
-  #   result = self.class.get("/_db/#{@database}/_api/job/#{type}")
-  #   return_result_async result: result
-  # end
-  #
-  # def retrieveDoneAsync # TESTED
-  #   retrieveAsync(type: "done")
-  # end
-  #
-  # def retrievePendingAsync # TESTED
-  #   retrieveAsync(type: "pending")
-  # end
-  #
-  # def cancelAsync(id:) # TESTED
-  #   result = self.class.put("/_db/#{@database}/_api/job/#{id}/cancel")
-  #   return_result_async result: result
-  # end
-  #
-  # def destroyAsync(type:) # TESTED
-  #   result = self.class.delete("/_db/#{@database}/_api/job/#{type}")
-  #   return_result_async result: result, caseTrue: true
-  # end
-  #
-  # def destroyAllAsync # TESTED
-  #   destroyAsync(type: "all")
-  # end
-  #
-  # def destroyExpiredAsync # TESTED
-  #   destroyAsync(type: "expired")
-  # end
 
   # === REPLICATION ===
 
@@ -374,23 +321,4 @@ class ArangoDatabase < ArangoServer
     result = self.class.put("/_api/user/#{user}/database/#{@database}", request)
     self.class.return_result result: result, caseTrue: true
   end
-
-  # # === UTILITY ===
-  #
-  # def return_result_async(result:, caseTrue: false)
-  #   result = result.parsed_response
-  #   if @@verbose || !result.is_a?(Hash)
-  #     result
-  #   else
-  #     if result["error"]
-  #       result["errorMessage"]
-  #     else
-  #       if caseTrue
-  #         true
-  #       else
-  #         result.delete_if{|k,v| k == "error" || k == "code"}
-  #       end
-  #     end
-  #   end
-  # end
 end

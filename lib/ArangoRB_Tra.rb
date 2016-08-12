@@ -23,8 +23,26 @@ class ArangoTraversal < ArangoServer
     @paths = nil
   end
 
-  attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander, :vertices, :paths, :database
-  attr_reader :startVertex, :graphName, :edgeCollection
+  attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander, :vertices, :paths
+
+  ### RETRIEVE ###
+
+  def startVertex
+    val = @startVertex.split("/")
+    ArangoDocument.new(database: @database, collection: val[0], key: val[1])
+  end
+
+  def edgeCollection
+    ArangoCollection.new(collection: @edgeCollection, database: @database)
+  end
+
+  def database
+    ArangoDatabase.new(database: @database)
+  end
+
+  def graphName
+    ArangoGraph.new(graph: @graphName, database: @database).retrieve
+  end
 
   def startVertex=(startVertex) # TESTED
     if startVertex.is_a?(String)
@@ -100,38 +118,16 @@ class ArangoTraversal < ArangoServer
     }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/traversal", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if result["error"]
-        return @@verbose ? result : result["errorMessage"]
-      else
-        @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDocument.new(
-          key: x["_key"],
-          collection: x["_id"].split("/")[0],
-          database: @database,
-          body: x
-        )}
-        @paths = result["result"]["visited"]["paths"].map{|x|
-          { "edges" => x["edges"].map{|e| ArangoDocument.new(
-              key: e["_key"],
-              collection: e["_id"].split("/")[0],
-              database: @database,
-              body: e,
-              from: e["_from"],
-              to: e["_to"]
-            )},
-              "vertices" => x["vertices"].map{|v| ArangoDocument.new(
-              key: v["_key"],
-              collection: v["_id"].split("/")[0],
-              database: @database,
-              body: v
-            )}
-          }
-        }
-        return @@verbose ? result : self
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    return @@verbose ? result : result["errorMessage"] if result["error"]
+    @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDocument.new(key: x["_key"], collection: x["_id"].split("/")[0], database: @database, body: x)}
+    @paths = result["result"]["visited"]["paths"].map{|x|
+      {
+        "edges" => x["edges"].map{|e| ArangoDocument.new(key: e["_key"], collection: e["_id"].split("/")[0], database: @database, body: e, from: e["_from"], to: e["_to"] )},
+        "vertices" => x["vertices"].map{|v| ArangoDocument.new(key: v["_key"], collection: v["_id"].split("/")[0], database: @database, body: v )}
+      }
+    }
+    @@verbose ? result : self
   end
 end

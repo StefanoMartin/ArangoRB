@@ -4,22 +4,22 @@ describe ArangoTraversal do
   context "#new" do
     it "create a new Traversal instance" do
       myTraversal = ArangoTraversal.new
-      expect(myTraversal.database).to eq "MyDatabase"
+      expect(myTraversal.database.name).to eq "MyDatabase"
     end
 
     it "instantiate start Vertex" do
       @myTraversal.vertex = @myDoc[0]
-      expect(@myTraversal.vertex).to eq "MyCollection/FirstKey"
+      expect(@myTraversal.vertex.id).to eq "MyCollection/FirstKey"
     end
 
     it "instantiate Graph" do
       @myTraversal.graph = @myGraph
-      expect(@myTraversal.graph).to eq @myGraph.graph
+      expect(@myTraversal.graph.name).to eq @myGraph.graph
     end
 
     it "instantiate EdgeCollection" do
       @myTraversal.collection = @myEdgeCollection
-      expect(@myTraversal.collection).to eq @myEdgeCollection.collection
+      expect(@myTraversal.collection.name).to eq @myEdgeCollection.collection
     end
 
     it "instantiate Direction" do

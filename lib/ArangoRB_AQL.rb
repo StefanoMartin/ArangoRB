@@ -31,9 +31,15 @@ class ArangoAQL < ArangoServer
   end
 
   attr_accessor :query, :batchSize, :ttl, :cache, :options, :bindVars
-  attr_reader :count, :database, :count, :hasMore, :id, :result
+  attr_reader :count, :count, :hasMore, :id, :result
   alias size batchSize
   alias size= batchSize=
+
+# === RETRIEVE ===
+
+  def database
+    ArangoDatabase.new(database: @database)
+  end
 
 # === EXECUTE QUERY ===
 
@@ -49,29 +55,18 @@ class ArangoAQL < ArangoServer
     }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/cursor", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
+    return result.headers["x-arango-async-id"]if @@async == "store"
+    result = result.parsed_response
+    return @@verbose ? result : result["errorMessage"] if result["error"]
+    @count = result["count"]
+    @hasMore = result["hasMore"]
+    @id = result["id"]
+    if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
+      @result = result["result"]
     else
-      result = result.parsed_response
-      if result["error"]
-        return @@verbose ? result : result["errorMessage"]
-      else
-        @count = result["count"]
-        @hasMore = result["hasMore"]
-        @id = result["id"]
-        if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
-          @result = result["result"]
-        else
-          @result = result["result"].map{|x| ArangoDocument.new(
-            key: x["_key"],
-            collection: x["_id"].split("/")[0],
-            database: @database,
-            body: x
-          )}
-        end
-        return @@verbose ? result : self
-      end
+      @result = result["result"].map{|x| ArangoDocument.new(key: x["_key"], collection: x["_id"].split("/")[0], database: @database, body: x)}
     end
+    return @@verbose ? result : self
   end
 
   def next  # TESTED
@@ -79,29 +74,18 @@ class ArangoAQL < ArangoServer
       print "No other results"
     else
       result = self.class.put("/_db/#{@database}/_api/cursor/#{@id}", @@request)
-      if @@async == "store"
-        result.headers["x-arango-async-id"]
+      return result.headers["x-arango-async-id"]if @@async == "store"
+      result = result.parsed_response
+      return @@verbose ? result : result["errorMessage"] if result["error"]
+      @count = result["count"]
+      @hasMore = result["hasMore"]
+      @id = result["id"]
+      if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
+        @result = result["result"]
       else
-        result = result.parsed_response
-        if result["error"]
-          return @@verbose ? result : result["errorMessage"]
-        else
-          @count = result["count"]
-          @hasMore = result["hasMore"]
-          @id = result["id"]
-          if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
-            @result = result["result"]
-          else
-            @result = result["result"].map{|x| ArangoDocument.new(
-              key: x["_key"],
-              collection: x["_id"].split("/")[0],
-              database: @database,
-              body: x
-            )}
-          end
-          return @@verbose ? result : self
-        end
+        @result = result["result"].map{|x| ArangoDocument.new(key: x["_key"], collection: x["_id"].split("/")[0], database: @database, body: x)}
       end
+      return @@verbose ? result : self
     end
   end
 
@@ -168,22 +152,8 @@ class ArangoAQL < ArangoServer
 # === UTILITY ===
 
   def return_result(result:, caseTrue: false)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result.is_a?(Hash) && result["error"]
-          result["errorMessage"]
-        else
-          return true if caseTrue
-          result.delete("error")
-          result.delete("code")
-          result
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : (result.is_a?(Hash) && result["error"]) ? result["errorMessage"] : caseTrue ? true : result
   end
 end

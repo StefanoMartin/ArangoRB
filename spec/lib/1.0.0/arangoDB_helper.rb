@@ -1,39 +1,6 @@
 require_relative './../../spec_helper'
 
 describe ArangoDatabase do
-#   context "#async" do
-#     it "pendingAsync" do
-#       ArangoServer.async = "store"
-#       ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
-#       expect(@myDatabase.pendingAsync).to eq []
-#     end
-#
-#     it "fetchAsync" do
-#       ArangoServer.async = "store"
-#       id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
-#       expect(@myDatabase.fetchAsync(id: id)["count"]).to eq 18
-#     end
-#
-#     it "retrieveAsync" do
-#       ArangoServer.async = "store"
-#       ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
-#       expect(@myDatabase.retrievePendingAsync).to eq []
-#     end
-#
-#     it "cancelAsync" do
-#       ArangoServer.async = "store"
-#       id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
-#       expect(@myDatabase.cancelAsync(id: id)).to eq "not found"
-#     end
-#
-#     it "destroyAsync" do
-#       ArangoServer.async = "store"
-#       id = ArangoAQL.new(query: "FOR u IN MyCollection RETURN u.num").execute
-#       expect(@myDatabase.destroyAsync type: id).to be true
-#     end
-#   end
-# end
-
   context "#replication" do
     it "inventory" do
       expect(@myDatabase.inventory["collections"].class).to be Array

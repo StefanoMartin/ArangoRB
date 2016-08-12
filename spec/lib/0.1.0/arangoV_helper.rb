@@ -4,7 +4,7 @@ describe ArangoVertex do
   context "#new" do
     it "create a new Document instance without global" do
       myVertex = ArangoVertex.new collection: "MyCollection", database: "MyDatabase", graph: "MyGraph"
-      expect(myVertex.collection).to eq "MyCollection"
+      expect(myVertex.collection.name).to eq "MyCollection"
     end
 
     it "create a new instance with global" do

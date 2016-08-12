@@ -43,27 +43,27 @@ class ArangoVertex < ArangoDocument
     end
   end
 
-  attr_reader :key, :id, :body, :database, :graph, :collection
+  attr_reader :key, :id, :body
+
+  # === RETRIEVE ===
+
+  def graph
+    ArangoGraph.new(graph: @graph, database: @database)
+  end
 
   # === GET ===
 
   def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      @body = result["vertex"] unless result["error"]
+      result
     else
-      result = result.parsed_response
-      if @@verbose
-        @body = result["vertex"] unless result["error"]
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @body = result["vertex"]
-          self
-        end
-      end
+      return result["errorMessage"] if result["error"]
+      @body = result["vertex"]
+      self
     end
   end
 
@@ -91,28 +91,22 @@ class ArangoVertex < ArangoDocument
     query = {"waitForSync" => waitForSync, "keepNull" => keepNull}.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        unless result["error"]
-          @key = result["_key"]
-          @id = "#{@collection}/#{@key}"
-          @body = result["vertex"].body
-        end
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @key = result["vertex"]["_key"]
-          @id = "#{@collection}/#{@key}"
-          @body = @body.merge(body)
-          @body = @body.merge(result["vertex"])
-          self
-        end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      unless result["error"]
+        @key = result["_key"]
+        @id = "#{@collection}/#{@key}"
+        @body = result["vertex"].body
       end
+      result
+    else
+      return result["errorMessage"] if result["error"]
+      @key = result["vertex"]["_key"]
+      @id = "#{@collection}/#{@key}"
+      @body = @body.merge(body)
+      @body = @body.merge(result["vertex"])
+      self
     end
   end
 
@@ -128,28 +122,22 @@ class ArangoVertex < ArangoDocument
 # === UTILITY ===
 
   def return_result(result:, body: {}, caseTrue: false)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        unless result["error"]
-          @key = result["vertex"]["_key"]
-          @id = "#{@collection}/#{@key}"
-          @body = result["vertex"].merge(body)
-        end
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          return true if caseTrue
-          @key = result["vertex"]["_key"]
-          @id = "#{@collection}/#{@key}"
-          @body = result["vertex"].merge(body)
-          self
-        end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      unless result["error"]
+        @key = result["vertex"]["_key"]
+        @id = "#{@collection}/#{@key}"
+        @body = result["vertex"].merge(body)
       end
+      result
+    else
+      return result["errorMessage"] if result["error"]
+      return true if caseTrue
+      @key = result["vertex"]["_key"]
+      @id = "#{@collection}/#{@key}"
+      @body = result["vertex"].merge(body)
+      self
     end
   end
 end

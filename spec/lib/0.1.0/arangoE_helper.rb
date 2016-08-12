@@ -22,7 +22,7 @@ describe ArangoEdge do
   context "#info" do
     it "retrieve Document" do
       myDocument = @myEdge.retrieve
-      expect(myDocument.collection).to eq "MyEdgeCollection"
+      expect(myDocument.collection.name).to eq "MyEdgeCollection"
     end
   end
 

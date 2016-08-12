@@ -41,31 +41,31 @@ class ArangoIndex < ArangoServer
     end
   end
 
-  attr_reader :database, :collection, :body, :type, :id, :unique, :fields, :key, :sparse
+  attr_reader :body, :type, :id, :unique, :fields, :key, :sparse
+
+  ### RETRIEVE ###
+
+  def database
+    ArangoDatabase.new(database: @database)
+  end
+
+  def collection
+    ArangoCollection.new(collection: @collection, database: @database)
+  end
 
   def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/index/#{@id}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          result.delete("error")
-          result.delete("code")
-          @body = result
-          @type = result["type"]
-          @unique = result["unique"]
-          @fields = result["fields"]
-          @sparse = result["sparse"]
-          self
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    return result if @@verbose
+    return result["errorMessage"] if result["error"]
+    result.delete_if{|k,v| k == "error" || k == "code"}
+    @body = result
+    @type = result["type"]
+    @unique = result["unique"]
+    @fields = result["fields"]
+    @sparse = result["sparse"]
+    self
   end
 
   def self.indexes(database: @@database, collection: @@collection) # TESTED
@@ -74,23 +74,13 @@ class ArangoIndex < ArangoServer
     query = { "collection": collection }
     request = @@request.merge({ :query => query })
     result = get("/_db/#{database}/_api/index", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          result.delete("error")
-          result.delete("code")
-          result["indexes"] = result["indexes"].map{|x| ArangoIndex.new(body: x, id: x["id"], database: database, collection: collection, type: x["type"], unique: x["unique"], fields: x["fields"], sparse: x["sparse"])}
-          result
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    return result if @@verbose
+    return result["errorMessage"] if result["error"]
+    result.delete_if{|k,v| k == "error" || k == "code"}
+    result["indexes"] = result["indexes"].map{|x| ArangoIndex.new(body: x, id: x["id"], database: database, collection: collection, type: x["type"], unique: x["unique"], fields: x["fields"], sparse: x["sparse"])}
+    result
   end
 
   def create # TESTED
@@ -103,42 +93,21 @@ class ArangoIndex < ArangoServer
     query = { "collection": @collection }
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/index", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          result.delete("error")
-          result.delete("code")
-          @body = result
-          @id = result["id"]
-          @key = @id.split("/")[1]
-          self
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    return result if @@verbose
+    return result["errorMessage"] if result["error"]
+    result.delete_if{|k,v| k == "error" || k == "code"}
+    @body = result
+    @id = result["id"]
+    @key = @id.split("/")[1]
+    self
   end
 
   def destroy # TESTED
     result = self.class.delete("/_db/#{@database}/_api/index/#{id}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          true
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 end

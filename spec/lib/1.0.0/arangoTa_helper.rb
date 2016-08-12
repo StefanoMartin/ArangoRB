@@ -29,7 +29,7 @@ describe ArangoTask do
     it "retrieve lists" do
       myArangoTask = ArangoTask.new name: "MyTaskID", command: "(function(params) { require('@arangodb').print(params); })(params)", params: {"foo2" => "bar2", "bar2" => "foo2"}, period: 2
       myArangoTask.create
-      result = ArangoTask.tasks.map{|x| x.database}
+      result = ArangoTask.tasks.map{|x| x.database.name}
       expect(result.include? 'MyDatabase').to be true
     end
 

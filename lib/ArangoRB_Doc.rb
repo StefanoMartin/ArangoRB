@@ -53,7 +53,17 @@ class ArangoDocument < ArangoServer
     end
   end
 
-  attr_reader :key, :id, :body, :collection, :database
+  attr_reader :key, :id, :body
+
+  # === RETRIEVE ===
+
+  def collection
+    ArangoCollection.new(collection: @collection, database: @database)
+  end
+
+  def database
+    ArangoDatabase.new(database: @database)
+  end
 
   # === GET ===
 
@@ -69,9 +79,7 @@ class ArangoDocument < ArangoServer
     result = self.class.get("/_db/#{@database}/_api/edges/#{collection}", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
     result = result.parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["edges"].map{|edge|
-      ArangoDocument.new(key: edge["_key"], collection: collection, database: @database, body: edge)
-    }
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["edges"].map{|edge| ArangoDocument.new(key: edge["_key"], collection: collection, database: @database, body: edge)}
   end
 
   def in(collection)  # TESTED
@@ -222,14 +230,11 @@ class ArangoDocument < ArangoServer
         end
         result
       else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @key = result["_key"]
-          @id = "#{@collection}/#{@key}"
-          @body = @body.merge(body)
-          self
-        end
+        return result["errorMessage"] if result["error"]
+        @key = result["_key"]
+        @id = "#{@collection}/#{@key}"
+        @body = @body.merge(body)
+        return self
       end
     else
       result = self.class.patch("/_db/#{@database}/_api/document/#{@collection}", request)
@@ -262,34 +267,26 @@ class ArangoDocument < ArangoServer
 # === UTILITY ===
 
   def return_result(result:, body: {}, caseTrue: false, key: nil)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose || !result.is_a?(Hash)
-        resultTemp = result
-        unless result["errorMessage"]
-          result.delete("error")
-          result.delete("code")
-          @key = result["_key"]
-          @collection = result["_id"].split("/")[0]
-          @body = result.merge(body)
-        end
-        resultTemp
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          return true if caseTrue
-          result.delete("error")
-          result.delete("code")
-          @key = result["_key"]
-          @collection = result["_id"].split("/")[0]
-          @id = "#{@collection}/#{@key}"
-          @body = result.merge(body)
-          key.nil? ? self : result[key]
-        end
+    return  result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose || !result.is_a?(Hash)
+      resultTemp = result
+      unless result["errorMessage"]
+        result.delete_if{|k,v| k == "error" || k == "code"}
+        @key = result["_key"]
+        @collection = result["_id"].split("/")[0]
+        @body = result.merge(body)
       end
+      return resultTemp
+    else
+      return result["errorMessage"] if result["error"]
+      return true if caseTrue
+      result.delete_if{|k,v| k == "error" || k == "code"}
+      @key = result["_key"]
+      @collection = result["_id"].split("/")[0]
+      @id = "#{@collection}/#{@key}"
+      @body = result.merge(body)
+      key.nil? ? self : result[key]
     end
   end
 end

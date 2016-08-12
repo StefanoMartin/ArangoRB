@@ -18,7 +18,7 @@ describe ArangoServer do
   context "#user" do
     it "setup a global user" do
       ArangoServer.user = "MyUser2"
-      expect(ArangoServer.user).to eq "MyUser2"
+      expect(ArangoServer.user.name).to eq "MyUser2"
     end
   end
 

@@ -4,21 +4,21 @@ describe ArangoServer do
   context "#database" do
     it "setup a global database" do
       ArangoServer.database = "MyDatabase"
-      expect(ArangoServer.database).to eq "MyDatabase"
+      expect(ArangoServer.database.name).to eq "MyDatabase"
     end
   end
 
   context "#graph" do
     it "setup a global graph" do
       ArangoServer.graph = "MyGraph"
-      expect(ArangoServer.graph).to eq "MyGraph"
+      expect(ArangoServer.graph.name).to eq "MyGraph"
     end
   end
 
   context "#collection" do
     it "setup a global collection" do
       ArangoServer.collection = "MyCollection"
-      expect(ArangoServer.collection).to eq "MyCollection"
+      expect(ArangoServer.collection.name).to eq "MyCollection"
     end
   end
 

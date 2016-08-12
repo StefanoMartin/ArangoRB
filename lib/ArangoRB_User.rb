@@ -9,31 +9,31 @@ class ArangoUser < ArangoServer
   end
 
   attr_reader :user, :active, :extra
+  alias name user
 
-  def create(active: nil, extra: nil) # TESTED
+  def [](database)
+    if databases["rw"].include? database
+      ArangoDatabase.new database: database
+    else
+      "This User does not have access to Database #{database}."
+    end
+  end
+  alias database []
+
+  def create # TESTED
     body = {
       "user" => @user,
       "passwd" => @password,
-      "active" => active,
-      "extra" => extra
+      "active" => @active,
+      "extra" => @extra
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.post("/_api/user", request)
-    resultTemp = result.parsed_response
-    if @@async != "store" && !resultTemp["error"]
-      @active = resultTemp["active"]
-      @extra = resultTemp["extra"]
-    end
     return_result result: result
   end
 
   def retrieve # TESTED
     result = self.class.get("/_api/user/#{@user}", @@request)
-    resultTemp = result.parsed_response
-    if @@async != "store" && !resultTemp["error"]
-      @active = resultTemp["active"]
-      @extra = resultTemp["extra"]
-    end
     return_result result: result
   end
 
@@ -66,27 +66,21 @@ class ArangoUser < ArangoServer
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_api/user/#{@user}", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        unless result["error"]
-          @password = password
-          @active = active.nil? || active
-          @extra = extra
-        end
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @password = password
-          @active = active.nil? || active
-          @extra = extra
-          self
-        end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      unless result["error"]
+        @password = password
+        @active = active.nil? || active
+        @extra = extra
       end
+      result
+    else
+      return result["errorMessage"] if result["error"]
+      @password = password
+      @active = active.nil? || active
+      @extra = extra
+      self
     end
   end
 
@@ -98,27 +92,21 @@ class ArangoUser < ArangoServer
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.patch("/_api/user/#{@user}", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        unless result["error"]
-          @password = password
-          @active = active.nil? || active
-          @extra = extra
-        end
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @password = password
-          @active = active.nil? || active
-          @extra = extra
-          self
-        end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      unless result["error"]
+        @password = password
+        @active = active.nil? || active
+        @extra = extra
       end
+      result
+    else
+      return result["errorMessage"] if result["error"]
+      @password = password
+      @active = active.nil? || active
+      @extra = extra
+      self
     end
   end
 
@@ -128,25 +116,20 @@ class ArangoUser < ArangoServer
   end
 
   def return_result(result:, caseTrue: false, key: nil)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose || !result.is_a?(Hash)
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          if caseTrue
-            true
-          elsif key.nil?
-            self
-          else
-            result[key]
-          end
-        end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose || !result.is_a?(Hash)
+      unless result["error"]
+        @active = result["active"]
+        @extra = result["extra"]
       end
+      result
+    else
+      return result["errorMessage"] if result["error"]
+      @active = result["active"]
+      @extra = result["extra"]
+      return true if caseTrue
+      key.nil? ? self : result[key]
     end
   end
 end

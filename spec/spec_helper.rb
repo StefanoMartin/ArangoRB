@@ -29,6 +29,7 @@ RSpec.configure do |config|
 		@myIndex = @myCollection.createIndex unique: false, fields: "num", type: "hash", id: "MyIndex"
 		@myTraversal = ArangoTraversal.new
 		@myUser = ArangoUser.new.create
+		@myTask = ArangoTask.new id: "mytaskid", name: "MyTaskID", command: "(function(params) { require('@arangodb').print(params); })(params)", params: {"foo" => "bar", "bar" => "foo"}, period: 60
 	end
 
 	config.after(:all) do

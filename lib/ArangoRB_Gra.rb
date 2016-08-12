@@ -32,27 +32,25 @@ class ArangoGraph < ArangoServer
   end
 
   attr_reader :graph, :edgeDefinitions, :orphanCollections, :database
+  alias name graph
+
+# === RETRIEVE ===
+
+  def database
+    ArangoDatabase.new(database: @database)
+  end
 
 # === GET ===
 
   def retrieve  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @edgeDefinitions = result["graph"]["edgeDefinitions"]
-          @orphanCollections = result["graph"]["orphanCollections"]
-          self
-        end
-      end
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    return result if @@verbose
+    return result["errorMessage"] if result["error"]
+    @edgeDefinitions = result["graph"]["edgeDefinitions"]
+    @orphanCollections = result["graph"]["orphanCollections"]
+    self
   end
 
 # === POST ===
@@ -61,36 +59,27 @@ class ArangoGraph < ArangoServer
     body = { "name" => @graph, "edgeDefinitions" => @edgeDefinitions, "orphanCollections" => @orphanCollections }
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/gharial", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : self
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : self
   end
 
 # === DELETE ===
 
   def destroy  # TESTED
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : true
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
 
 # === VERTEX COLLECTION  ===
 
   def vertexCollections  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
   end
 
   def addVertexCollection(collection:)  # TESTED
@@ -98,40 +87,30 @@ class ArangoGraph < ArangoServer
     body = { "collection" => collection }.to_json
     request = @@request.merge({ :body => body })
     result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex", request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      @orphanCollections << collection unless result["error"]
+      result
     else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @orphanCollections << collection
-          self
-        end
-      end
+      return result["errorMessage"] if result["error"]
+      @orphanCollections << collection
+      self
     end
   end
 
   def removeVertexCollection(collection:)  # TESTED
     collection = collection.is_a?(String) ? collection : collection.collection
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{collection}", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      @orphanCollections -= [collection] unless result["error"]
+      result
     else
-      result = result.parsed_response
-      if @@verbose
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @orphanCollections -= [collection]
-          self
-        end
-      end
+      return result["errorMessage"] if result["error"]
+      @orphanCollections -= [collection]
+      self
     end
   end
 
@@ -139,12 +118,9 @@ class ArangoGraph < ArangoServer
 
   def edgeCollections  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/edge", @@request)
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
-    end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
   end
 
   def addEdgeCollection(collection:, from:, to:, replace: false)  # TESTED
@@ -156,32 +132,24 @@ class ArangoGraph < ArangoServer
     body["from"] = from.map{|f| f.is_a?(String) ? f : f.id }
     body["to"] = to.map{|t| t.is_a?(String) ? t : t.id }
     request = @@request.merge({ :body => body.to_json })
-
     if replace
       result = self.class.put("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", request)
     else
       result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge", request)
     end
-
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        unless result["error"]
-          @edgeDefinitions = result["graph"]["edgeDefinitions"]
-          @orphanCollections = result["graph"]["orphanCollections"]
-        end
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @edgeDefinitions = result["graph"]["edgeDefinitions"]
-          @orphanCollections = result["graph"]["orphanCollections"]
-          self
-        end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      unless result["error"]
+        @edgeDefinitions = result["graph"]["edgeDefinitions"]
+        @orphanCollections = result["graph"]["orphanCollections"]
       end
+      result
+    else
+      return result["errorMessage"] if result["error"]
+      @edgeDefinitions = result["graph"]["edgeDefinitions"]
+      @orphanCollections = result["graph"]["orphanCollections"]
+      self
     end
   end
 
@@ -192,26 +160,19 @@ class ArangoGraph < ArangoServer
   def removeEdgeCollection(collection:)  # TESTED
     collection = collection.is_a?(String) ? collection : collection.collection
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", @@request)
-
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
-    else
-      result = result.parsed_response
-      if @@verbose
-        unless result["error"]
-          @edgeDefinitions = result["graph"]["edgeDefinitions"]
-          @orphanCollections = result["graph"]["orphanCollections"]
-        end
-        result
-      else
-        if result["error"]
-          result["errorMessage"]
-        else
-          @edgeDefinitions = result["graph"]["edgeDefinitions"]
-          @orphanCollections = result["graph"]["orphanCollections"]
-          self
-        end
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    if @@verbose
+      unless result["error"]
+        @edgeDefinitions = result["graph"]["edgeDefinitions"]
+        @orphanCollections = result["graph"]["orphanCollections"]
       end
+      result
+    else
+      return result["errorMessage"] if result["error"]
+      @edgeDefinitions = result["graph"]["edgeDefinitions"]
+      @orphanCollections = result["graph"]["orphanCollections"]
+      self
     end
   end
 end
