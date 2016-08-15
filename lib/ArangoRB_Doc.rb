@@ -24,6 +24,9 @@ class ArangoDocument < ArangoServer
         body["_key"] = @key
         @id = "#{@collection}/#{@key}"
       end
+    elsif key.is_a?(ArangoDocument)
+      @key = key.key
+      @id = key.id
     else
       raise "key should be a String, not a #{key.class}"
     end
@@ -54,6 +57,7 @@ class ArangoDocument < ArangoServer
   end
 
   attr_reader :key, :id, :body
+  alias name key
 
   # === RETRIEVE ===
 
@@ -82,16 +86,16 @@ class ArangoDocument < ArangoServer
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["edges"].map{|edge| ArangoDocument.new(key: edge["_key"], collection: collection, database: @database, body: edge)}
   end
 
-  def in(collection)  # TESTED
-    self.retrieve_edges collection: collection, direction: "in"
+  def in(edgeCollection)  # TESTED
+    self.retrieve_edges collection: edgeCollection, direction: "in"
   end
 
-  def out(collection)  # TESTED
-    self.retrieve_edges collection: collection, direction: "out"
+  def out(edgeCollection)  # TESTED
+    self.retrieve_edges collection: edgeCollection, direction: "out"
   end
 
-  def any(collection)  # TESTED
-    self.retrieve_edges collection: collection
+  def any(edgeCollection)  # TESTED
+    self.retrieve_edges collection: edgeCollection
   end
 
   def from  # TESTED

@@ -128,6 +128,10 @@ end
 describe ArangoUser do
   context "#retrieve" do
     it "database" do
+      expect(@myUser["MyDatabase"].class).to be String
+    end
+
+    it "database" do
       @myUser.grant database: @myDatabase
       expect(@myUser["MyDatabase"].class).to be ArangoDatabase
     end

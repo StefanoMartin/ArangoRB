@@ -236,6 +236,15 @@ myDatabase.graphs #  Obtain an Array with the available graphs in the selected D
 myDatabase.functions #  Obtain an Array with the available functions in the selected Database
 ```
 
+It is possible to access its Collections and Graphs by their ids.
+
+``` ruby
+myDatabase["MyCollection"] # where "MyCollection" is the id of the collection
+myDatabase.collection("MyCollection")
+myDatabase.graph("MyGraph")
+```
+
+
 ### Query
 
 ArangoDatabase instances can manage the queries used in their Database.
@@ -337,6 +346,16 @@ Truncate will delete all the Documents inside the selected Collection.
 
 ### Retrieve information
 
+It is possible to access its Documents and its database.
+
+``` ruby
+myCollection["MyDocument"]
+myDatabase.document("MyDocument")
+myDatabase.database
+```
+
+For other information
+
 ``` ruby
 myCollection.retrieve # Retrieve the selected Collection
 myCollection.indexes # Return a list of all used Indexes in the Collection
@@ -348,7 +367,7 @@ myCollection.revision # Return collection revision id
 myCollection.checksum # Return checksum for the Collection
 ```
 
-To retrieve the documents of a Collection you can use:
+To retrieve all the documents of a Collection you can use:
 
 ``` ruby
 myCollection.documents
@@ -544,6 +563,8 @@ myDocument.destroy
 
 ``` ruby
 myDocument.retrieve # Retrieve Document
+myDocument.collection # Retrieve Collection of the Document
+myDocument.database # Retrieve Database of the Document
 myDocument.retrieve_edges collection: myEdgeCollection  # Retrieve all myEdgeCollection edges connected with the Document
 myDocument.any(myEdgeCollection) # Retrieve all myEdgeCollection edges connected with the Document
 myDocument.in(myEdgeCollection)  # Retrieve all myEdgeCollection edges coming in the Document
@@ -601,6 +622,7 @@ myGraph = ArangoGraph.new # By using the defauly Database and Graph
 ``` ruby
 myGraph.create # create a new Graph
 myGraph.retrieve # retrieve the Graph
+myGraph.database # retrieve database of the Graph
 myGraph.destroy # destroy the Graph
 ```
 
@@ -636,6 +658,7 @@ To use ArangoVertex, the Collection of the Vertex needs to be added either to th
 myVertex = ArangoVertex.new key: "newVertex", body: {"value" => 3}, collection: "myCollection", graph: "myGraph", database: "myDatabase" # create a new instance
 myVertex.create # create a new Document in the Graph
 myVertex.retrieve  # retrieve a Document
+myVertex.graph # Retrieve Graph  of the Document
 myVertex.replace body: {"value" => 6} # replace the Document
 myVertex.update body: {"value" => 6} # update the Document
 myVertex.destroy # delete the Document
@@ -650,6 +673,7 @@ To use ArangoEdge, the Collection of the Edge needs to be added to the EdgeColle
 myEdge = ArangoEdge.new key: "newVertex", body: {"value" => 3}, from: myArangoDocument, to: myArangoDocument, collection: "myCollection", graph: "myGraph", database: "myDatabase" # create a new instance
 myEdge.create # create a new Document of type Edge in the Graph
 myEdge.retrieve # retrieve a Document
+myEdge.graph # Retrieve Graph  of the Document
 myEdge.replace body: {"value" => 6} # replace the Document
 myEdge.update body: {"value" => 6} # update the Document
 myEdge.destroy # delete the Document
@@ -733,6 +757,7 @@ myUser = ArangoUser.new user: "MyUser", password: "password"
 
 ``` ruby
 myUser.retrieve # Retrieve User
+myUser["MyDatabase"] # Retrieve database if the user can access it
 myUser.create # Create a new User
 myUser.replace active: false # Replace User
 myUser.update active: false # Update User

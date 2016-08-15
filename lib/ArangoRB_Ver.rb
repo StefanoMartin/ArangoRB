@@ -32,6 +32,9 @@ class ArangoVertex < ArangoDocument
         body["_key"] = @key
         @id = "#{@collection}/#{@key}"
       end
+    elsif key.is_a?(ArangoDocument)
+      @key = key.key
+      @id = key.id
     else
       raise "key should be a String, not a #{key.class}"
     end
