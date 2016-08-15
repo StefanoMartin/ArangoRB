@@ -124,3 +124,17 @@ describe ArangoTraversal do
     end
   end
 end
+
+describe ArangoUser do
+  context "#retrieve" do
+    it "database" do
+      @myUser.grant database: @myDatabase
+      expect(@myUser["MyDatabase"].class).to be ArangoDatabase
+    end
+
+    it "database" do
+      @myUser.revoke database: @myDatabase
+      expect(@myUser["MyDatabase"].class).to be String
+    end
+  end
+end

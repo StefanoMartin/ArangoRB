@@ -12,7 +12,7 @@ class ArangoUser < ArangoServer
   alias name user
 
   def [](database)
-    if databases["rw"].include? database
+    if self.databases[database] == "rw"
       ArangoDatabase.new database: database
     else
       "This User does not have access to Database #{database}."
