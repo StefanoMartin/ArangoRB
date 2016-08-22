@@ -239,9 +239,9 @@ myDatabase.functions #  Obtain an Array with the available functions in the sele
 It is possible to access its Collections and Graphs by their ids.
 
 ``` ruby
-myDatabase["MyCollection"] # where "MyCollection" is the id of the collection
-myDatabase.collection("MyCollection")
-myDatabase.graph("MyGraph")
+myDatabase["MyCollection"].retrieve # where "MyCollection" is the id of the collection
+myDatabase.collection("MyCollection").retrieve
+myDatabase.graph("MyGraph").retrieve
 ```
 
 
@@ -281,26 +281,26 @@ myDatabase.functions # Retrieve a list of the available functions
 You can manage the right of a user to access the database.
 
 ``` ruby
-@myDatabase.grant user: myUser # Grant access to database
-@myDatabase.revoke user: myUser # Revoke access to database
+myDatabase.grant user: myUser # Grant access to database
+myDatabase.revoke user: myUser # Revoke access to database
 ```
 
 ### Replication (UNTESTED)
 
 ``` ruby
-@myDatabase.inventory # Returns an overview of collections and their indexes
-@myDatabase.clusterInventory # Return cluster inventory of collections and indexes
-@myDatabase.logger # Return replication logger state
-@myDatabase.loggerFollow # Returns log entries
-@myDatabase.firstTick # Returns the first available tick value
-@myDatabase.rangeTick # Return the tick ranges available in the WAL logfiles
-@myDatabase.sync # Synchronize data from a remote endpoint
-@myDatabase.configurationReplication # Return configuration of replication applier
-@myDatabase.modifyConfigurationReplication # Adjust configuration of replication applier
-@myDatabase.startReplication # Start replication applier
-@myDatabase.stateReplication # State of the replication applier
-@myDatabase.stopReplication # Stop replication applier
-@myDatabase.enslave # Turn the server into a slave of another
+myDatabase.inventory # Returns an overview of collections and their indexes
+myDatabase.clusterInventory # Return cluster inventory of collections and indexes
+myDatabase.logger # Return replication logger state
+myDatabase.loggerFollow # Returns log entries
+myDatabase.firstTick # Returns the first available tick value
+myDatabase.rangeTick # Return the tick ranges available in the WAL logfiles
+myDatabase.sync # Synchronize data from a remote endpoint
+myDatabase.configurationReplication # Return configuration of replication applier
+myDatabase.modifyConfigurationReplication # Adjust configuration of replication applier
+myDatabase.startReplication # Start replication applier
+myDatabase.stateReplication # State of the replication applier
+myDatabase.stopReplication # Stop replication applier
+myDatabase.enslave # Turn the server into a slave of another
 ```
 
 <a name="ArangoCollection"></a>
