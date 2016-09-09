@@ -860,7 +860,8 @@ The type and the quantity that you can save in the cache are the following: Data
 
 To modify these limitations you can use the following command:
 ``` ruby
-ArangoCache.max["Document"] = 100 # Change limits Document
+ArangoCache.max type: "Document", val: 100 # Change limits Document
 ```
+NB: If you insert a max value higher than the quantity of elements in the Cache, then the first elements in excess will be removed from the Cache.
 
 If the limit of the Cache for one type is reached, then the first element cached of that type will be deleted from the Cache.

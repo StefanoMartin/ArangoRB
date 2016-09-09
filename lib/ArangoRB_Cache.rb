@@ -34,8 +34,18 @@ class ArangoCache
 
   class << self
     attr_accessor :max
-    attr_reader :cache
-    alias retrieve cache
+
+    def max(type:, val:)
+      return nil if @max[type].nil?
+      while @cache[type].length > val
+        @cache[type].shift
+      end
+      @max[type] = val
+    end
+
+    def retrieve
+      @cache
+    end
 
     def cache(id: nil, data:)
       val_to_cache = []
@@ -43,10 +53,11 @@ class ArangoCache
 
       if id.nil?
         data.each do |d|
-          type = d.class.slice! "Arango"
+          type = d.class.to_s
+          type.slice! "Arango"
           if @max[type].nil?
             type = "Other"
-            idCache = "OTH_#{Random.rand(0...10^12)}"
+            idCache = "OTH_#{d.class.to_s}_#{Random.rand(10^12)}"
           else
             idCache = d.idCache
           end
@@ -56,7 +67,8 @@ class ArangoCache
         id = [id] unless id.is_a? Array
         if data.length == id.length
           for i in 0...id.length
-            type = data[i].class.slice! "Arango"
+            type = data[i].class.to_s
+            type.slice! "Arango"
             type = "Other" if @max[type].nil?
             val_to_cache << [type, id[i], data[i]]
           end
@@ -66,19 +78,26 @@ class ArangoCache
       end
 
       val_to_cache.each do |val|
-        @cache[val[0]].shift if @cache[val[0]].length > @max[val[0]]
         @cache[val[0]][val[1]] = val[2]
+        @cache[val[0]].shift if @cache[val[0]].length > @max[val[0]]
       end
 
       val_to_cache
     end
 
     def uncache(type: nil, id: nil, data: nil)
+      if id.nil? && data.nil? && !type.nil?
+        val_to_uncache = @cache[type].map{|k,v| v}
+        val_to_uncache = val_to_uncache[0] if val_to_uncache.length == 1
+        return val_to_uncache
+      end
+
       val_to_uncache = []
       unless data.nil?
         data = [data] unless data.is_a? Array
         data.each do |d|
-          type = d.class.slice! "Arango"
+          type = d.class.to_s
+          type.slice! "Arango"
           next if @max[type].nil? || type == "Other"
           idCache = d.idCache
           val_to_uncache << [type, idCache]
@@ -122,7 +141,8 @@ class ArangoCache
       unless data.nil?
         data = [data] unless data.is_a? Array
         data.each do |d|
-          type = d.class.slice! "Arango"
+          type = d.class.to_s
+          type.slice! "Arango"
           next if @max[type].nil? || type == "Other"
           val_to_clear <<  [type, d.idCache]
         end

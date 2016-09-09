@@ -4,13 +4,13 @@ require "rake"
 
 Gem::Specification.new do |s|
   s.name        = 'arangorb'
-  s.version	    = '1.1.0'
+  s.version	    = '1.2.0'
   s.authors     = ['Stefano Martin']
   s.email       = ['stefano@seluxit.com']
   s.homepage    = 'https://github.com/StefanoMartin/ArangoRB'
   s.license     = 'MIT'
   s.summary     = 'A simple ruby client for ArangoDB'
-  s.description = "ArangoDB is a powerful mixed database based on documents and graphs. ArangoRB is an experimental Ruby gems that uses ArangoDB's HTTP API."
+  s.description = "ArangoRB is an experimental Ruby gems based on ArangoDB's HTTP API. ArangoDB is a powerful mixed database based on documents and graphs"
   s.platform	   = Gem::Platform::RUBY
   s.require_paths = ['lib']
   s.files         = FileList['lib/*', 'spec/**/*', 'ArangoRB.gemspec', 'Gemfile', 'LICENSE', 'README.md'].to_a

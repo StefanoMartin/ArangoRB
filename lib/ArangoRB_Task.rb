@@ -19,7 +19,7 @@ class ArangoTask < ArangoServer
     @idCache = "IND_#{@id}"
   end
 
-  attr_reader :id, :name, :type, :period, :created, :command, :params
+  attr_reader :id, :name, :type, :period, :created, :command, :params, :idCache
 
   def database
     ArangoDatabase.new(database: @database)
