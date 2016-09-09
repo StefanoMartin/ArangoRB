@@ -39,9 +39,11 @@ class ArangoIndex < ArangoServer
     else
       raise "fields should be a String or an Array, not a #{database.class}"
     end
+
+    @idCache = "IND_#{@id}"
   end
 
-  attr_reader :body, :type, :id, :unique, :fields, :key, :sparse
+  attr_reader :body, :type, :id, :unique, :fields, :key, :sparse, :idCache
 
   ### RETRIEVE ###
 

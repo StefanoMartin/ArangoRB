@@ -3,6 +3,7 @@ require_relative './../../spec_helper'
 describe ArangoDatabase do
   context "#retrieve" do
     it "walk" do
+      print "\n"
       print "#{@myDatabase.name}\n"
       print "#{@myDatabase['MyCollection'].name}\n"
       print "#{@myDatabase['MyCollection'].documents.map{|x| x.name}}\n"

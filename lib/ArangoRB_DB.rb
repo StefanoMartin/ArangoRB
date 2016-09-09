@@ -1,6 +1,10 @@
 # === DATABASE ===
 
 class ArangoDatabase < ArangoServer
+  @isSystem = false
+  @path = nil
+  @id = nil
+
   def initialize(database: @@database)  # TESTED
     if database.is_a?(String)
       @database = database
@@ -9,9 +13,10 @@ class ArangoDatabase < ArangoServer
     else
       raise "database should be a String or an ArangoDatabase instance, not a #{database.class}"
     end
+    @idCache = "DB_#{@database}"
   end
 
-  attr_reader :database # TESTED
+  attr_reader :database, :isSystem, :path, :id, :idCache # TESTED
   alias name database
 
   # === RETRIEVE ===
@@ -32,6 +37,16 @@ class ArangoDatabase < ArangoServer
     return result.headers["x-arango-async-id"] if @@async == "store"
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].delete_if{|k,v| k == "error" || k == "code"}
+  end
+
+  def retrieve  # TESTED
+    result = self.class.get("/_db/#{@database}/_api/database/current", @@request)
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    result = result.parsed_response
+    @isSystem = result["isSystem"]
+    @path = result["path"]
+    @id = result["id"]
+    @@verbose ? result : result["error"] ? result["errorMessage"] : self
   end
 
   # === POST ===

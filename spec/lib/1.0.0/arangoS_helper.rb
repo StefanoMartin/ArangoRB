@@ -186,10 +186,6 @@ describe ArangoServer do
     #   `sudo service arangodb restart`
     #   expect(result).to eq "OK"
     # end
-
-    # it "test" do
-    #   print ArangoServer.test body: {"num" => 1}
-    # end
   end
 
 

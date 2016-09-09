@@ -29,6 +29,7 @@ ArangoRB has the following classes.
 * [ArangoIndex](#ArangoIndex): to manage Indexes
 * [ArangoTask](#ArangoTask): to manage Tasks
 * [ArangoTransaction](#ArangoTransaction): to manage Transactions
+* [ArangoCache](#ArangoCache): to manage a cache on your Computer
 
 <a name="ArangoServer"></a>
 ## ArangoServer
@@ -819,3 +820,47 @@ ArangoTask.tasks # Retrieve a list of active tasks
 myArangoTask.retrieve # Retrieve a Task
 myArangoTask.destroy # Delete a Task
 ```
+
+<a name="ArangoCache"></a>
+## ArangoCache
+
+ArangoCache helps you to manage your request to your Database by creating a cache.
+
+``` ruby
+myQuery = ArangoAQL.new query: "FOR v,e,p IN 1..6 ANY 'Year/2016' GRAPH 'MyGraph' FILTER p.vertices[1].num == 6 && p.vertices[2].num == 22 && p.vertices[6]._key == '424028e5-e429-4885-b50b-007867208c71' RETURN [p.vertices[4].value, p.vertices[5].data]"
+myQuery.execute # Heavy computation
+ArangoCache.cache data: myQuery # Cache these heavy query
+ArangoCache.uncache data: myQuery # Retrieve cached ArangoAQL with same query request
+ArangoCache.clear data: myQuery # Free the cache from these three documents
+ArangoCache.clear type: "AQL" # Delete cache from AQL requests
+ArangoCache.clear # Clear completely all the cache
+```
+
+Alternatively we can save, retrieve and delete multiple values
+
+``` ruby
+myQuery = ArangoAQL.new query: "FOR v,e,p IN 1..6 ANY 'Year/2016' GRAPH 'MyGraph' FILTER p.vertices[1].num == 6 && p.vertices[2].num == 22 && p.vertices[6]._key == '424028e5-e429-4885-b50b-007867208c71' RETURN [p.vertices[4].value, p.vertices[5].data]"
+myQuery2 = ArangoAQL.new query: "FOR u IN Hour FILTER u._key == "2016-10-04T23" RETURN u"
+myQuery.execute # Heavy computation
+myQuery2.execute
+ArangoCache.cache data: [myQuery, myQuery2] # Cache these heavy query
+ArangoCache.uncache data: [myQuery, myQuery2] # Retrieve cached ArangoAQL
+ArangoCache.clear data: [myQuery, myQuery2] # Free the cache from these request
+```
+
+If we need we can save with personalized ID.
+
+``` ruby
+ArangoCache.cache id: ["myFirstQuery", "mySecondQuery"] data: [myQuery, myQuery2] # Cache these heavy query
+ArangoCache.uncache type: "AQL", id: ["myFirstQuery", "mySecondQuery"] # Retrieve cached ArangoAQL
+ArangoCache.clear type: "AQL", id: ["myFirstQuery", "mySecondQuery"] # Free the cache from these request
+```
+
+The type and the quantity that you can save in the cache are the following: Database: 1, Collection: 20, Document: 200, Graph: 1, Vertex: 50, Edge: 100, Index: 20, AQL: 100, User: 50, Task: 20, Traversal: 20, Transaction: 20, Other: 100. For "Other" we mean all the values that are not included in the other categories.
+
+To modify these limitations you can use the following command:
+``` ruby
+ArangoCache.max["Document"] = 100 # Change limits Document
+```
+
+If the limit of the Cache for one type is reached, then the first element cached of that type will be deleted from the Cache.

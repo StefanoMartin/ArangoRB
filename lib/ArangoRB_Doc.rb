@@ -54,9 +54,11 @@ class ArangoDocument < ArangoServer
     else
       raise "to should be a String or an ArangoDocument instance, not a #{to.class}"
     end
+
+    @idCache = "DOC_#{@id}"
   end
 
-  attr_reader :key, :id, :body
+  attr_reader :key, :id, :body, :idCache
   alias name key
 
   # === RETRIEVE ===

@@ -6,9 +6,10 @@ class ArangoUser < ArangoServer
     @user = user
     @active = active
     @extra = extra
+    @idCache = "USER_#{@user}"
   end
 
-  attr_reader :user, :active, :extra
+  attr_reader :user, :active, :extra, :idCache
   alias name user
 
   def [](database)

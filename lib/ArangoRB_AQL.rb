@@ -28,10 +28,11 @@ class ArangoAQL < ArangoServer
     @hasMore = false
     @id = ""
     @result = []
+    @idCache = "AQL_#{@query}"
   end
 
   attr_accessor :query, :batchSize, :ttl, :cache, :options, :bindVars
-  attr_reader :count, :count, :hasMore, :id, :result
+  attr_reader :count, :count, :hasMore, :id, :result, :idCache
   alias size batchSize
   alias size= batchSize=
 

@@ -16,9 +16,11 @@ class ArangoTransaction < ArangoServer
     @params = params
     @lockTimeout = lockTimeout
     @waitForSync = waitForSync
+    @result = nil
+    @idCache = "AT_#{@database}_#{Random.rand(0..10^12)}"
   end
 
-  attr_reader :action, :params, :lockTimeout, :waitForSync
+  attr_reader :action, :params, :lockTimeout, :waitForSync, :idCache
 
   ### RETRIEVE ###
 
@@ -45,6 +47,7 @@ class ArangoTransaction < ArangoServer
     result = self.class.post("/_db/#{@database}/_api/transaction", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
     result = result.parsed_response
+    @result = result["result"] unless result["error"]
     @@verbose ? result : result["error"] ? {"message": result["errorMessage"], "stacktrace": result["stacktrace"]} : result["result"]
   end
 end

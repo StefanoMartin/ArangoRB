@@ -29,9 +29,11 @@ class ArangoGraph < ArangoServer
     else
       raise "orphanCollections should be an Array, not a #{orphanCollections.class}"
     end
+
+    @idCache = "GRA_#{@graph}"
   end
 
-  attr_reader :graph, :edgeDefinitions, :orphanCollections, :database
+  attr_reader :graph, :edgeDefinitions, :orphanCollections, :database, :idCache
   alias name graph
 
 # === RETRIEVE ===

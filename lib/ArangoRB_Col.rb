@@ -34,9 +34,10 @@ class ArangoCollection < ArangoServer
         @body["type"] = 3
       end
     end
+    @idCache = "COL_#{@collection}"
   end
 
-  attr_reader :collection, :body, :type
+  attr_reader :collection, :body, :type, :idCache
   alias name collection
 
   # === RETRIEVE ===

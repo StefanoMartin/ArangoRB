@@ -62,9 +62,11 @@ class ArangoEdge < ArangoDocument
     else
       raise "to should be a String or an ArangoDocument instance, not a #{to.class}"
     end
+
+    @idCache = "EDG_#{@id}"
   end
 
-  attr_reader :key, :id, :body
+  attr_reader :key, :id, :body, :idCache
 
   # === RETRIEVE ===
 

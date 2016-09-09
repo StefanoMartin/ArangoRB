@@ -21,9 +21,11 @@ class ArangoTraversal < ArangoServer
     @database = database
     @vertices = nil
     @paths = nil
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
   end
 
-  attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander, :vertices, :paths
+  attr_accessor :sort, :direction, :maxDepth, :minDepth, :visitor, :itemOrder, :strategy, :filter, :init, :maxiterations, :uniqueness, :order, :expander
+  attr_reader :idCache, :vertices, :paths
 
   ### RETRIEVE ###
 
@@ -52,6 +54,7 @@ class ArangoTraversal < ArangoServer
     else
       raise "startVertex should be a String or an ArangoDocument instance, not a #{startVertex.class}"
     end
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
   end
 
   def graphName=(graphName) # TESTED
@@ -62,6 +65,7 @@ class ArangoTraversal < ArangoServer
     else
       raise "graphName should be a String or an ArangoGraph instance, not a #{graphName.class}"
     end
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
   end
 
   def edgeCollection=(edgeCollection) # TESTED
@@ -72,18 +76,22 @@ class ArangoTraversal < ArangoServer
     else
       raise "edgeCollection should be a String or an ArangoCollection instance, not a #{edgeCollection.class}"
     end
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
   end
 
   def in # TESTED
     @direction = "inbound"
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
   end
 
   def out # TESTED
     @direction = "outbound"
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
   end
 
   def any # TESTED
     @direction = "any"
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
   end
 
   alias vertex= startVertex=
@@ -128,6 +136,7 @@ class ArangoTraversal < ArangoServer
         "vertices" => x["vertices"].map{|v| ArangoDocument.new(key: v["_key"], collection: v["_id"].split("/")[0], database: @database, body: v )}
       }
     }
+    @idCache = "ATR_#{@database}_#{@direction}_#{@startVertex}_" + (@graphName.nil? ? "#{@edgeCollection}" : "#{@graphName}")
     @@verbose ? result : self
   end
 end

@@ -16,6 +16,7 @@ class ArangoTask < ArangoServer
     @command = command
     @params = params
     @created = created
+    @idCache = "IND_#{@id}"
   end
 
   attr_reader :id, :name, :type, :period, :created, :command, :params

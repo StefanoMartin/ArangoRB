@@ -44,9 +44,10 @@ class ArangoVertex < ArangoDocument
     else
       raise "body should be a Hash, not a #{body.class}"
     end
+    @idCache = "VER_#{@id}"
   end
 
-  attr_reader :key, :id, :body
+  attr_reader :key, :id, :body, :idCache
 
   # === RETRIEVE ===
 
