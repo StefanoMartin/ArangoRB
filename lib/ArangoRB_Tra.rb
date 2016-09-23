@@ -29,6 +29,32 @@ class ArangoTraversal < ArangoServer
 
   ### RETRIEVE ###
 
+  def to_hash
+    {
+      "database"    => @database,
+      "sort"        => @sort,
+      "direction"   => @direction,
+      "maxDepth"    => @maxDepth,
+      "minDepth"    => @minDepth,
+      "startVertex" => @startVertex,
+      "visitor"     => @visitor,
+      "itemOrder"   => @itemOrder,
+      "strategy"    => @strategy,
+      "filter"      => @filter,
+      "init"        => @init,
+      "maxiterations" => @maxiterations,
+      "uniqueness"  => @uniqueness,
+      "order"       => @order,
+      "graphName"   => @graphName,
+      "expander"    => @expander,
+      "edgeCollection" => @edgeCollection,
+      "vertices" => @vertices.map{|x| x.id},
+      "paths" => @paths.map{|x| {"edges" => x["edges"].map{|e| e.id}, "vertices" => x["vertices"].map{|v| v.id} } },
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def startVertex
     val = @startVertex.split("/")
     ArangoDocument.new(database: @database, collection: val[0], key: val[1])

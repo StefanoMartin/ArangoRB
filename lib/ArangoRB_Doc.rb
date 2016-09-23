@@ -63,6 +63,18 @@ class ArangoDocument < ArangoServer
 
   # === RETRIEVE ===
 
+  def to_hash
+    {
+      "key" => @key,
+      "id" => @id,
+      "collection" => @collection,
+      "database" => @database,
+      "body" => @body,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def collection
     ArangoCollection.new(collection: @collection, database: @database)
   end

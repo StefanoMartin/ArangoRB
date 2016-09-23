@@ -47,6 +47,22 @@ class ArangoIndex < ArangoServer
 
   ### RETRIEVE ###
 
+  def to_hash
+    {
+      "key" => @key,
+      "id" => @id,
+      "collection" => @collection,
+      "database" => @database,
+      "body" => @body,
+      "type" => @type,
+      "sparse" => @sparse,
+      "unique" => @unique,
+      "fields" => @fields,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def database
     ArangoDatabase.new(database: @database)
   end

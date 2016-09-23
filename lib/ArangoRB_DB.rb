@@ -1,7 +1,7 @@
 # === DATABASE ===
 
 class ArangoDatabase < ArangoServer
-  @isSystem = false
+  @isSystem = nil
   @path = nil
   @id = nil
 
@@ -20,6 +20,17 @@ class ArangoDatabase < ArangoServer
   alias name database
 
   # === RETRIEVE ===
+
+  def to_hash
+    {
+      "database" => @database,
+      "isSystem" => @isSystem,
+      "path" => @path,
+      "id" => @id,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
 
   def [](collection_name)
     ArangoCollection.new(collection: collection_name, database: @database)

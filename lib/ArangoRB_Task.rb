@@ -21,6 +21,21 @@ class ArangoTask < ArangoServer
 
   attr_reader :id, :name, :type, :period, :created, :command, :params, :idCache
 
+  def to_hash
+    {
+      "id" => @id,
+      "name" => @name,
+      "database" => @database,
+      "type" => @type,
+      "period" => @period,
+      "create" => @created,
+      "command" => @command,
+      "params" => @params,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def database
     ArangoDatabase.new(database: @database)
   end

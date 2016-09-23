@@ -24,19 +24,35 @@ class ArangoAQL < ArangoServer
     @options = options
     @bindVars = bindVars
 
-    @count = 0
+    @count = true
     @hasMore = false
     @id = ""
     @result = []
     @idCache = "AQL_#{@query}"
   end
 
-  attr_accessor :query, :batchSize, :ttl, :cache, :options, :bindVars
-  attr_reader :count, :count, :hasMore, :id, :result, :idCache
+  attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars
+  attr_reader :hasMore, :id, :result, :idCache
   alias size batchSize
   alias size= batchSize=
 
 # === RETRIEVE ===
+
+  def to_hash
+    {
+      "query" => @query,
+      "database" => @database,
+      "result" => @result.map{|x| x.is_a?(ArangoServer) ? x.to_h : x},
+      "count" => @count,
+      "ttl" => @ttl,
+      "cache" => @cache,
+      "batchSize" => @batchSize,
+      "bindVars" => @bindVars,
+      "options" => @options,
+      "idCache" => @idCache,
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
 
   def database
     ArangoDatabase.new(database: @database)
@@ -44,12 +60,12 @@ class ArangoAQL < ArangoServer
 
 # === EXECUTE QUERY ===
 
-  def execute(count: true) # TESTED
+  def execute # TESTED
     body = {
       "query" => @query,
       "count" => count,
       "batchSize" => @batchSize,
-      "ttl" => @count,
+      "ttl" => @ttl,
       "cache" => @cache,
       "options" => @options,
       "bindVars" => @bindVars

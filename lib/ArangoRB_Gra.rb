@@ -38,6 +38,18 @@ class ArangoGraph < ArangoServer
 
 # === RETRIEVE ===
 
+  def to_hash
+    {
+      "graph" => @graph,
+      "collection" => @collection,
+      "database" => @database,
+      "edgeDefinitions" => @edgeDefinitions,
+      "orphanCollections" => @orphanCollections,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def database
     ArangoDatabase.new(database: @database)
   end
