@@ -27,5 +27,13 @@ months2016 = year2016.out("TIME").map{|time| time.to}
 print "The year #{year2016.body["value"]} has #{months2016.length} elements with the following values: "
 print "#{months2016.map{|month| month.body["value"]}.sort}\n"
 
-february2016 = months2016.select{|month| month.body["value"] == "2016-02"}
-print "#{february2016}"
+february2016 = months2016.select{|month| month.body["value"] == "2016-02"}.first
+january2016 = february2016.in("NEXT")[0].from
+march2016 = february2016.out("NEXT")[0].to
+print "The month #{february2016.body["value"]} comes after #{january2016.body["value"]} and before #{march2016.body["value"]}.\n"
+
+today = "2016-09-23T10:56"
+today = today.split(/-|T|:/).map{|x| x.to_i}
+query = "FOR v,e,p IN 1..4 ANY \"Year/#{today[0]}\" GRAPH \"yearGraph\" FILTER p.vertices[1].num == #{today[1]} && p.vertices[2].num == #{today[2]} && p.vertices[3].num == #{today[3]} && p.vertices[4].num == #{today[4]} RETURN p.vertices[4]"
+value = ArangoAQL.new(query: query).execute
+print "This example was created at this date: #{value.result.first.body["value"]}.\n"
