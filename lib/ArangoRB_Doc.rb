@@ -84,6 +84,7 @@ class ArangoDocument < ArangoServer
     collection = collection.is_a?(String) ? collection : collection.collection
     result = self.class.get("/_db/#{@database}/_api/edges/#{collection}", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["edges"].map{|edge| ArangoDocument.new(key: edge["_key"], collection: collection, database: @database, body: edge)}
   end
@@ -104,6 +105,7 @@ class ArangoDocument < ArangoServer
     result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_from"]}", @@request)
     collection = result["_id"].split("/")[0]
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["_key"], collection: collection, database: @database, body: result)
   end
@@ -112,6 +114,7 @@ class ArangoDocument < ArangoServer
     result = self.class.get("/_db/#{@database}/_api/document/#{self.body["_to"]}", @@request)
     collection = result["_id"].split("/")[0]
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["_key"], collection: collection, database: @database, body: result)
   end
@@ -142,15 +145,17 @@ class ArangoDocument < ArangoServer
       request = @@request.merge({ :body => body.to_json, :query => query })
       result = post("/_db/#{database}/_api/document/#{collection}", request)
       return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
       @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["_key"], collection: result["_id"].split("/")[0], body: body)
     else
       body = body.map{|x| x.is_a?(Hash) ? x : x.is_a?(ArangoDocument) ? x.body : nil}
       request = @@request.merge({ :body => body.to_json, :query => query })
       result = post("/_db/#{database}/_api/document/#{collection}", request)
-      i = -1
       return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
+      i = -1
       @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDocument.new(key: x["_key"], collection: collection, database: database, body: body[i+=1])}
     end
   end
@@ -208,6 +213,7 @@ class ArangoDocument < ArangoServer
       result = self.class.put("/_db/#{@database}/_api/document/#{@collection}", request)
       i = -1
       return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
       @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
     end
@@ -227,6 +233,7 @@ class ArangoDocument < ArangoServer
     unless body.is_a? Array
       result = self.class.patch("/_db/#{@database}/_api/document/#{@id}", request)
       return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
       if @@verbose
         unless result["error"]
@@ -246,6 +253,7 @@ class ArangoDocument < ArangoServer
       result = self.class.patch("/_db/#{@database}/_api/document/#{@collection}", request)
       i = -1
       return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
       @@verbose ? result : !result.is_a?(Array) ? result["errorMessage"] : result.map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, database: @database, body: body[i+=1])}
     end
@@ -274,6 +282,7 @@ class ArangoDocument < ArangoServer
 
   def return_result(result:, body: {}, caseTrue: false, key: nil)
     return  result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose || !result.is_a?(Hash)
       resultTemp = result

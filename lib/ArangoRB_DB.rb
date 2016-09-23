@@ -35,6 +35,7 @@ class ArangoDatabase < ArangoServer
   def info  # TESTED
     result = self.class.get("/_db/#{@database}/_api/database/current", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].delete_if{|k,v| k == "error" || k == "code"}
   end
@@ -42,6 +43,7 @@ class ArangoDatabase < ArangoServer
   def retrieve  # TESTED
     result = self.class.get("/_db/#{@database}/_api/database/current", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @isSystem = result["isSystem"]
     @path = result["path"]
@@ -61,6 +63,7 @@ class ArangoDatabase < ArangoServer
     body = body.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.post("/_api/database", request)
+    return true if @@async
     @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : self
   end
 
@@ -77,6 +80,7 @@ class ArangoDatabase < ArangoServer
     user = user.user if user.is_a?(ArangoUser)
     result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDatabase.new(database: x)}
   end
@@ -86,6 +90,7 @@ class ArangoDatabase < ArangoServer
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/collection", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoCollection.new(database: @database, collection: x["name"])}
   end
@@ -93,6 +98,7 @@ class ArangoDatabase < ArangoServer
   def graphs  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["graphs"].map{|x| ArangoGraph.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
   end

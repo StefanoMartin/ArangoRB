@@ -56,7 +56,8 @@ class ArangoAQL < ArangoServer
     }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/cursor", request)
-    return result.headers["x-arango-async-id"]if @@async == "store"
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return @@verbose ? result : result["errorMessage"] if result["error"]
     @count = result["count"]
@@ -75,7 +76,8 @@ class ArangoAQL < ArangoServer
       print "No other results"
     else
       result = self.class.put("/_db/#{@database}/_api/cursor/#{@id}", @@request)
-      return result.headers["x-arango-async-id"]if @@async == "store"
+      return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
       return @@verbose ? result : result["errorMessage"] if result["error"]
       @count = result["count"]
@@ -154,6 +156,7 @@ class ArangoAQL < ArangoServer
 
   def return_result(result:, caseTrue: false)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : (result.is_a?(Hash) && result["error"]) ? result["errorMessage"] : caseTrue ? true : result
   end

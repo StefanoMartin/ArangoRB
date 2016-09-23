@@ -127,6 +127,7 @@ class ArangoTraversal < ArangoServer
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/traversal", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return @@verbose ? result : result["errorMessage"] if result["error"]
     @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDocument.new(key: x["_key"], collection: x["_id"].split("/")[0], database: @database, body: x)}

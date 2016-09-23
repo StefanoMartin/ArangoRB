@@ -27,32 +27,30 @@ class ArangoTask < ArangoServer
 
   def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/tasks/#{@id}")
-    if @@async == "store"
-      result.headers["x-arango-async-id"]
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
+    result = result.parsed_response
+    if @@verbose
+      unless result.is_a?(Hash) && result["error"]
+        @name = result["name"]
+        @type = result["type"]
+        @period = result["period"]
+        @created = result["created"]
+        @command = result["command"]
+        @database = result["database"]
+      end
+      result
     else
-      result = result.parsed_response
-      if @@verbose
-        unless result.is_a?(Hash) && result["error"]
-          @name = result["name"]
-          @type = result["type"]
-          @period = result["period"]
-          @created = result["created"]
-          @command = result["command"]
-          @database = result["database"]
-        end
-        result
+      if result.is_a?(Hash) && result["error"]
+        result["errorMessage"]
       else
-        if result.is_a?(Hash) && result["error"]
-          result["errorMessage"]
-        else
-          @name = result["name"]
-          @type = result["type"]
-          @period = result["period"]
-          @created = result["created"]
-          @command = result["command"]
-          @database = result["database"]
-          self
-        end
+        @name = result["name"]
+        @type = result["type"]
+        @period = result["period"]
+        @created = result["created"]
+        @command = result["command"]
+        @database = result["database"]
+        self
       end
     end
   end
@@ -60,6 +58,7 @@ class ArangoTask < ArangoServer
   def self.tasks # TESTED
     result = get("/_db/#{@@database}/_api/tasks", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : (result.is_a?(Hash) && result["error"]) ? result["errorMessage"] : result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
   end
@@ -79,6 +78,7 @@ class ArangoTask < ArangoServer
       result = self.class.put("/_db/#{@database}/_api/tasks/#{@id}", request)
     end
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result.is_a?(Hash) && result["error"]
@@ -107,6 +107,7 @@ class ArangoTask < ArangoServer
   def destroy # TESTED
     result = self.class.delete("/_db/#{@database}/_api/tasks/#{@id}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : (result.is_a?(Hash) && result["error"]) ? result["errorMessage"] : true
   end

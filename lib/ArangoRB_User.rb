@@ -68,6 +68,7 @@ class ArangoUser < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.put("/_api/user/#{@user}", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]
@@ -94,6 +95,7 @@ class ArangoUser < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.patch("/_api/user/#{@user}", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]
@@ -118,6 +120,7 @@ class ArangoUser < ArangoServer
 
   def return_result(result:, caseTrue: false, key: nil)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose || !result.is_a?(Hash)
       unless result["error"]

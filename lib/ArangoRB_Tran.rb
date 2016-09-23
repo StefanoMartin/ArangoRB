@@ -46,6 +46,7 @@ class ArangoTransaction < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.post("/_db/#{@database}/_api/transaction", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @result = result["result"] unless result["error"]
     @@verbose ? result : result["error"] ? {"message": result["errorMessage"], "stacktrace": result["stacktrace"]} : result["result"]
