@@ -27,7 +27,8 @@ class ArangoDatabase < ArangoServer
       "isSystem" => @isSystem,
       "path" => @path,
       "id" => @id,
-      "idCache" => @idCache
+      "idCache" => @idCache,
+      "endpoint" => "tcp://#{@@server}:#{@@port}"
     }.delete_if{|k,v| v.nil?}
   end
   alias to_h to_hash

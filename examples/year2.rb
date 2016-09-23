@@ -4,7 +4,6 @@ require_relative File.expand_path('../../lib/arangorb', __FILE__)
 
 ArangoServer.default_server
 ArangoServer.database = "year"
-ArangoServer.graph = "yearGraph"
 
 yearDatabase = ArangoDatabase.new.retrieve
 print "I am using the following Database: #{yearDatabase.name}.\n"

@@ -25,13 +25,14 @@ class ArangoAQL < ArangoServer
     @bindVars = bindVars
 
     @count = true
+    @quantity = nil
     @hasMore = false
     @id = ""
     @result = []
     @idCache = "AQL_#{@query}"
   end
 
-  attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars
+  attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars, :quantity
   attr_reader :hasMore, :id, :result, :idCache
   alias size batchSize
   alias size= batchSize=
@@ -44,6 +45,7 @@ class ArangoAQL < ArangoServer
       "database" => @database,
       "result" => @result.map{|x| x.is_a?(ArangoServer) ? x.to_h : x},
       "count" => @count,
+      "quantity" => @quantity,
       "ttl" => @ttl,
       "cache" => @cache,
       "batchSize" => @batchSize,
@@ -76,7 +78,7 @@ class ArangoAQL < ArangoServer
     return true if @@async
     result = result.parsed_response
     return @@verbose ? result : result["errorMessage"] if result["error"]
-    @count = result["count"]
+    @quantity = result["count"]
     @hasMore = result["hasMore"]
     @id = result["id"]
     if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))

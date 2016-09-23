@@ -497,6 +497,7 @@ class ArangoCollection < ArangoServer
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result
   end
+  alias dump data
 
 # === UTILITY ===
 
