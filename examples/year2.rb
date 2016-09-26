@@ -2,7 +2,7 @@
 
 require_relative File.expand_path('../../lib/arangorb', __FILE__)
 
-ArangoServer.default_server
+ArangoServer.default_server user: "root", password: "tretretre", server: "172.17.8.101", port: "8529"
 ArangoServer.database = "year"
 
 yearDatabase = ArangoDatabase.new.retrieve

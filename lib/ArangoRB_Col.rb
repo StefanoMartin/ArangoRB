@@ -495,6 +495,7 @@ class ArangoCollection < ArangoServer
     return result.headers["x-arango-async-id"] if @@async == "store"
     return true if @@async
     result = result.parsed_response
+    return nil if result.nil?
     @@verbose ? result : result["error"] ? result["errorMessage"] : result
   end
   alias dump data
