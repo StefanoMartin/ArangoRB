@@ -87,7 +87,7 @@ class ArangoDatabase < ArangoServer
     result = self.class.get("/_db/#{@database}/_api/collection", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
     result = result.parsed_response
-    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoCollection.new(database: @database, collection: x["name"])}
+    @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoCollection.new(database: @database, collection: x["name"], type: x['type'] == 3 ? 'Edge' : 'Collection')}
   end
 
   def graphs  # TESTED
