@@ -12,7 +12,7 @@ year = 2016
 
 print "\n === DATABASE === \n"
 
-ArangoServer.default_server #user: "root", password: "tretretre", server: "172.17.8.101", port: "8529"
+ArangoServer.default_server user: "root", password: "tretretre", server: "127.0.0.1", port: "8529"
 ArangoServer.database = "year"
 ArangoServer.graph = "yearGraph"
 ArangoDatabase.new.destroy
