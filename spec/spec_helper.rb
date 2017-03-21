@@ -4,7 +4,7 @@ require_relative File.expand_path('../../lib/arangorb', __FILE__)
 RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
-		ArangoServer.default_server user: "root", password: "", server: "localhost", port: "8529"
+		ArangoServer.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
 		ArangoServer.database = "MyDatabase"
 		ArangoServer.collection = "MyCollection"
 		ArangoServer.graph = "MyGraph"

@@ -30,6 +30,9 @@ ArangoRB has the following classes.
 * [ArangoTask](#ArangoTask): to manage Tasks
 * [ArangoTransaction](#ArangoTransaction): to manage Transactions
 * [ArangoCache](#ArangoCache): to manage a cache on your Computer
+* [ArangoReplication](#ArangoReplication): to manage Replications
+
+NB: All the instances of these classes (with the exception of ArangoCache) can be transformed in Hash with the command to_h.
 
 <a name="ArangoServer"></a>
 ## ArangoServer
@@ -284,24 +287,6 @@ You can manage the right of a user to access the database.
 ``` ruby
 myDatabase.grant user: myUser # Grant access to database
 myDatabase.revoke user: myUser # Revoke access to database
-```
-
-### Replication (UNTESTED)
-
-``` ruby
-myDatabase.inventory # Returns an overview of collections and their indexes
-myDatabase.clusterInventory # Return cluster inventory of collections and indexes
-myDatabase.logger # Return replication logger state
-myDatabase.loggerFollow # Returns log entries
-myDatabase.firstTick # Returns the first available tick value
-myDatabase.rangeTick # Return the tick ranges available in the WAL logfiles
-myDatabase.sync # Synchronize data from a remote endpoint
-myDatabase.configurationReplication # Return configuration of replication applier
-myDatabase.modifyConfigurationReplication # Adjust configuration of replication applier
-myDatabase.startReplication # Start replication applier
-myDatabase.stateReplication # State of the replication applier
-myDatabase.stopReplication # Stop replication applier
-myDatabase.enslave # Turn the server into a slave of another
 ```
 
 <a name="ArangoCollection"></a>
@@ -865,3 +850,57 @@ ArangoCache.max type: "Document", val: 100 # Change limits Document
 NB: If you insert a max value higher than the quantity of elements in the Cache, then the first elements in excess will be removed from the Cache.
 
 If the limit of the Cache for one type is reached, then the first element cached of that type will be deleted from the Cache.
+
+<a name="ArangoReplication"></a>
+## Replication
+
+Replication is useful to create back up copy of your database or to have a master-slave relationship between two databases.
+
+Remember: the used database is the one where the data will be written (the slave) and the remote database will be the master one.
+
+Use with caution since the data in the slave database will be deleted.
+
+To setup our Slave Server and Master Database use a similar command.
+
+``` ruby
+ArangoServer.default_server user: "root", password: "tretretre", server: "172.17.8.101", port: "8529" # Our Slave Server
+myReplication = ArangoReplication.new endpoint: "tcp://10.10.1.97:8529", username: "root", password: "", database: "year" # Our Master Database
+```
+
+Than to do a simple syncronization uses;
+
+``` ruby
+myReplication.sync
+```
+
+To retrieve some information ArangoRB provides the following methods:
+
+``` ruby
+myDatabase = ArangoDatabase.new database: "year"
+myCollection = myDatabase["MyCollection"]
+myDatabase.inventory # Fetch Collection data
+myCollection.dump # Fetch all the data in one class from one tick to another
+myReplication.logger # Returns the current state of the server's replication logger
+myReplication.loggerFollow # Returns data from the server's replication log.
+myReplication.firstTick # Return the first available tick value from the server
+myReplication.rangeTick # Returns the currently available ranges of tick values for all currently available WAL logfiles.
+myReplication.serverId # Returns the servers id.
+```
+
+### Relation Master-Slave
+
+To enslave a Server in relation to another Database use the following command:
+
+``` ruby
+myReplication.enslave
+```
+
+To manage the Configuration of a Master-Slave Replication you can use the following commands:
+
+``` ruby
+myReplication.configurationReplication # check the Configuration of the Replication
+myReplication.stateReplication # check the status of the Replication
+myReplication.stopReplication # stop the Replication
+myReplication.modifyReplication  # modify the Configuration of the Replication (you can modify only a stopped Replication)
+myReplication.startReplication # restart the replication
+```

@@ -47,6 +47,22 @@ class ArangoIndex < ArangoServer
 
   ### RETRIEVE ###
 
+  def to_hash
+    {
+      "key" => @key,
+      "id" => @id,
+      "collection" => @collection,
+      "database" => @database,
+      "body" => @body,
+      "type" => @type,
+      "sparse" => @sparse,
+      "unique" => @unique,
+      "fields" => @fields,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def database
     ArangoDatabase.new(database: @database)
   end
@@ -58,6 +74,7 @@ class ArangoIndex < ArangoServer
   def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/index/#{@id}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return result if @@verbose
     return result["errorMessage"] if result["error"]
@@ -77,6 +94,7 @@ class ArangoIndex < ArangoServer
     request = @@request.merge({ :query => query })
     result = get("/_db/#{database}/_api/index", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return result if @@verbose
     return result["errorMessage"] if result["error"]
@@ -96,6 +114,7 @@ class ArangoIndex < ArangoServer
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/index", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return result if @@verbose
     return result["errorMessage"] if result["error"]
@@ -109,6 +128,7 @@ class ArangoIndex < ArangoServer
   def destroy # TESTED
     result = self.class.delete("/_db/#{@database}/_api/index/#{id}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end

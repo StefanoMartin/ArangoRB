@@ -1,7 +1,7 @@
 # === DATABASE ===
 
 class ArangoDatabase < ArangoServer
-  @isSystem = false
+  @isSystem = nil
   @path = nil
   @id = nil
 
@@ -21,6 +21,18 @@ class ArangoDatabase < ArangoServer
 
   # === RETRIEVE ===
 
+  def to_hash
+    {
+      "database" => @database,
+      "isSystem" => @isSystem,
+      "path" => @path,
+      "id" => @id,
+      "idCache" => @idCache,
+      "endpoint" => "tcp://#{@@server}:#{@@port}"
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def [](collection_name)
     ArangoCollection.new(collection: collection_name, database: @database)
   end
@@ -35,6 +47,7 @@ class ArangoDatabase < ArangoServer
   def info  # TESTED
     result = self.class.get("/_db/#{@database}/_api/database/current", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].delete_if{|k,v| k == "error" || k == "code"}
   end
@@ -42,6 +55,7 @@ class ArangoDatabase < ArangoServer
   def retrieve  # TESTED
     result = self.class.get("/_db/#{@database}/_api/database/current", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @isSystem = result["isSystem"]
     @path = result["path"]
@@ -61,6 +75,7 @@ class ArangoDatabase < ArangoServer
     body = body.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.post("/_api/database", request)
+    return true if @@async
     @@async == "store" ? result.headers["x-arango-async-id"] : @@verbose ? result.parsed_response : result.parsed_response["error"] ? result.parsed_response["errorMessage"] : self
   end
 
@@ -77,6 +92,7 @@ class ArangoDatabase < ArangoServer
     user = user.user if user.is_a?(ArangoUser)
     result = user.nil? ? get("/_api/database") : get("/_api/database/#{user}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDatabase.new(database: x)}
   end
@@ -86,6 +102,7 @@ class ArangoDatabase < ArangoServer
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/collection", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoCollection.new(database: @database, collection: x["name"], type: x['type'] == 3 ? 'Edge' : 'Collection')}
   end
@@ -93,6 +110,7 @@ class ArangoDatabase < ArangoServer
   def graphs  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["graphs"].map{|x| ArangoGraph.new(database: @database, graph: x["_key"], edgeDefinitions: x["edgeDefinitions"], orphanCollections: x["orphanCollections"])}
   end
@@ -196,128 +214,134 @@ class ArangoDatabase < ArangoServer
     self.class.return_result result: result
   end
 
-  def logger # TESTED
-    result = self.class.get("/_db/#{@database}/_api/replication/logger-state")
-    self.class.return_result result: result
-  end
-
-  def loggerFollow(from: nil, to: nil, chunkSize: nil, includeSystem: false) # TESTED
-    query = {
-      "from": from,
-      "to": to,
-      "chunkSize": chunkSize,
-      "includeSystem": includeSystem
-    }.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :query => query })
-    result = self.class.get("/_db/#{@database}/_api/replication/logger-follow", request)
-    self.class.return_result result: result
-  end
-
-  def firstTick # TESTED
-    result = self.class.get("/_db/#{@database}/_api/replication/logger-first-tick")
-    self.class.return_result result: result, key: "firstTick"
-  end
-
-  def rangeTick # TESTED
-    result = self.class.get("/_db/#{@database}/_api/replication/logger-tick-ranges")
-    self.class.return_result result: result
-  end
-
-  def sync(endpoint: "tcp://#{@@server}:#{@@port}", username: @@username, password: @@password, includeSystem: false, database: @database, initialSyncMaxWaitTime: nil, restrictType: nil, incremental: nil, restrictCollections: nil)
-    body = {
-      "username" => username,
-      "password" => password,
-      "includeSystem" => includeSystem,
-      "endpoint" => endpoint,
-      "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
-      "database" => database,
-      "restrictType" => restrictType,
-      "incremental" => incremental,
-      "restrictCollections" =>  restrictCollections
-    }.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :body => body.to_json })
-    result = self.class.put("/_db/#{database}/_api/replication/sync", request)
-    self.class.return_result result: result
-  end
-
-  def configurationReplication # TESTED
-    result = self.class.get("/_db/#{@database}/_api/replication/applier-config", @@request)
-    self.class.return_result result: result
-  end
-
-  def modifyConfigurationReplication(endpoint: "tcp://#{@@server}:#{@@port}", username: @@username, password: @@password, database: @database, includeSystem: false, verbose: false, connectTimeout: nil, autoResync: nil, idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil, initialSyncMaxWaitTime: nil, maxConnectRetries: nil, autoStart: nil, adaptivePolling: nil, connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil) # TESTED
-    body = {
-      "username" => username,
-      "password" => password,
-      "includeSystem" => includeSystem,
-      "endpoint" => endpoint,
-      "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
-      "database" => database,
-      "verbose" => verbose,
-      "connectTimeout" => connectTimeout,
-      "autoResync" => autoResync,
-      "idleMinWaitTime" => idleMinWaitTime,
-      "requestTimeout" => requestTimeout,
-      "requireFromPresent" => requireFromPresent,
-      "idleMaxWaitTime" => idleMaxWaitTime,
-      "restrictType" => restrictType,
-      "maxConnectRetries" => maxConnectRetries,
-      "autoStart" => autoStart,
-      "adaptivePolling" => adaptivePolling,
-      "connectionRetryWaitTime" => connectionRetryWaitTime,
-      "restrictCollections" =>  restrictCollections,
-      "autoResyncRetries" => autoResyncRetries,
-      "chunkSize" => chunkSize
-    }.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :body => body.to_json })
-    result = self.class.put("/_db/#{database}/_api/replication/applier-config", request)
-    self.class.return_result result: result
-  end
-
-  def startReplication(from: nil)
-    query = {from: from}.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :query => query })
-    result = self.class.put("/_db/#{@database}/_api/replication/applier-start", request)
-    self.class.return_result result: result
-  end
-
-  def stopReplication
-    result = self.class.put("/_db/#{@database}/_api/replication/applier-stop", @@request)
-    self.class.return_result result: result
-  end
-
-  def stateReplication
-    result = self.class.get("/_db/#{@database}/_api/replication/applier-state", @@request)
-    self.class.return_result result: result
-  end
-
-  def enslave(username: @@username, includeSystem: false, endpoint: "tcp://#{@@server}:#{@@port}", verbose: false, connectTimeout: nil, autoResync: nil, password: @@password, database: @database,  idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil, initialSyncMaxWaitTime: nil, maxConnectRetries: nil, adaptivePolling: nil, connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil)
-    body = {
-      "username" => username,
-      "password" => password,
-      "includeSystem" => includeSystem,
-      "endpoint" => endpoint,
-      "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
-      "database" => database,
-      "verbose" => verbose,
-      "connectTimeout" => connectTimeout,
-      "autoResync" => autoResync,
-      "idleMinWaitTime" => idleMinWaitTime,
-      "requestTimeout" => requestTimeout,
-      "requireFromPresent" => requireFromPresent,
-      "idleMaxWaitTime" => idleMaxWaitTime,
-      "restrictType" => restrictType,
-      "maxConnectRetries" => maxConnectRetries,
-      "adaptivePolling" => adaptivePolling,
-      "connectionRetryWaitTime" => connectionRetryWaitTime,
-      "restrictCollections" =>  restrictCollections,
-      "autoResyncRetries" => autoResyncRetries,
-      "chunkSize" => chunkSize
-    }.delete_if{|k,v| v.nil?}
-    request = @@request.merge({ :body => body.to_json })
-    result = self.class.put("/_db/#{@database}/_api/replication/make-slave", request)
-    self.class.return_result result: result
-  end
+  # def logger # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/replication/logger-state")
+  #   self.class.return_result result: result
+  # end
+  #
+  # def loggerFollow(from: nil, to: nil, chunkSize: nil, includeSystem: false) # TESTED
+  #   query = {
+  #     "from": from,
+  #     "to": to,
+  #     "chunkSize": chunkSize,
+  #     "includeSystem": includeSystem
+  #   }.delete_if{|k,v| v.nil?}
+  #   request = @@request.merge({ :query => query })
+  #   result = self.class.get("/_db/#{@database}/_api/replication/logger-follow", request)
+  #   self.class.return_result result: result
+  # end
+  #
+  # def firstTick # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/replication/logger-first-tick")
+  #   self.class.return_result result: result, key: "firstTick"
+  # end
+  #
+  # def rangeTick # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/replication/logger-tick-ranges")
+  #   self.class.return_result result: result
+  # end
+  #
+  # def sync(endpoint:, username:, password:, includeSystem: true, database: @database, initialSyncMaxWaitTime: nil, restrictType: nil, incremental: nil, restrictCollections: nil) # TESTED
+  #   body = {
+  #     "username" => username,
+  #     "password" => password,
+  #     "includeSystem" => includeSystem,
+  #     "endpoint" => endpoint,
+  #     "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
+  #     "database" => database,
+  #     "restrictType" => restrictType,
+  #     "incremental" => incremental,
+  #     "restrictCollections" =>  restrictCollections
+  #   }.delete_if{|k,v| v.nil?}
+  #   request = @@request.merge({ :body => body.to_json })
+  #   result = self.class.put("/_db/#{database}/_api/replication/sync", request)
+  #   self.class.return_result result: result
+  # end
+  #
+  # def configurationReplication # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/replication/applier-config", @@request)
+  #   self.class.return_result result: result
+  # end
+  #
+  # def modifyConfigurationReplication(endpoint: nil, username: nil, password: nil, database: @database, includeSystem: false, verbose: false, connectTimeout: nil, autoResync: nil, idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil, initialSyncMaxWaitTime: nil, maxConnectRetries: nil, autoStart: nil, adaptivePolling: nil, connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil) # TESTED
+  #   body = {
+  #     "username" => username,
+  #     "password" => password,
+  #     "includeSystem" => includeSystem,
+  #     "endpoint" => endpoint,
+  #     "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
+  #     "database" => database,
+  #     "verbose" => verbose,
+  #     "connectTimeout" => connectTimeout,
+  #     "autoResync" => autoResync,
+  #     "idleMinWaitTime" => idleMinWaitTime,
+  #     "requestTimeout" => requestTimeout,
+  #     "requireFromPresent" => requireFromPresent,
+  #     "idleMaxWaitTime" => idleMaxWaitTime,
+  #     "restrictType" => restrictType,
+  #     "maxConnectRetries" => maxConnectRetries,
+  #     "autoStart" => autoStart,
+  #     "adaptivePolling" => adaptivePolling,
+  #     "connectionRetryWaitTime" => connectionRetryWaitTime,
+  #     "restrictCollections" =>  restrictCollections,
+  #     "autoResyncRetries" => autoResyncRetries,
+  #     "chunkSize" => chunkSize
+  #   }.delete_if{|k,v| v.nil?}
+  #   request = @@request.merge({ :body => body.to_json })
+  #   result = self.class.put("/_db/#{database}/_api/replication/applier-config", request)
+  #   self.class.return_result result: result
+  # end
+  # alias modifyReplication modifyConfigurationReplication
+  #
+  # def startReplication(from: nil) # TESTED
+  #   query = {from: from}.delete_if{|k,v| v.nil?}
+  #   request = @@request.merge({ :query => query })
+  #   result = self.class.put("/_db/#{@database}/_api/replication/applier-start", request)
+  #   self.class.return_result result: result
+  # end
+  #
+  # def stopReplication # TESTED
+  #   result = self.class.put("/_db/#{@database}/_api/replication/applier-stop", @@request)
+  #   self.class.return_result result: result
+  # end
+  #
+  # def stateReplication # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/replication/applier-state", @@request)
+  #   self.class.return_result result: result
+  # end
+  #
+  # def enslave(endpoint:, username:, password:, database: @database, includeSystem: true,  verbose: false, connectTimeout: nil, autoResync: nil,  idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil, initialSyncMaxWaitTime: nil, maxConnectRetries: nil, adaptivePolling: nil, connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil) # TESTED
+  #   body = {
+  #     "username" => username,
+  #     "password" => password,
+  #     "includeSystem" => includeSystem,
+  #     "endpoint" => endpoint,
+  #     "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
+  #     "database" => database,
+  #     "verbose" => verbose,
+  #     "connectTimeout" => connectTimeout,
+  #     "autoResync" => autoResync,
+  #     "idleMinWaitTime" => idleMinWaitTime,
+  #     "requestTimeout" => requestTimeout,
+  #     "requireFromPresent" => requireFromPresent,
+  #     "idleMaxWaitTime" => idleMaxWaitTime,
+  #     "restrictType" => restrictType,
+  #     "maxConnectRetries" => maxConnectRetries,
+  #     "adaptivePolling" => adaptivePolling,
+  #     "connectionRetryWaitTime" => connectionRetryWaitTime,
+  #     "restrictCollections" =>  restrictCollections,
+  #     "autoResyncRetries" => autoResyncRetries,
+  #     "chunkSize" => chunkSize
+  #   }.delete_if{|k,v| v.nil?}
+  #   request = @@request.merge({ :body => body.to_json })
+  #   result = self.class.put("/_db/#{@database}/_api/replication/make-slave", request)
+  #   self.class.return_result result: result
+  # end
+  #
+  # def serverId # TESTED
+  #   result = self.class.get("/_db/#{@database}/_api/replication/server-id", @@request)
+  #   self.class.return_result result: result, key: "serverId"
+  # end
 
   # === USER ===
 

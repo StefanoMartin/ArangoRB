@@ -12,6 +12,16 @@ class ArangoUser < ArangoServer
   attr_reader :user, :active, :extra, :idCache
   alias name user
 
+  def to_hash
+    {
+      "user"        => @user,
+      "active"      => @active,
+      "extra"       => @extra,
+      "idCache"     => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def [](database)
     if self.databases[database] == "rw"
       ArangoDatabase.new database: database
@@ -68,6 +78,7 @@ class ArangoUser < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.put("/_api/user/#{@user}", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]
@@ -94,6 +105,7 @@ class ArangoUser < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.patch("/_api/user/#{@user}", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]
@@ -118,6 +130,7 @@ class ArangoUser < ArangoServer
 
   def return_result(result:, caseTrue: false, key: nil)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose || !result.is_a?(Hash)
       unless result["error"]

@@ -29,6 +29,32 @@ class ArangoTraversal < ArangoServer
 
   ### RETRIEVE ###
 
+  def to_hash
+    {
+      "database"    => @database,
+      "sort"        => @sort,
+      "direction"   => @direction,
+      "maxDepth"    => @maxDepth,
+      "minDepth"    => @minDepth,
+      "startVertex" => @startVertex,
+      "visitor"     => @visitor,
+      "itemOrder"   => @itemOrder,
+      "strategy"    => @strategy,
+      "filter"      => @filter,
+      "init"        => @init,
+      "maxiterations" => @maxiterations,
+      "uniqueness"  => @uniqueness,
+      "order"       => @order,
+      "graphName"   => @graphName,
+      "expander"    => @expander,
+      "edgeCollection" => @edgeCollection,
+      "vertices" => @vertices.map{|x| x.id},
+      "paths" => @paths.map{|x| {"edges" => x["edges"].map{|e| e.id}, "vertices" => x["vertices"].map{|v| v.id} } },
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def startVertex
     val = @startVertex.split("/")
     ArangoDocument.new(database: @database, collection: val[0], key: val[1])
@@ -127,6 +153,7 @@ class ArangoTraversal < ArangoServer
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/traversal", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return @@verbose ? result : result["errorMessage"] if result["error"]
     @vertices = result["result"]["visited"]["vertices"].map{|x| ArangoDocument.new(key: x["_key"], collection: x["_id"].split("/")[0], database: @database, body: x)}

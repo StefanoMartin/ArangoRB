@@ -51,6 +51,18 @@ class ArangoVertex < ArangoDocument
 
   # === RETRIEVE ===
 
+  def to_hash
+    {
+      "key" => @key,
+      "id" => @id,
+      "collection" => @collection,
+      "database" => @database,
+      "body" => @body,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def graph
     ArangoGraph.new(graph: @graph, database: @database)
   end
@@ -60,6 +72,7 @@ class ArangoVertex < ArangoDocument
   def retrieve # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       @body = result["vertex"] unless result["error"]
@@ -96,6 +109,7 @@ class ArangoVertex < ArangoDocument
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.patch("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{@id}", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]
@@ -127,6 +141,7 @@ class ArangoVertex < ArangoDocument
 
   def return_result(result:, body: {}, caseTrue: false)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]

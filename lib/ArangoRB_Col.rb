@@ -42,6 +42,17 @@ class ArangoCollection < ArangoServer
 
   # === RETRIEVE ===
 
+  def to_hash
+    {
+      "collection" => @collection,
+      "database" => @database,
+      "type" => @type,
+      "body" => @body,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def [](document_name)
     ArangoDocument.new(key: document_name, collection: @collection, database: @database)
   end
@@ -187,6 +198,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/all-keys", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if type.nil?
       @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| value = self.class.get(x).parsed_response; ArangoDocument.new(key: value["_key"], collection: @collection, body: value)}
@@ -204,7 +216,8 @@ class ArangoCollection < ArangoServer
     }.delete_if{|k,v| v.nil?}.to_json
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/all", request)
-    result.headers["x-arango-async-id"] if @@async == "store"
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, body: x)}
   end
@@ -220,6 +233,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/by-example", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, body: x)}
   end
@@ -232,6 +246,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/first-example", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
   end
@@ -243,6 +258,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body.to_json })
     result = self.class.put("/_db/#{@database}/_api/simple/lookup-by-keys", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["documents"].map{|x| ArangoDocument.new(key: x["_key"], collection: @collection, body: x)}
   end
@@ -252,6 +268,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.put("/_db/#{@database}/_api/simple/any", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoDocument.new(key: result["document"]["_key"], collection: @collection, body: result["document"])
   end
@@ -317,6 +334,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body, :query => query })
     result = self.class.post("/_db/#{@database}/_api/import", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result.delete_if{|k,v| k == "error" || k == "code"}
   end
@@ -336,6 +354,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/import", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result.delete_if{|k,v| k == "error" || k == "code"}
   end
@@ -355,6 +374,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/export", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return @@verbose ? result : result["errorMessage"] if result["error"]
     @countExport = result["count"]
@@ -376,6 +396,7 @@ class ArangoCollection < ArangoServer
       request = @@request.merge({ :query => query })
       result = self.class.put("/_db/#{@database}/_api/cursor/#{@idExport}", request)
       return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
       return @@verbose ? result : result["errorMessage"] if result["error"]
       @countExport = result["count"]
@@ -415,6 +436,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/index", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return result if @@verbose
     return result["errorMessage"] if result["error"]
@@ -432,6 +454,7 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :body => body.to_json, :query => query })
     result = self.class.post("/_db/#{@database}/_api/index", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : ArangoIndex.new(body: result, id: result["id"], database: @database, collection: @collection, type: result["type"], unique: result["unique"], fields: result["fields"])
   end
@@ -470,14 +493,18 @@ class ArangoCollection < ArangoServer
     request = @@request.merge({ :query => query })
     result = self.class.get("/_db/#{@database}/_api/replication/dump", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
+    return nil if result.nil?
     @@verbose ? result : result["error"] ? result["errorMessage"] : result
   end
+  alias dump data
 
 # === UTILITY ===
 
   def return_result(result:, caseTrue: false, key: nil, checkType: false)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose || !result.is_a?(Hash)
       resultTemp = result

@@ -42,13 +42,15 @@ class ArangoServer
   end
 
   def self.async=(async)  # TESTED
-    @@async = async
     if async == true || async == "true"
       @@request[:headers] = {"x-arango-async" => "true"}
+      @@async = true
     elsif async == "store"
       @@request[:headers] = {"x-arango-async" => "store"}
+      @@async = "store"
     else
       @@request[:headers] = {}
+      @@async = false
     end
   end
 
@@ -176,6 +178,7 @@ class ArangoServer
   def self.users # TESTED
     result = get("/_api/user", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["result"].map{|x| ArangoUser.new(user: x["user"], active: x["active"], extra: x["extra"])}
   end
@@ -188,6 +191,7 @@ class ArangoServer
   def self.tasks # TESTED
     result = get("/_api/tasks", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : (result.is_a?(Hash) && result["error"]) ? result["errorMessage"] : result.map{|x| ArangoTask.new(id: x["id"], name: x["name"], type: x["type"], period: x["period"], created: x["created"], command: x["command"], database: x["database"])}
   end
@@ -427,6 +431,7 @@ class ArangoServer
 
   def self.return_result(result:, caseTrue: false, key: nil)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return result if @@verbose || !result.is_a?(Hash)
     return result["errorMessage"] if result["error"]

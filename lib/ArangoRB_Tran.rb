@@ -24,6 +24,20 @@ class ArangoTransaction < ArangoServer
 
   ### RETRIEVE ###
 
+  def to_hash
+    {
+      "database"    => @database,
+      "action"      => @action,
+      "collections" => @collections,
+      "result"      => @result,
+      "params"      => @params,
+      "lockTimeout" => @lockTimeout,
+      "waitForSync" => @waitForSync,
+      "idCache"     => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def collections
     result = {}
     result["write"] = @collections["write"].map{|x| ArangoCollection.new(database: @database, collection: x)} unless @collections["write"].nil?
@@ -46,6 +60,7 @@ class ArangoTransaction < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.post("/_db/#{@database}/_api/transaction", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @result = result["result"] unless result["error"]
     @@verbose ? result : result["error"] ? {"message": result["errorMessage"], "stacktrace": result["stacktrace"]} : result["result"]

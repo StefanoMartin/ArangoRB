@@ -24,19 +24,37 @@ class ArangoAQL < ArangoServer
     @options = options
     @bindVars = bindVars
 
-    @count = 0
+    @count = true
+    @quantity = nil
     @hasMore = false
     @id = ""
     @result = []
     @idCache = "AQL_#{@query}"
   end
 
-  attr_accessor :query, :batchSize, :ttl, :cache, :options, :bindVars
-  attr_reader :count, :count, :hasMore, :id, :result, :idCache
+  attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars, :quantity
+  attr_reader :hasMore, :id, :result, :idCache
   alias size batchSize
   alias size= batchSize=
 
 # === RETRIEVE ===
+
+  def to_hash
+    {
+      "query" => @query,
+      "database" => @database,
+      "result" => @result.map{|x| x.is_a?(ArangoServer) ? x.to_h : x},
+      "count" => @count,
+      "quantity" => @quantity,
+      "ttl" => @ttl,
+      "cache" => @cache,
+      "batchSize" => @batchSize,
+      "bindVars" => @bindVars,
+      "options" => @options,
+      "idCache" => @idCache,
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
 
   def database
     ArangoDatabase.new(database: @database)
@@ -44,22 +62,23 @@ class ArangoAQL < ArangoServer
 
 # === EXECUTE QUERY ===
 
-  def execute(count: true) # TESTED
+  def execute # TESTED
     body = {
       "query" => @query,
       "count" => count,
       "batchSize" => @batchSize,
-      "ttl" => @count,
+      "ttl" => @ttl,
       "cache" => @cache,
       "options" => @options,
       "bindVars" => @bindVars
     }.delete_if{|k,v| v.nil?}
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/cursor", request)
-    return result.headers["x-arango-async-id"]if @@async == "store"
+    return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return @@verbose ? result : result["errorMessage"] if result["error"]
-    @count = result["count"]
+    @quantity = result["count"]
     @hasMore = result["hasMore"]
     @id = result["id"]
     if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
@@ -75,7 +94,8 @@ class ArangoAQL < ArangoServer
       print "No other results"
     else
       result = self.class.put("/_db/#{@database}/_api/cursor/#{@id}", @@request)
-      return result.headers["x-arango-async-id"]if @@async == "store"
+      return result.headers["x-arango-async-id"] if @@async == "store"
+      return true if @@async
       result = result.parsed_response
       return @@verbose ? result : result["errorMessage"] if result["error"]
       @count = result["count"]
@@ -154,6 +174,7 @@ class ArangoAQL < ArangoServer
 
   def return_result(result:, caseTrue: false)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : (result.is_a?(Hash) && result["error"]) ? result["errorMessage"] : caseTrue ? true : result
   end

@@ -38,6 +38,18 @@ class ArangoGraph < ArangoServer
 
 # === RETRIEVE ===
 
+  def to_hash
+    {
+      "graph" => @graph,
+      "collection" => @collection,
+      "database" => @database,
+      "edgeDefinitions" => @edgeDefinitions,
+      "orphanCollections" => @orphanCollections,
+      "idCache" => @idCache
+    }.delete_if{|k,v| v.nil?}
+  end
+  alias to_h to_hash
+
   def database
     ArangoDatabase.new(database: @database)
   end
@@ -47,6 +59,7 @@ class ArangoGraph < ArangoServer
   def retrieve  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     return result if @@verbose
     return result["errorMessage"] if result["error"]
@@ -62,6 +75,7 @@ class ArangoGraph < ArangoServer
     request = @@request.merge({ :body => body.to_json })
     result = self.class.post("/_db/#{@database}/_api/gharial", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : self
   end
@@ -71,6 +85,7 @@ class ArangoGraph < ArangoServer
   def destroy  # TESTED
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : true
   end
@@ -80,6 +95,7 @@ class ArangoGraph < ArangoServer
   def vertexCollections  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/vertex", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
   end
@@ -90,6 +106,7 @@ class ArangoGraph < ArangoServer
     request = @@request.merge({ :body => body })
     result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/vertex", request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       @orphanCollections << collection unless result["error"]
@@ -105,6 +122,7 @@ class ArangoGraph < ArangoServer
     collection = collection.is_a?(String) ? collection : collection.collection
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/vertex/#{collection}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       @orphanCollections -= [collection] unless result["error"]
@@ -121,6 +139,7 @@ class ArangoGraph < ArangoServer
   def edgeCollections  # TESTED
     result = self.class.get("/_db/#{@database}/_api/gharial/#{@graph}/edge", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     @@verbose ? result : result["error"] ? result["errorMessage"] : result["collections"].map{|x| ArangoCollection.new(collection: x)}
   end
@@ -140,6 +159,7 @@ class ArangoGraph < ArangoServer
       result = self.class.post("/_db/#{@database}/_api/gharial/#{@graph}/edge", request)
     end
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]
@@ -163,6 +183,7 @@ class ArangoGraph < ArangoServer
     collection = collection.is_a?(String) ? collection : collection.collection
     result = self.class.delete("/_db/#{@database}/_api/gharial/#{@graph}/edge/#{collection}", @@request)
     return result.headers["x-arango-async-id"] if @@async == "store"
+    return true if @@async
     result = result.parsed_response
     if @@verbose
       unless result["error"]
