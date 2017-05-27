@@ -355,7 +355,7 @@ class ArangoServer
   end
 
   def self.propertyWAL # TESTED
-    result = put("/_admin/wal/properties", @@request)
+    result = get("/_admin/wal/properties", @@request)
     return_result result: result
   end
 

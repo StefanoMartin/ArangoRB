@@ -3,7 +3,7 @@ require_relative './../../spec_helper'
 describe ArangoCollection do
   context "#get" do
     it "revision" do
-      expect(@myCollection.revision.to_i).to be >= 1
+      expect(@myCollection.revision.class).to be String
     end
 
     it "collection" do

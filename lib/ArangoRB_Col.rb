@@ -362,7 +362,7 @@ class ArangoCollection < ArangoServer
 # === EXPORT ===
 
   def export(count: nil, restrict: nil, batchSize: nil, flush: nil, limit: nil, ttl: nil)  # TESTED
-    query = { "collection": @collection }
+    query = { "collection" => @collection }
     body = {
       "count" => count,
       "restrict" => restrict,

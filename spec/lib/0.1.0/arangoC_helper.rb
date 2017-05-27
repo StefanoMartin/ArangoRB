@@ -27,7 +27,7 @@ describe ArangoCollection do
 
     it "create a duplicate Collection" do
       myCollection = @myCollection.create
-      expect(myCollection).to eq "cannot create collection: duplicate name"
+      expect(myCollection).to eq "duplicate name: duplicate name"
     end
 
     it "create a new Edge Collection" do
@@ -71,7 +71,7 @@ describe ArangoCollection do
 
     it "statistics" do
       info = @myCollection.statistics
-      expect(info["lastTick"]).to eq "0"
+      expect(info["lastTick"]).to eq 0
     end
 
     it "checksum" do
