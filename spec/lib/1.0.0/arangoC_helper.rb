@@ -35,12 +35,12 @@ describe ArangoCollection do
 
   context "#export" do
     it "export" do
-      result = @myCollection.export
+      result = @myCollection.export flush: true
       expect(result[0].class).to be ArangoDocument
     end
 
     it "exportNext" do
-      result = @myCollection.export batchSize: 3
+      result = @myCollection.export batchSize: 3, flush: true
       result = @myCollection.exportNext
       expect(result[0].class).to be ArangoDocument
     end

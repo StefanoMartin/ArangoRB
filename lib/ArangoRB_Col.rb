@@ -394,7 +394,7 @@ class ArangoCollection < ArangoServer
     else
       query = { "collection": @collection }
       request = @@request.merge({ :query => query })
-      result = self.class.put("/_db/#{@database}/_api/cursor/#{@idExport}", request)
+      result = self.class.put("/_db/#{@database}/_api/export/#{@idExport}", request)
       return result.headers["x-arango-async-id"] if @@async == "store"
       return true if @@async
       result = result.parsed_response

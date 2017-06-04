@@ -4,7 +4,7 @@ require "rake"
 
 Gem::Specification.new do |s|
   s.name        = 'arangorb'
-  s.version	    = '1.3.0'
+  s.version	    = '1.4.0'
   s.authors     = ['Stefano Martin']
   s.email       = ['stefano@seluxit.com']
   s.homepage    = 'https://github.com/StefanoMartin/ArangoRB'
