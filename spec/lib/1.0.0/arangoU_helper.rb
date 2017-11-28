@@ -21,52 +21,52 @@ describe ArangoUser do
       expect(result.user).to eq "MyUser"
     end
 
-    it "create a duplicate user" do
-      result = @myUser.create
-      expect(result).to eq "duplicate user"
-    end
-  end
-
-  context "#info" do
-    it "retrieve User" do
-      myUser = @myUser.retrieve
-      expect(myUser.active).to be true
-    end
-  end
-
-  context "#database" do
-    it "grant" do
-      result = @myUser.grant database: @myDatabase
-      expect(result).to be true
-    end
-
-    it "databases" do
-      result = @myUser.databases
-      expect(result["MyDatabase"]).to eq "rw"
-    end
-
-    it "revoke" do
-      result = @myUser.revoke database: @myDatabase
-      expect(result).to be true
-    end
-  end
-
-  context "#modify" do
-    it "replace" do
-      @myUser.replace active: false, password: "Test"
-      expect(@myUser.active).to be false
-    end
-
-    it "update" do
-      @myUser.update active: false, password: "Test"
-      expect(@myUser.active).to be false
-    end
-  end
-
-  context "#destroy" do
-    it "destroy" do
-      result = @myUser.destroy
-      expect(result).to be true
-    end
+  #   it "create a duplicate user" do
+  #     result = @myUser.create
+  #     expect(result).to eq "duplicate user"
+  #   end
+  # end
+  #
+  # context "#info" do
+  #   it "retrieve User" do
+  #     myUser = @myUser.retrieve
+  #     expect(myUser.active).to be true
+  #   end
+  # end
+  #
+  # context "#database" do
+  #   it "grant" do
+  #     result = @myUser.grant database: @myDatabase
+  #     expect(result).to be true
+  #   end
+  #
+  #   it "databases" do
+  #     result = @myUser.databases
+  #     expect(result["MyDatabase"]).to eq "rw"
+  #   end
+  #
+  #   it "revoke" do
+  #     result = @myUser.revoke database: @myDatabase
+  #     expect(result).to be true
+  #   end
+  # end
+  #
+  # context "#modify" do
+  #   it "replace" do
+  #     @myUser.replace active: false, password: "Test"
+  #     expect(@myUser.active).to be false
+  #   end
+  #
+  #   it "update" do
+  #     @myUser.update active: false, password: "Test"
+  #     expect(@myUser.active).to be false
+  #   end
+  # end
+  #
+  # context "#destroy" do
+  #   it "destroy" do
+  #     result = @myUser.destroy
+  #     expect(result).to be true
+  #   end
   end
 end

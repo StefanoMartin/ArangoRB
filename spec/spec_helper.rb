@@ -5,7 +5,7 @@ require "arangorb"
 RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
-		ArangoServer.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
+		ArangoServer.default_server user: "root", password: "root", server: "localhost", port: "8529"
 		ArangoServer.database = "MyDatabase"
 		ArangoServer.collection = "MyCollection"
 		ArangoServer.graph = "MyGraph"
@@ -29,6 +29,7 @@ RSpec.configure do |config|
 	  @myEdge = ArangoEdge.new(from: @vertexA, to: @vertexB, collection: "MyEdgeCollection").create
 		@myIndex = @myCollection.createIndex unique: false, fields: "num", type: "hash", id: "MyIndex"
 		@myTraversal = ArangoTraversal.new
+		print ArangoUser.new.destroy
 		@myUser = ArangoUser.new.create
 		@myTask = ArangoTask.new id: "mytaskid", name: "MyTaskID", command: "(function(params) { require('@arangodb').print(params); })(params)", params: {"foo" => "bar", "bar" => "foo"}, period: 60
 	end

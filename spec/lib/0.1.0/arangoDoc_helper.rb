@@ -29,7 +29,7 @@ describe ArangoDocument do
 
     it "create a duplicate Document" do
       myDocument = @myDocument.create
-      expect(myDocument).to eq "cannot create document, unique constraint violated"
+      expect(myDocument).to eq "unique constraint violated - in index 0 of type primary over [\"_key\"]"
     end
 
     it "create a new Edge" do

@@ -22,7 +22,7 @@ describe ArangoVertex do
 
     it "create a duplicate Document" do
       myVertex = @myVertex.create
-      expect(myVertex).to eq "unique constraint violated"
+      expect(myVertex).to eq "unique constraint violated - in index 0 of type primary over [\"_key\"]"
     end
   end
 

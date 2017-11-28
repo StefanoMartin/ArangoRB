@@ -27,7 +27,7 @@ describe ArangoCollection do
 
     it "create a duplicate Collection" do
       myCollection = @myCollection.create
-      expect(myCollection).to eq "duplicate name: duplicate name"
+      expect(myCollection).to eq "duplicate name"
     end
 
     it "create a new Edge Collection" do
