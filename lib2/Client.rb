@@ -81,12 +81,12 @@ module Arango
     end
 
     def database(database)
-      satisfy_class?(database)
+      satisfy_class?(database, "database")
       Arango::Database.new(database: database, client: self)
     end
 
     def user(user)
-      satisfy_class?(user)
+      satisfy_class?(user, "user")
       Arango::User.new(user: @user, client: self)
     end
 
@@ -117,7 +117,7 @@ module Arango
     end
 
     def clusterStatistics dbserver:
-      satisfy_class?(dbserver)
+      satisfy_class?(dbserver, "dbserver")
       query = {"DBserver": dbserver}
       request(action: "GET", url: "/_admin/clusterStatistics", query: query)
     end
@@ -129,8 +129,7 @@ module Arango
     end
 
     def users
-      result = request(action: "GET", url: "/_api/user",
-        return_direct_result: true)
+      result = request(action: "GET", url: "/_api/user")
       return result if @async != false
       result["result"].map do |user|
         Arango::User.new(user: user["user"], active: user["active"],
@@ -139,14 +138,12 @@ module Arango
     end
 
     def databases(user: nil)
-      satisfy_class?(user, name, [String, Arango::User])
+      satisfy_class?(user, "user", [NilClass, String, Arango::User])
       user = user.user if user.is_a?(Arango::User)
       if user.nil?
-        result = request(action: "GET", url: "/_api/database",
-          return_direct_result: true)
+        result = request(action: "GET", url: "/_api/database")
       else
-        result = request(action: "GET", url: "/_api/database/#{user}",
-          return_direct_result: true)
+        result = request(action: "GET", url: "/_api/database/#{user}")
       end
       return result if @async != false
       result["result"].map do |db|
@@ -172,6 +169,7 @@ module Arango
     end
 
     def fetchAsync(id:)
+      satisfy_class?(id, "id")
       result = request(action: "PUT", url: "/_api/job/#{id}")
     end
 

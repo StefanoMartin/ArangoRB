@@ -1,7 +1,7 @@
 module Helper_Error
-  def is_a_string?(string, name)
-    unless string.is_a?(String)
-      Arango::Error message: "#{name} should be a String, not a #{string.class}"
+  def satisfy_class?(object, name, classes=[String])
+    unless classes.include?(object.class)
+      Arango::Error message: "#{name} should be a #{classes.to_s}, not a #{object.class}"
     end
   end
 end
