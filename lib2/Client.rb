@@ -59,7 +59,7 @@ module Arango
         raise Arango::Error message: result["errorMessage"]
       end
       return result if return_direct_result
-      return true if caseTrue
+      return true if caseTrue || action == "DELETE"
       return key.nil? ? result.delete_if{|k,v| k == "error" || k == "code"} : result[key]
     end
 
@@ -80,14 +80,15 @@ module Arango
       end
     end
 
-    def database(database)
+    def [](database)
       satisfy_class?(database, "database")
       Arango::Database.new(database: database, client: self)
     end
+    alias database []
 
     def user(user)
       satisfy_class?(user, "user")
-      Arango::User.new(user: @user, client: self)
+      Arango::User.new(user: user, client: self)
     end
 
 # === MONITORING ===
@@ -195,9 +196,9 @@ module Arango
 
     def destroyAsync(type: nil, id: nil)
       if id.nil?
-        request(action: "DELETE", url: "/_api/job/#{type}", caseTrue: true)
+        request(action: "DELETE", url: "/_api/job/#{type}")
       else
-        request(action: "DELETE", url: "/_api/job/#{id}", caseTrue: true)
+        request(action: "DELETE", url: "/_api/job/#{id}")
       end
     end
 
@@ -274,7 +275,7 @@ module Arango
     end
 
     def destroyCluster(cluster: @cluster)
-      request(action: "DELETE", url: "/_admin/#{cluster}", caseTrue: true)
+      request(action: "DELETE", url: "/_admin/#{cluster}")
     end
 
     def updateCluster(body:, cluster: @cluster)
@@ -348,7 +349,7 @@ module Arango
     end
 
     def shutdown
-      request(action: "DELETE", url: "/_admin/shutdown", caseTrue: true)
+      request(action: "DELETE", url: "/_admin/shutdown")
     end
 
     def restart

@@ -2,19 +2,17 @@
 
 module Arango
   class Database
-    @isSystem = nil
-    @path = nil
-    @id = nil
-
-    def initialize(database:, client:)  # TESTED
+    def initialize(database:, client:)
       satisfy_class?(database, "database", [Arango::Database, String])
       satisfy_class?(client, "client", [Arango::Client])
       @database = database.is_a?(Arango::Database) ? database.database : database
-      @idCache = "DB_#{@database}"
       @client = client
+      @isSystem = nil
+      @path = nil
+      @id = nil
     end
 
-    attr_reader :database, :isSystem, :path, :id, :idCache # TESTED
+    attr_reader :database, :isSystem, :path, :id, :client
     alias name database
 
     def to_hash
@@ -23,13 +21,13 @@ module Arango
         "isSystem" => @isSystem,
         "path" => @path,
         "id" => @id,
-        "idCache" => @idCache,
         "endpoint" => "tcp://#{@client.server}:#{@client.port}"
       }.delete_if{|k,v| v.nil?}
     end
     alias to_h to_hash
 
     def [](collection_name)
+      satisfy_class?(collection_name, "collection_name")
       ArangoCollection.new(collection: collection_name, database: self,
         client: @client)
     end
@@ -118,8 +116,7 @@ module Arango
 
     def killQuery(query:)
       id = query.is_a?(Arango::AQL) ? query.id : query.is_a?(String) ? query : nil
-      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query/#{id}",
-        caseTrue: true)
+      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query/#{id}")
     end
 
     def changePropertiesQuery(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)
@@ -136,7 +133,7 @@ module Arango
 # === CACHE ===
 
     def clearCache
-      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query-cache", caseTrue: true)
+      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query-cache")
     end
 
     def propertyCache  # TESTED
@@ -160,7 +157,7 @@ module Arango
     end
 
     def deleteFunction(name:)
-      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/aqlfunction/#{name}", caseTrue: true)
+      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/aqlfunction/#{name}")
     end
 
     # === REPLICATION ===

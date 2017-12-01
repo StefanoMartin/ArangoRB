@@ -129,11 +129,11 @@ module Arango
 # === DELETE ===
 
     def stopSlow
-      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query/slow", caseTrue: true)
+      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query/slow")
     end
 
     def kill(id: @id)
-      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query/#{id}", caseTrue: true)
+      @client.request(action: "DELETE", url: "/_db/#{@database}/_api/query/#{id}")
     end
 
     def changeProperties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil)
