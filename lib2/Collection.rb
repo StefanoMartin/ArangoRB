@@ -2,21 +2,28 @@
 
 module Arango
   class Collection
-    def initialize(collection:, database:, client:, body: {}, type: nil)
-      satisfy_class?(database, "database", [Arango::Database, String])
+    def initialize(collection:, database:, body: {}, type: nil, from: nil, to: nil)
+      satisfy_class?(collection, "collection", [Arango::Collection, String])
+      satisfy_class?(database, "database", [Arango::Database])
       satisfy_class?(client, "client", [Arango::Client])
       satisfy_class?(body, "body", [Hash])
       satisfy_category?(type, , "type", ["Document", "Edge"])
+      satisfy_class?(from, "from", [Arango::Collection, String, NilClass])
+      satisfy_class?(to, "to", [Arango::Collection, String, NilClass])
       @collection = collection.is_a?(String) ? collection : collection.collection
-      @client = client
-      if database.is_a?(String)
-        @database = Arango::Database.new(database: database, client: @client)
-      else
-        @database = database
-      end
-      @database_name = @database.name
+      @database = database
+      @client = @database.client
       @body = body
       @type = type
+      if from.is_a?(String)
+        from = Arango::Collection.new(collection: from, database: @database)
+      end
+      @from = from
+      if to.is_a?(String)
+        to = Arango::Collection.new(collection: to, database: @database)
+      end
+      @to = to
+
       if @type == "Document"
         @body["type"] = 2
       elsif @type == "Edge"
@@ -32,7 +39,7 @@ module Arango
     def to_hash
       {
         "collection" => @collection,
-        "database" => @database_name,
+        "database" => @database.name,
         "type" => @type,
         "body" => @body
       }.delete_if{|k,v| v.nil?}
@@ -47,7 +54,7 @@ module Arango
     # === GET ===
 
     def retrieve
-      result = @client.request(action: "GET", url: "/_db/#{@database_name}/_api/collection/#{@collection}")
+      result = @client.request(action: "GET", url: "/_db/#{@database.name}/_api/collection/#{@collection}")
       return result if @client.async != false
       @body = result
       @type = result["type"] == 2 ? "Document" : "Edge"
@@ -55,19 +62,19 @@ module Arango
     end
 
     def properties
-      @client.request(action: "GET", url: "/_db/#{@database_name}/_api/collection/#{@collection}/properties")
+      @client.request(action: "GET", url: "/_db/#{@database.name}/_api/collection/#{@collection}/properties")
     end
 
     def count
-      @client.request(action: "GET", url: "/_db/#{@database_name}/_api/collection/#{@collection}/count", key: "count")
+      @client.request(action: "GET", url: "/_db/#{@database.name}/_api/collection/#{@collection}/count", key: "count")
     end
 
     def statistics
-      @client.request(action: "GET", url: "/_db/#{@database_name}/_api/collection/#{@collection}/figures", key: "figures")
+      @client.request(action: "GET", url: "/_db/#{@database.name}/_api/collection/#{@collection}/figures", key: "figures")
     end
 
     def revision
-      @client.request(action: "GET", url:"/_db/#{@database_name}/_api/collection/#{@collection}/revision", key: "revision")
+      @client.request(action: "GET", url:"/_db/#{@database.name}/_api/collection/#{@collection}/revision", key: "revision")
     end
 
     def checksum(withRevisions: nil, withData: nil)
@@ -75,7 +82,7 @@ module Arango
         "withRevisions": withRevisions,
         "withData": withData
       }
-      @client.request(action: "GET", url: "/_db/#{@database_name}/_api/collection/#{@collection}/checksum", key: "checksum")
+      @client.request(action: "GET", url: "/_db/#{@database.name}/_api/collection/#{@collection}/checksum", key: "checksum")
     end
 
     # === POST ===
@@ -99,7 +106,7 @@ module Arango
         "indexBuckets" => indexBuckets
       }
       request = @@request.merge({ :body => body })
-      result = @client.request(action: "POST", url: "/_db/#{@database_name}/_api/collection")
+      result = @client.request(action: "POST", url: "/_db/#{@database.name}/_api/collection")
       return result if @client.async != false
       @body = result
       @type = result["type"] == 2 ? "Document" : "Edge"
@@ -132,21 +139,21 @@ module Arango
 # === DELETE ===
 
     def destroy
-      @client.request(action: "DELETE", url: "/_db/#{@database_name}/_api/collection/#{@collection}")
+      @client.request(action: "DELETE", url: "/_db/#{@database.name}/_api/collection/#{@collection}")
     end
 
     def truncate
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/collection/#{@collection}/truncate")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/collection/#{@collection}/truncate")
     end
 
     # === MODIFY ===
 
     def load
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/collection/#{@collection}/load")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/collection/#{@collection}/load")
     end
 
     def unload
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/collection/#{@collection}/unload")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/collection/#{@collection}/unload")
     end
 
     def change(waitForSync: nil, journalSize: nil)
@@ -154,17 +161,17 @@ module Arango
         "journalSize" => journalSize,
         "waitForSync" => waitForSync
       }
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/collection/#{@collection}/properties")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/collection/#{@collection}/properties")
     end
 
     def rename(newName)
       body = { "name" => newName }
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/collection/#{@collection}/rename", body: body)
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/collection/#{@collection}/rename", body: body)
       @collection = newName
     end
 
     def rotate
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/collection/#{@collection}/rotate", caseTrue: true)
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/collection/#{@collection}/rotate", caseTrue: true)
     end
 
     # === SIMPLE FUNCTIONS ===
@@ -207,7 +214,7 @@ module Arango
         "limit" => limit,
         "batchSize" => batchSize
       }
-      generic_document_search("/_db/#{@database_name}/_api/simple/all", body)
+      generic_document_search("/_db/#{@database.name}/_api/simple/all", body)
     end
 
     def documentsMatch(match:, skip: nil, limit: nil, batchSize: nil)
@@ -218,7 +225,7 @@ module Arango
         "limit" => limit,
         "batchSize" => batchSize
       }
-      generic_document_search("/_db/#{@database_name}/_api/simple/by-example", body)
+      generic_document_search("/_db/#{@database.name}/_api/simple/by-example", body)
     end
 
     def documentMatch(match:)
@@ -226,7 +233,7 @@ module Arango
         "collection" => @collection,
         "example" => match
       }
-      generic_document_search("/_db/#{@database_name}/_api/simple/first-example",
+      generic_document_search("/_db/#{@database.name}/_api/simple/first-example",
         body, true)
     end
 
@@ -234,7 +241,7 @@ module Arango
       keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(Arango::Document) ? x.key : nil} if keys.is_a? Array
       keys = [keys] if keys.is_a? String
       body = { "collection" => @collection, "keys" => keys }
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/simple/lookup-by-keys", body: body)
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/simple/lookup-by-keys", body: body)
       return result if @client.async != false
       result["documents"].map do |x|
         Arango::Document.new(key: x["_key"], collection: self, body: x,
@@ -243,14 +250,14 @@ module Arango
 
     def random
       body = { "collection" => @collection }
-      generic_document_search("/_db/#{@database_name}/_api/simple/any",
+      generic_document_search("/_db/#{@database.name}/_api/simple/any",
         body, true)
     end
 
     def removeByKeys(keys:, options: nil)
       keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDocument) ? x.key : nil}
       body = { "collection" => @collection, "keys" => keys, "options" => options }
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/simple/remove-by-keys", body: body, key: "removed")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/simple/remove-by-keys", body: body, key: "removed")
     end
 
     def removeMatch(match:, options: nil)
@@ -259,7 +266,7 @@ module Arango
         "example" => match,
         "options" => options
       }
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/simple/remove-by-example", body: body, key: "deleted")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/simple/remove-by-example", body: body, key: "deleted")
     end
 
     def replaceMatch(match:, newValue:, options: nil)
@@ -269,7 +276,7 @@ module Arango
         "options" => options,
         "newValue" => newValue
       }
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/simple/replace-by-example", body: body, key: "replaced")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/simple/replace-by-example", body: body, key: "replaced")
     end
 
     def updateMatch(match:, newValue:, options: nil)
@@ -279,7 +286,7 @@ module Arango
         "options" => options,
         "newValue" => newValue
       }
-      @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/simple/update-by-example", body: body, key: "updated")
+      @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/simple/update-by-example", body: body, key: "updated")
     end
 
     # === IMPORT ===
@@ -297,7 +304,7 @@ module Arango
       }
       body = "#{attributes}\n"
       values[0].is_a?(Array) ? values.each{|x| body += "#{x}\n"} : body += "#{values}\n"
-      @client.request(action: "POST", url: "/_db/#{@database_name}/_api/import", body: body, query: query, skip_to_json: true)
+      @client.request(action: "POST", url: "/_db/#{@database.name}/_api/import", body: body, query: query, skip_to_json: true)
     end
 
     def importJSON(body:, type: "auto", from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
@@ -312,7 +319,7 @@ module Arango
         "complete": complete,
         "details": details
       }
-      @client.request(action: "POST", url: "/_db/#{@database_name}/_api/import", query: query, body: body)
+      @client.request(action: "POST", url: "/_db/#{@database.name}/_api/import", query: query, body: body)
     end
 
   # === EXPORT ===
@@ -327,7 +334,7 @@ module Arango
         "limit" => limit,
         "ttl" => ttl
       }
-      result = @client.request(action: "POST", url: "/_db/#{@database_name}/_api/export", query: query, body: body)
+      result = @client.request(action: "POST", url: "/_db/#{@database.name}/_api/export", query: query, body: body)
       return result if @client.async != false
       @countExport = result["count"]
       @hasMoreExport = result["hasMore"]
@@ -345,7 +352,7 @@ module Arango
         Arango::Error message: "No other results"
       else
         query = { "collection": @collection }
-        result = @client.request(action: "PUT", url: "/_db/#{@database_name}/_api/export/#{@idExport}", query: query)
+        result = @client.request(action: "PUT", url: "/_db/#{@database.name}/_api/export/#{@idExport}", query: query)
         return result if @client.async != false
         @countExport = result["count"]
         @hasMoreExport = result["hasMore"]
@@ -367,7 +374,7 @@ module Arango
 
     def indexes  # TESTED
       query = { "collection": @collection }
-      result = @client.request(action: "GET", url: "/_db/#{@database_name}/_api/index", query: query)
+      result = @client.request(action: "GET", url: "/_db/#{@database.name}/_api/index", query: query)
       return result if @client.async != false
       result["indexes"].map do |x|
         Arango::Index.new(body: x, id: x["id"], database: @database, collection: self, client: @client, type: x["type"], unique: x["unique"], fields: x["fields"])}
@@ -387,7 +394,7 @@ module Arango
         "ticks": ticks,
         "flush": flush
       }
-      @client.request(action: "GET", url: "/_db/#{@database_name}/_api/replication/dump", query: query)
+      @client.request(action: "GET", url: "/_db/#{@database.name}/_api/replication/dump", query: query)
     end
     alias dump data
 

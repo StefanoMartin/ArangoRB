@@ -51,6 +51,9 @@ module Arango
       elsif @async == true
         return true
       end
+      if action == "HEAD"
+        return result.headers
+      end
       result = response.parsed_response
       puts result if @verbose
       if !result.is_a?(Hash) && !result.nil?

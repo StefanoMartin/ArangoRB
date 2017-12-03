@@ -12,9 +12,16 @@ module Helper_Error
     end
   end
 
-  def satisfy_category?(object, list)
+  def satisfy_category?(object, list, name)
     unless list.include?(object)
       Arango::Error message "#{name} should be part of the list #{list}"
+    end
+  end
+
+  def ignore_exception
+    begin
+      yield
+    rescue Exception
     end
   end
 end
