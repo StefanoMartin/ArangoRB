@@ -25,7 +25,9 @@ module Arango
         "id" => @id,
         "rev" => @rev,
         "collection" => @collection.name,
-        "body" => @body
+        "body" => @body,
+        "from" => @from,
+        "to" => @to
       }.delete_if{|k,v| v.nil?}
     end
 

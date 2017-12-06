@@ -83,6 +83,11 @@ module Arango
       return return_directly?(result) ? result : self
     end
 
+    def request(action:, url:, body: {}, headers: {}, query: {}, key: nil, return_direct_result: false, skip_to_json: false)
+      url = "_api/gharial/#{@key}/#{url}"
+      @database.request(action: action, url: url, body: body, headers: headers, query: query, key: key, return_direct_result: return_direct_result, skip_to_json: skip_to_json)
+    end
+
 # === GET ===
 
     def retrieve
@@ -108,7 +113,7 @@ module Arango
 # === VERTEX COLLECTION  ===
 
     def vertexCollections
-      result = @database.request(action: "GET", url: "_api/gharial/#{@key}/vertex")
+      result = request(action: "GET", url: "vertex")
       return result if return_directly?(result)
       result["collections"].map do |x|
         ArangoCollection.new(collection: x, database: @database)
@@ -119,7 +124,7 @@ module Arango
       satisfy_class?(collection, "collection", [String, Arango::Collection])
       collection = collection.is_a?(String) ? collection : collection.name
       body = { "collection" => collection }
-      result = @database.request(action: "POST", url: "_api/gharial/#{@key}/vertex", body: body)
+      result = request(action: "POST", url: "vertex", body: body)
       return result if @database.client.async != false
       @orphanCollections |= [collection]
       return return_directly?(result) ? result : self
@@ -129,14 +134,14 @@ module Arango
       query = {"dropCollection" => dropCollection}
       satisfy_class?(collection, "collection", [String, Arango::Collection])
       collection = collection.is_a?(String) ? collection : collection.name
-      result = @database.request(action: "DELETE", url: "_api/gharial/#{@key}/vertex/#{collection}", query: query)
+      result = request(action: "DELETE", url: "vertex/#{collection}", query: query)
       return_graph(result)
     end
 
   # === EDGE COLLECTION ===
 
     def edgeDefinitions
-      result = @database.request(action: "GET", url: "_api/gharial/#{@key}/edge")
+      result = request(action: "GET", url: "edge")
       return result if @database.client.async != false
       @edgeDefinitions = result["collections"]
       return result if return_directly?(result)
@@ -153,7 +158,7 @@ module Arango
       body["collection"] = collection.is_a?(String) ? collection : collection.name
       body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }
       body["to"] = to.map{|t| t.is_a?(String) ? t : t.name }
-      result = @database.request(action: "POST", url: "_api/gharial/#{@key}/edge", body: body)
+      result = request(action: "POST", url: "edge", body: body)
       return_graph(result)
     end
 
@@ -165,14 +170,14 @@ module Arango
       body["collection"] = collection.is_a?(String) ? collection : collection.name
       body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }
       body["to"] = to.map{|t| t.is_a?(String) ? t : t.name }
-      result = @database.request(action: "PUT", url: "_api/gharial/#{@key}/edge", body: body)
+      result = request(action: "PUT", url: "edge", body: body)
       return_graph(result)
     end
 
     def removeEdgeCollection(collection:, dropCollection: nil)
       query = {"dropCollection" => dropCollection}
       collection = collection.is_a?(String) ? collection : collection.collection
-      result = @database.request(action: "DELETE", url: "_api/gharial/#{@graph}/edge/#{collection}", query: query)
+      result = request(action: "DELETE", url: "edge/#{collection}", query: query)
       return result.headers["x-arango-async-id"] if @@async == "store"
       return_graph(result)
     end

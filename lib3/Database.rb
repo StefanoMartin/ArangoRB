@@ -102,5 +102,41 @@ module Arango
         edgeDefinitions: edgeDefinitions,
         orphanCollections: orphanCollections, body: body)
     end
+
+# == QUERY ==
+
+    def query_properties
+      Arango::AQL.properties(database: self)
+    end
+
+    def change_query_properties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil, trackBindVars: nil)
+      Arango::AQL.changeProperties(database: self, slowQueryThreshold: slowQueryThreshold, trackBindVars: trackBindVars, 
+        enabled: enabled, maxSlowQueries: maxSlowQueries,
+        trackSlowQueries: trackSlowQueries, maxQueryStringLength: maxQueryStringLength)
+    end
+
+    def current_query
+      Arango::AQL.current(database: self)
+    end
+
+    def slow_queries
+      Arango::AQL.slow(database: self)
+    end
+
+    def stop_slow_queries
+      Arango::AQL.stopSlow(database: self)
+    end
+
+    def clear_query_cache
+      Arango::AQL.clearCache(database: self)
+    end
+
+    def property_query_cache
+      Arango::AQL.propertyCache(database: self)
+    end
+
+    def change_property_query_cache(mode: nil, maxResults: nil)
+      Arango::AQL.changePropertyCache(database self, mode: mode, maxResults: maxResults)
+    end
   end
 end
