@@ -299,5 +299,202 @@ module Arango
       @database.request(action: "DELETE",
         url: "_api/document/#{@id}", query: query)
     end
+
+# == SIMPLE ==
+
+    def generic_document_search(url, body, single=false)
+      result = @database.request(action: "PUT", url: url, body: body)
+      return result if return_directly?(result)
+      if single
+        Arango::Document.new(key: result["document"]["_key"], collection: self, body:  result["document"])
+      else
+        result["result"].map do |x|
+          Arango::Document.new(key: x["_key"], collection: self, body: x)
+        end
+      end
+    end
+    private :generic_document_search
+
+    def allDocuments(skip: nil, limit: nil, batchSize: nil)
+      body = {
+        "collection" => @name,
+        "skip" => skip,
+        "limit" => limit,
+        "batchSize" => batchSize
+      }
+      generic_document_search("_api/simple/all", body)
+    end
+
+    def documentsMatch(match:, skip: nil, limit: nil, batchSize: nil)
+      body = {
+        "collection" => @name,
+        "example" => match,
+        "skip" => skip,
+        "limit" => limit,
+        "batchSize" => batchSize
+      }
+      generic_document_search("_api/simple/by-example", body)
+    end
+
+    def documentMatch(match:)
+      body = {
+        "collection" => @name,
+        "example" => match
+      }
+      generic_document_search("_api/simple/first-example",
+        body, true)
+    end
+
+    def documentByKeys(keys:)
+      keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(Arango::Document) ? x.key : nil} if keys.is_a? Array
+      keys = [keys] if keys.is_a? String
+      body = { "collection" => @name, "keys" => keys }
+      @database.request(action: "PUT", url: "_api/simple/lookup-by-keys", body: body)
+      return result if return_directly?(result)
+      result["documents"].map do |x|
+        Arango::Document.new(key: x["_key"], collection: self, body: x)
+      end
+    end
+
+    def random
+      body = { "collection" => @name }
+      generic_document_search("_api/simple/any",
+        body, true)
+    end
+
+    def removeByKeys(keys:, options: nil)
+      keys = keys.map{|x| x.is_a?(String) ? x : x.is_a?(ArangoDocument) ? x.key : nil}
+      body = { "collection" => @name, "keys" => keys, "options" => options }
+      @database.request(action: "PUT", url: "_api/simple/remove-by-keys",
+        body: body, key: "removed")
+    end
+
+    def removeMatch(match:, options: nil)
+      body = {
+        "collection" => @name,
+        "example" => match,
+        "options" => options
+      }
+      @database.request(action: "PUT",
+        url: "_api/simple/remove-by-example", body: body, key: "deleted")
+    end
+
+    def replaceMatch(match:, newValue:, options: nil)
+      body = {
+        "collection" => @name,
+        "example" => match,
+        "options" => options,
+        "newValue" => newValue
+      }
+      @database.request(action: "PUT", url: "_api/simple/replace-by-example", body: body, key: "replaced")
+    end
+
+    def updateMatch(match:, keepNull:, newValue:, options: nil)
+      body = {
+        "collection" => @name,
+        "example" => match,
+        "options" => options,
+        "newValue" => newValue
+      }
+      @database.request(action: "PUT", url: "_api/simple/update-by-example", body: body, key: "updated")
+    end
+
+# === SIMPLE DEPRECATED ===
+
+    def range(right:, attribute:, limit: nil, closed:, skip: nil, left:, warning: true)
+      puts "ARANGORB WARNING: range function is deprecated" if warning
+      body = {
+        "right" => right,
+        "attribute" => attribute,
+        "collection" => @name,
+        "limit" => limit,
+        "closed" => closed,
+        "skip" => skip,
+        "left" => left
+      }
+      result = @database.request(action: "PUT", url: "/_api/simple/range",
+        body: body)
+      return result if return_directly?(result)
+      result["result"].map do |x|
+        Arango::Document.new(key: x["_key"], collection: self, body: x)
+      end
+    end
+
+    def near(distance: nil, longitude:, latitude:, geo: nil, limit: nil, skip: nil, warning: true)
+      puts "ARANGORB WARNING: near function is deprecated" if warning
+      body = {
+        "distance" => distance,
+        "longitude" => longitude,
+        "collection" => @name,
+        "limit" => limit,
+        "latitude" => latitude,
+        "skip" => skip,
+        "geo" => geo
+      }
+      result = @database.request(action: "PUT", url: "/_api/simple/near",
+        body: body)
+      return result if return_directly?(result)
+      result["result"].map do |x|
+        Arango::Document.new(key: x["_key"], collection: self, body: x)
+      end
+    end
+
+    def within(distance: nil, longitude:, latitude:, radius:, geo: nil, limit: nil, skip: nil, warning: true)
+      puts "ARANGORB WARNING: within function is deprecated" if warning
+      body = {
+        "distance" => distance,
+        "longitude" => longitude,
+        "collection" => @name,
+        "limit" => limit,
+        "latitude" => latitude,
+        "skip" => skip,
+        "geo" => geo,
+        "radius" => radius
+      }
+      result = @database.request(action: "PUT", url: "/_api/simple/within",
+        body: body)
+      return result if return_directly?(result)
+      result["result"].map do |x|
+        Arango::Document.new(key: x["_key"], collection: self, body: x)
+      end
+    end
+
+    def withinRectangle(longitude1:, latitude1:, longitude2:, latitude2:, geo: nil, limit: nil, skip: nil, warning: true)
+      puts "ARANGORB WARNING: withinRectangle function is deprecated" if warning
+      body = {
+        "longitude1" => longitude1,
+        "latitude1" => latitude1,
+        "longitude2" => longitude2,
+        "latitude2" => latitude2,
+        "collection" => @name,
+        "limit" => limit,
+        "skip" => skip,
+        "geo" => geo,
+        "radius" => radius
+      }
+      result = @database.request(action: "PUT",
+        url: "/_api/simple/within-rectangle", body: body)
+      return result if return_directly?(result)
+      result["result"].map do |x|
+        Arango::Document.new(key: x["_key"], collection: self, body: x)
+      end
+    end
+
+    def fulltext(index:, attribute:, query:, limit: nil, skip: nil, warning: true)
+      puts "ARANGORB WARNING: fulltext function is deprecated" if warning
+      body = {
+        "index" => index,
+        "attribute" => attribute,
+        "query" => query,
+        "limit" => limit,
+        "skip" => skip
+      }
+      result = @database.request(action: "PUT",
+        url: "/_api/simple/fulltext", body: body)
+      return result if return_directly?(result)
+      result["result"].map do |x|
+        Arango::Document.new(key: x["_key"], collection: self, body: x)
+      end
+    end
   end
 end

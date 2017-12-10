@@ -110,7 +110,7 @@ module Arango
     end
 
     def change_query_properties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil, trackBindVars: nil)
-      Arango::AQL.changeProperties(database: self, slowQueryThreshold: slowQueryThreshold, trackBindVars: trackBindVars, 
+      Arango::AQL.changeProperties(database: self, slowQueryThreshold: slowQueryThreshold, trackBindVars: trackBindVars,
         enabled: enabled, maxSlowQueries: maxSlowQueries,
         trackSlowQueries: trackSlowQueries, maxQueryStringLength: maxQueryStringLength)
     end
@@ -136,7 +136,68 @@ module Arango
     end
 
     def change_property_query_cache(mode: nil, maxResults: nil)
-      Arango::AQL.changePropertyCache(database self, mode: mode, maxResults: maxResults)
+      Arango::AQL.changePropertyCache(database: self, mode: mode, maxResults: maxResults)
+    end
+
+# === FUNCTION ===
+
+    def functions(namespace: nil)
+      Arango::AQL.functions(database: self, namespace: namespace)
+    end
+
+    def createFunction(code:, name:, isDeterministic: nil)
+      Arango::AQL.createFunction(database: self, code: code, name: name, isDeterministic: isDeterministic)
+    end
+
+    def deleteFunction(name:)
+      Arango::AQL.deleteFunction(database: self, name: name)
+    end
+
+# === ASYNC ===
+
+    def fetchAsync(id:)
+      request(action: "PUT", url: "/_api/job/#{id}")
+    end
+
+    def cancelAsync(id:)
+      request(action: "PUT", url: "/_api/job/#{id}/cancel")
+    end
+
+    def destroyAsync(id: nil, stamp: nil)
+      query = {"stamp" => stamp}
+      request(action: "DELETE", url: "/_api/job/#{id}", "query" => query)
+    end
+
+    def destroyAsyncByType(type:, stamp: nil)
+      satisfy_category?(type, ["all", "expired"], "type")
+      query = {"stamp" => stamp}
+      request(action: "DELETE", url: "/_api/job/#{type}", "query" => query)
+    end
+
+    def destroyAllAsync
+      destroyAsyncByType(type: "all")
+    end
+
+    def destroyExpiredAsync
+      destroyAsyncByType(type: "expired")
+    end
+
+    def retrieveAsync(id:)
+      request(action: "GET", url: "/_api/job/#{id}")
+    end
+
+    def retrieveAsyncByType(type:, count: nil)
+      satisfy_category?(type, ["done", "pending"], "type")
+      query = {"count" => count}
+      request(action: "GET", url: "/_api/job/#{type}", query: query)
+    end
+
+    def retrieveDoneAsync(count: nil)
+      retrieveAsyncByType(type: "done", count: count)
+    end
+
+    def retrievePendingAsync(count: nil)
+      retrieveAsyncByType(type: "pending", count: count)
     end
   end
 end
