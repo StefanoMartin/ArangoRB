@@ -496,5 +496,103 @@ module Arango
         Arango::Document.new(key: x["_key"], collection: self, body: x)
       end
     end
+
+  # === IMPORT ===
+
+    def import(attributes:, values:, from: nil, to: nil, overwrite: nil,
+      waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
+      satisfy_category?(onDuplicate, [nil, "error", "update", "replace", "ignore"], "onDuplicate")
+      satisfy_category?(overwrite, [nil, "yes", "true", true], "overwrite")
+      satisfy_category?(complete, [nil, "yes", "true", true], "complete")
+      satisfy_category?(details, [nil, "yes", "true", true], "details")
+      query = {
+        "collection": @name,
+        "fromPrefix": from,
+        "toPrefix": to,
+        "overwrite": overwrite,
+        "waitForSync": waitForSync,
+        "onDuplicate": onDuplicate,
+        "complete": complete,
+        "details": details
+      }
+      body = "#{attributes}\n"
+      values[0].is_a?(Array) ? values.each{|x| body += "#{x}\n"} : body += "#{values}\n"
+      @database.request(action: "POST", url: "/_api/import", query: query, body: body.to_json, skip_to_json: true)
+    end
+
+    def importJSON(body:, type: "auto", from: nil, to: nil, overwrite: nil, waitForSync: nil, onDuplicate: nil, complete: nil, details: nil)
+      satisfy_category?(onDuplicate, [nil, "error", "update", "replace", "ignore"], "onDuplicate")
+      satisfy_category?(overwrite, [nil, "yes", "true", true], "overwrite")
+      satisfy_category?(complete, [nil, "yes", "true", true], "complete")
+      satisfy_category?(details, [nil, "yes", "true", true], "details")
+      query = {
+        "collection": @collection,
+        "type": type,
+        "fromPrefix": from,
+        "toPrefix": to,
+        "overwrite": overwrite,
+        "waitForSync": waitForSync,
+        "onDuplicate": onDuplicate,
+        "complete": complete,
+        "details": details
+      }
+      @database.request(action: "POST", url: "/_api/import", query: query, body: body.to_json, skip_to_json: true)
+    end
+
+  # === EXPORT ===
+
+    def export(count: nil, restrict: nil, batchSize: nil, flush: nil, flushWait: nil,
+      limit: nil, ttl: nil)
+      query = { "collection" => @name }
+      body = {
+        "count" => count,
+        "restrict" => restrict,
+        "batchSize" => batchSize,
+        "flush" => flush,
+        "flushWait" => flushWait,
+        "limit" => limit,
+        "ttl" => ttl
+      }
+      result = @database.request(action: "POST", url: "/_api/export", body: body,
+        query: query)
+      return reuslt if @client.async != false
+      @countExport = result["count"]
+      @hasMoreExport = result["hasMore"]
+      @idExport = result["id"]
+      if return_directly?(result) || result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key")
+        return result["result"]
+      else
+        return result["result"].map do |x|
+          Arango::Document.new(key: x["_key"], collection: self, body: x)
+        end
+      end
+    end
+
+    def exportNext
+      unless @hasMoreExport
+        Arango::Error message: "No other results"
+      else
+        query = { "collection": @name }
+        result = @database.request(action: "PUT", url: "/_api/export/#{@idExport}",
+          query: query)
+        return reuslt if @client.async != false
+        @countExport = result["count"]
+        @hasMoreExport = result["hasMore"]
+        @idExport = result["id"]
+        if return_directly?(result) || result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key")
+          return result["result"]
+        else
+          return result["result"].map do |x|
+            Arango::Document.new(key: x["_key"], collection: self, body: x)
+          end
+        end
+      end
+    end
+
+# === INDEXES ===
+
+    def indexes
+      Arango::Index.indexes(collection: self)
+    end
   end
 end
