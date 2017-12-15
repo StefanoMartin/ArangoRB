@@ -594,5 +594,22 @@ module Arango
     def indexes
       Arango::Index.indexes(collection: self)
     end
+
+# === REPLICATION ===
+
+    def data(from: nil, to: nil, chunkSize: nil, includeSystem: false, failOnUnknown: nil, ticks: nil, flush: nil)
+      query = {
+        "collection": @name,
+        "from": from,
+        "to": to,
+        "chunkSize": chunkSize,
+        "includeSystem": includeSystem,
+        "failOnUnknown": failOnUnknown,
+        "ticks": ticks,
+        "flush": flush
+      }
+      @database.request(action: "GET", url: "_api/replication/dump", query: query)
+    end
+    alias dump data
   end
 end

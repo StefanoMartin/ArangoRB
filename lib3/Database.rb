@@ -5,6 +5,7 @@ module Arango
     def initialize(name:, client:)
       satisfy_class?(name, "name")
       satisfy_class?(client, "client", [Arango::Client])
+      @name = name
       @client = client
       @isSystem = nil
       @path = nil
@@ -198,6 +199,181 @@ module Arango
 
     def retrievePendingAsync(count: nil)
       retrieveAsyncByType(type: "pending", count: count)
+    end
+
+    # === REPLICATION ===
+
+    def inventory(includeSystem: false)
+      query = { "includeSystem": includeSystem }
+      request(action: "GET", url: "/api/replication/inventory",
+        query: query)
+    end
+
+    def createDumpBatch(ttl:, dbserver: nil)
+      query = { "DBserver" => dbserver }
+      body = { "ttl" => ttl }
+      result = request(action: "POST", url: "_api/replication/batch",
+        body: body, query: query)
+      return result if return_directly?(result)
+      return result["id"]
+    end
+
+    def destroyDumpBatch(id:, dbserver: nil)
+      query = {"DBserver" => dbserver}
+      request(action: "DELETE", url: "_api/replication/batch/#{id}",
+        body: body, query: query)
+    end
+
+    def prolongDumpBatch(id:, ttl:, dbserver: nil)
+      query = { "DBserver" => dbserver }
+      body = { "ttl" => ttl }
+      result = request(action: "PUT", url: "_api/replication/batch/#{id}",
+        body: body, query: query)
+      return result if return_directly?(result)
+      return result["id"]
+    end
+
+    def sync(endpoint:, username:, password:, includeSystem: true,
+      initialSyncMaxWaitTime: nil, restrictType: nil, incremental: nil,
+      restrictCollections: nil)
+      body = {
+        "username" => username,
+        "password" => password,
+        "includeSystem" => includeSystem,
+        "endpoint" => endpoint,
+        "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
+        "database" => @name,
+        "restrictType" => restrictType,
+        "incremental" => incremental,
+        "restrictCollections" =>  restrictCollections
+      }
+      request(action: "PUT", url: "_api/replication/sync",
+        body: body)
+    end
+
+    def clusterInventory(includeSystem: false)
+      query = { "includeSystem": includeSystem }
+      request(action: "GET", url: "_api/replication/clusterInventory",
+        query: query)
+    end
+
+    def logger
+      request(action: "GET", url: "_api/replication/logger-state")
+    end
+
+    def loggerFollow(from: nil, to: nil, chunkSize: nil, includeSystem: false)
+      query = {
+        "from": from,
+        "to": to,
+        "chunkSize": chunkSize,
+        "includeSystem": includeSystem
+      }
+      request(action: "GET", url: "_api/replication/logger-follow",
+        query: query)
+    end
+
+    def loggerFirstTick
+      result = request(action: "GET",
+        url: "_api/replication/logger-first-tick")
+      return result if return_directly?(result)
+      return result["firstTick"]
+    end
+
+    def loggerRangeTick
+      request(action: "GET", url: "_api/replication/logger-tick-ranges")
+    end
+    
+    def configurationReplication
+      request(action: "GET", url: "_api/replication/applier-config")
+    end
+
+    def modifyConfigurationReplication(endpoint: nil, username: nil,
+      password: nil, includeSystem: false, verbose: false,
+      connectTimeout: nil, autoResync: nil, idleMinWaitTime: nil,
+      requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil,
+      restrictCollections: nil, restrictType: nil,
+      initialSyncMaxWaitTime: nil, maxConnectRetries: nil,
+      autoStart: nil, adaptivePolling: nil, connectionRetryWaitTime: nil,
+      autoResyncRetries: nil, chunkSize: nil)
+      body = {
+        "username" => username,
+        "password" => password,
+        "includeSystem" => includeSystem,
+        "endpoint" => endpoint,
+        "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
+        "database" => @name,
+        "verbose" => verbose,
+        "connectTimeout" => connectTimeout,
+        "autoResync" => autoResync,
+        "idleMinWaitTime" => idleMinWaitTime,
+        "requestTimeout" => requestTimeout,
+        "requireFromPresent" => requireFromPresent,
+        "idleMaxWaitTime" => idleMaxWaitTime,
+        "restrictType" => restrictType,
+        "maxConnectRetries" => maxConnectRetries,
+        "autoStart" => autoStart,
+        "adaptivePolling" => adaptivePolling,
+        "connectionRetryWaitTime" => connectionRetryWaitTime,
+        "restrictCollections" =>  restrictCollections,
+        "autoResyncRetries" => autoResyncRetries,
+        "chunkSize" => chunkSize
+      }
+      request(action: "PUT", url: "_api/replication/applier-config",
+        body: body)
+    end
+    alias modifyReplication modifyConfigurationReplication
+
+    def startReplication(from: nil)
+      query = {from: from}
+      request(action: "PUT", url: "_api/replication/applier-start",
+        query: query)
+    end
+
+    def stopReplication
+      request(action: "PUT", url: "_api/replication/applier-stop")
+    end
+
+    def stateReplication
+      request(action: "GET", url: "_api/replication/applier-state")
+    end
+
+    def enslave(endpoint:, username:, password:, includeSystem: true,
+      verbose: false, connectTimeout: nil, autoResync: nil,
+      idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil,
+      idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil,
+      initialSyncMaxWaitTime: nil, maxConnectRetries: nil,
+      adaptivePolling: nil, connectionRetryWaitTime: nil,
+      autoResyncRetries: nil, chunkSize: nil)
+      body = {
+        "username" => username,
+        "password" => password,
+        "includeSystem" => includeSystem,
+        "endpoint" => endpoint,
+        "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
+        "database" => @name,
+        "verbose" => verbose,
+        "connectTimeout" => connectTimeout,
+        "autoResync" => autoResync,
+        "idleMinWaitTime" => idleMinWaitTime,
+        "requestTimeout" => requestTimeout,
+        "requireFromPresent" => requireFromPresent,
+        "idleMaxWaitTime" => idleMaxWaitTime,
+        "restrictType" => restrictType,
+        "maxConnectRetries" => maxConnectRetries,
+        "adaptivePolling" => adaptivePolling,
+        "connectionRetryWaitTime" => connectionRetryWaitTime,
+        "restrictCollections" =>  restrictCollections,
+        "autoResyncRetries" => autoResyncRetries,
+        "chunkSize" => chunkSize
+      }
+      request(action: "PUT", url: "_api/replication/make-slave",
+        body: body)
+    end
+
+    def serverId
+      result = request(action: "GET", url: "_api/replication/server-id")
+      return result if return_directly?(result)
+      return result["serverId"]
     end
   end
 end
