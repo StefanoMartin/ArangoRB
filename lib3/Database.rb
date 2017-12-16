@@ -282,7 +282,7 @@ module Arango
     def loggerRangeTick
       request(action: "GET", url: "_api/replication/logger-tick-ranges")
     end
-    
+
     def configurationReplication
       request(action: "GET", url: "_api/replication/applier-config")
     end
@@ -374,6 +374,16 @@ module Arango
       result = request(action: "GET", url: "_api/replication/server-id")
       return result if return_directly?(result)
       return result["serverId"]
+    end
+
+# === FOXX ===
+
+    def foxx
+      result = request(action: "GET", url: "_api/foxx")
+      return result if return_directly?(result)
+      result.map do |fox|
+        Arango::Foxx.new(database: self, mount: fox["mount"], body: fox)
+      end
     end
   end
 end

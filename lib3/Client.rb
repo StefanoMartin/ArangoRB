@@ -46,6 +46,27 @@ module Arango
       satisfy_class?(initialize_retrieve, "initialize_retrieve", [TrueClass, FalseClass])
     end
 
+    def download(url:, path:, body: {}, headers: {}, query: {})
+      send_url = "#{@base_uri}/"
+      if !@cluster.nil? && !skip_cluster
+        send_url += "_admin/#{@cluster}/"
+      end
+      send_url += url
+      body.delete_if{|k,v| v.nil?}
+      body = body.to_json
+      query.delete_if{|k,v| v.nil?}
+      headers.delete_if{|k,v| v.nil?}
+      options = @options.merge({:body => body, :query => query,
+        :headers => headers, :stream_body => true})
+      puts "\n#{action} #{send_url}\n" if @verbose
+      File.open(path, "w") do |file|
+        file.binmode
+        HTTParty.post(send_url, options) do |fragment|
+          file.write(fragment)
+        end
+      end
+    end
+      
     def request(action:, url:, body: {}, headers: {}, query: {},
       key: nil, return_direct_result: false, skip_to_json: false,
       skip_cluster: false)
