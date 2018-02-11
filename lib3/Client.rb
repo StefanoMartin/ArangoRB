@@ -66,7 +66,7 @@ module Arango
         end
       end
     end
-      
+
     def request(action:, url:, body: {}, headers: {}, query: {},
       key: nil, return_direct_result: false, skip_to_json: false,
       skip_cluster: false)
@@ -225,6 +225,15 @@ module Arango
     def allEndpoints(warning: true)
       puts "ARANGORB WARNING: allEndpoints function is deprecated" if warning
       request(action: "GET", url: "/_api/endpoint")
+    end
+
+  # === USER ===
+    def users
+      result = request(action: "GET", url: "/_api/cluster/user")
+      return result if return_directly?(result)
+      result["result"].map do |user|
+        Arango::Database.new(user: user["user"], active: user["active"], extra: user["extra"], client: self)
+      end
     end
   end
 end

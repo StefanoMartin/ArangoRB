@@ -611,5 +611,30 @@ module Arango
       @database.request(action: "GET", url: "_api/replication/dump", query: query)
     end
     alias dump data
+
+# === USER ACCESS ===
+
+    def check_user(user)
+      satisfy_class?(user, "user", [Arango::User, String])
+      if user.is_a?(String)
+        user = Arango::User.new(user: user)
+      end
+      return user
+    end
+
+    def add_user_access(grant:, user:)
+      user = check_user(user)
+      user.add_database_access(grant: grant, database: @database.name, collection: @name)
+    end
+
+    def clear_user_access(user:)
+      user = check_user(user)
+      user.clear_database_access(database: @database.name, collection: @name)
+    end
+
+    def user_access(user:)
+      user = check_user(user)
+      user.database_access(database: @database.name, collection: @name)
+    end
   end
 end
