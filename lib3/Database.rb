@@ -386,7 +386,7 @@ module Arango
       end
     end
 
-# === USER ACCESS === 
+# === USER ACCESS ===
 
     def check_user(user)
       satisfy_class?(user, "user", [Arango::User, String])
@@ -409,6 +409,21 @@ module Arango
     def user_access(user:)
       user = check_user(user)
       user.database_access(database: @name)
+    end
+
+  # == TASKS ==
+    def tasks
+      result = request(action: "GET", url: "/_api/tasks")
+      return result if return_directly?(result)
+      result["result"].map do |task|
+        Arango::Tasks.new(body: task, database: self)
+      end
+    end
+
+    def task(id: nil, name: nil, type: nil, period: nil, command: nil, params: {},
+      created: nil)
+      Arango::Tasks.new(id: id, name: name, type: type, period: period,
+        command: command, params: params, created: created, database: self)
     end
   end
 end

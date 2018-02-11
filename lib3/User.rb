@@ -1,4 +1,4 @@
-# === FOXX ===
+# === USER ===
 
 module Arango
   class User
@@ -6,17 +6,17 @@ module Arango
       active: nil)
       satisfy_class?(passwd, "passwd")
       satisfy_class?(user, "user")
-      satisfy_class?(database, "database", [Arango::Database])
+      satisfy_class?(client, "client", [Arango::Client])
       satisfy_class?(body, "body", [Hash])
       satisfy_category?(type, , "type", ["Document", "Edge"])
       @password = passwd
       @user = user
       @extra = extra
       @active = active
-      @client = @client
+      @client = client
     end
 
-    attr_reader :user, :database, :extra
+    attr_reader :user, :client, :extra
 
   # == PRIVATE ==
 
@@ -164,3 +164,5 @@ module Arango
         body: body)
       return return_directly?(result) ? result : result["result"]
     end
+  end
+end

@@ -228,12 +228,103 @@ module Arango
     end
 
   # === USER ===
+    def user(password: "", user:, extra: {}, active: nil)
+      Arango::User.new(client: self, password: "", user:, extra: {}, active: nil)
+    end
+
     def users
-      result = request(action: "GET", url: "/_api/cluster/user")
+      result = request(action: "GET", url: "/_api/user")
       return result if return_directly?(result)
       result["result"].map do |user|
         Arango::Database.new(user: user["user"], active: user["active"], extra: user["extra"], client: self)
       end
+    end
+
+  # === AGENCY ===
+
+    def agency_config
+      request(action: "GET", url: "/_api/agency/config")
+    end
+
+    def agency_write(body:, agency_mode: nil)
+      satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil], "agency_mode")
+      headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
+      request(action: "POST", url: "/_api/agency/write", headers: headers)
+    end
+
+    def agency_read(body:, agency_mode: nil)
+      satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil], "agency_mode")
+      headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
+      request(action: "POST", url: "/_api/agency/read", headers: headers)
+    end
+
+# === MISCELLANEOUS FUNCTIONS ===
+
+    def version(details: nil)
+      query = {"details": details}
+      request(action: "GET", url: "/_api/version", query: query)
+    end
+
+    def engine
+      request(action: "GET", url: "/_api/engine")
+    end
+
+    def flushWAL(waitForSync: nil, waitForCollector: nil)
+      body = {
+        "waitForSync" => waitForSync,
+        "waitForCollector" => waitForCollector
+      }
+      result = request(action: "PUT", url: "/_admin/wal/flush", body: body)
+      return return_directly?(result) ? result : true
+    end
+
+    def propertyWAL
+      request(action: "GET", url: "/_admin/wal/properties")
+    end
+
+    def changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil, historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil)
+      body = {
+        "allowOversizeEntries" => allowOversizeEntries,
+        "logfileSize" => allowOversizeEntries,
+        "historicLogfiles" => historicLogfiles,
+        "reserveLogfiles" => reserveLogfiles,
+        "throttleWait" => throttleWait,
+        "throttleWhenPending" => throttleWhenPending
+      }
+      request(action: "PUT", url: "/_admin/wal/properties", body: body)
+    end
+
+    def transactions
+      request(action: "GET", url: "/_admin/wal/transactions")
+    end
+
+    def time
+      request(action: "GET", url: "/_admin/time")
+    end
+
+    def echo
+      request(action: "GET", url: "/_admin/echo")
+    end
+
+    def echo
+      request(action: "GET", url: "/_admin/long_echo")
+    end
+
+    def target_version
+      request(action: "GET", url: "/_admin/database/target-version")
+    end
+
+    def shutdown
+      result = request(action: "DELETE", url: "/_admin/shutdown")
+      return return_directly?(result) ? result : true
+    end
+
+    def test(body:)
+      request(action: "POST", url: "/_admin/test", body: body)
+    end
+
+    def execute(body:)
+      request(action: "POST", url: "/_admin/execute", body: body)
     end
   end
 end
