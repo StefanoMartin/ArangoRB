@@ -288,6 +288,7 @@ You can manage the right of a user to access the database.
 
 ``` ruby
 myDatabase.grant user: myUser # Grant access to database
+myDatabase.grant_read user: myUser # Grant only read access to database
 myDatabase.revoke user: myUser # Revoke access to database
 ```
 
