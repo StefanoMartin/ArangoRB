@@ -56,6 +56,14 @@ class ArangoUser < ArangoServer
     return_result result: result, caseTrue: true
   end
 
+  def grant_read(database: @@database) # TESTED
+    database = database.database if database.is_a?(ArangoDatabase)
+    body = { "grant" => "ro" }.to_json
+    request = @@request.merge({ :body => body })
+    result = self.class.put("/_api/user/#{@user}/database/#{database}", request)
+    return_result result: result, caseTrue: true
+  end
+
   def revoke(database: @@database) # TESTED
     database = database.database if database.is_a?(ArangoDatabase)
     body = { "grant" => "none" }.to_json

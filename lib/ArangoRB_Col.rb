@@ -102,7 +102,7 @@ class ArangoCollection < ArangoServer
 
   # === POST ===
 
-  def create(type: nil, journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil) # TESTED
+  def create(type: @type, journalSize: nil, keyOptions: nil, waitForSync: nil, doCompact: nil, isVolatile: nil, shardKeys: nil, numberOfShards: nil, isSystem: nil, indexBuckets: nil) # TESTED
     type = 3 if type == "Edge"
     type = nil if type == "Document"
     body = {
