@@ -112,20 +112,20 @@ module Arango
       @database.request(action: "POST", url: "/_api/query", body: body)
     end
 
-    def self.properties(database:)
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "GET", url: "/_api/query/properties")
-    end
+    # def self.properties(database:)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "GET", url: "/_api/query/properties")
+    # end
 
-    def self.current(database:)
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "GET", url: "/_api/query/current")
-    end
+    # def self.current(database:)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "GET", url: "/_api/query/current")
+    # end
 
-    def self.slow(database:)
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "GET", url: "/_api/query/slow")
-    end
+    # def self.slow(database:)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "GET", url: "/_api/query/slow")
+    # end
 
 # === UPDATE ===
 
@@ -144,10 +144,10 @@ module Arango
 
 # === DELETE ===
 
-    def self.stopSlow(database:)
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "DELETE", url: "_api/query/slow")
-    end
+    # def self.stopSlow(database:)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "DELETE", url: "_api/query/slow")
+    # end
 
     def kill(id: @id) # TESTED
       @database.request(action: "DELETE", url: "query/#{id}")
@@ -155,49 +155,49 @@ module Arango
 
 # === CACHE ===
 
-    def self.clearCache(database:)
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "DELETE", url: "_api/query-cache")
-    end
+    # def self.clearCache(database:)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "DELETE", url: "_api/query-cache")
+    # end
 
-    def self.propertyCache(database:)
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "GET", url: "_api/query-cache/properties")
-    end
+    # def self.propertyCache(database:)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "GET", url: "_api/query-cache/properties")
+    # end
 
-    def self.changePropertyCache(database:, mode: nil, maxResults: nil)
-      satisfy_class?(database, "database", [Arango::Database])
-      body = { "mode" => mode, "maxResults" => maxResults }
-      database.request(action: "PUT",
-        url: "_api/query-cache/properties",
-        body: body)
-    end
+    # def self.changePropertyCache(database:, mode: nil, maxResults: nil)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   body = { "mode" => mode, "maxResults" => maxResults }
+    #   database.request(action: "PUT",
+    #     url: "_api/query-cache/properties",
+    #     body: body)
+    # end
 
 # === FUNCTION ===
 
-    def self.functions(database:, namespace: nil)
-      query = {"namespace" => namespace}
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "GET", url: "_api/aqlfunction",
-        query: query)
-    end
+    # def self.functions(database:, namespace: nil)
+    #   query = {"namespace" => namespace}
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "GET", url: "_api/aqlfunction",
+    #     query: query)
+    # end
 
-    def self.createFunction(database:, code:, name:, isDeterministic: nil)
-      satisfy_class?(database, "database", [Arango::Database])
-      body = {
-        "code" => code,
-        "name" => name,
-        "isDeterministic" => isDeterministic
-      }
-      database.request(action: "POST",
-        url: "_api/aqlfunction",
-        body: body)
-    end
-
-    def self.deleteFunction(database:, name:)
-      satisfy_class?(database, "database", [Arango::Database])
-      database.request(action: "DELETE",
-        url: "_api/aqlfunction/#{name}")
-    end
+    # def self.createFunction(database:, code:, name:, isDeterministic: nil)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   body = {
+    #     "code" => code,
+    #     "name" => name,
+    #     "isDeterministic" => isDeterministic
+    #   }
+    #   database.request(action: "POST",
+    #     url: "_api/aqlfunction",
+    #     body: body)
+    # end
+    #
+    # def self.deleteFunction(database:, name:)
+    #   satisfy_class?(database, "database", [Arango::Database])
+    #   database.request(action: "DELETE",
+    #     url: "_api/aqlfunction/#{name}")
+    # end
   end
 end

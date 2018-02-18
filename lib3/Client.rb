@@ -2,8 +2,20 @@
 
 module Arango
   class Client
+    include Helper_Error
+    include Meta_prog
+
     def initialize(username: "root", password:, server: "localhost",
-      port: "8529", verbose: false, return_output: false, initialize_retrieve: true, cluster: nil)
+      port: "8529", verbose: false, return_output: false,
+      initialize_retrieve: true, cluster: nil, warning: true)
+      [username, password, server].each do |val|
+        satisfy_class?(val)
+      end
+      [verbose, return_output, warning].each do |val|
+        satisfy_class?(val, [TrueClass, FalseClass])
+      end
+      satisfy_class?(port, [String, Integer])
+      satisfy_class?(cluster, [String, NilClass])
       @base_uri = "http://#{server}:#{port}"
       @server = server
       @port = port
@@ -13,12 +25,45 @@ module Arango
       :basic_auth => {:username => @username, :password => @password }}
       @verbose = verbose
       @return_output = return_output
-      @initialize_retrieve = initialize_retrieve
       @cluster = cluster
+      @warning = warning
+
+      define_singleton_method(key_sym)
     end
 
-    attr_reader :username, :async, :server, :port, :verbose, :return_output, :initialize_retrieve
-    attr_accessor :cluster
+    attr_reader :async, :port, :base_uri, :username
+    typesafe_accessor :cluster
+    typesafe_accessor :port, [String, Integer]
+    # If true, print debug data
+    typesafe_accessor :verbose, [TrueClass, FalseClass]
+    # Return ArangoDB output after the request
+    typesafe_accessor :return_output, [TrueClass, FalseClass]
+    # Return Warning
+    typesafe_accessor :warning, [TrueClass, FalseClass]
+
+    def username=(username)
+      satisfy_class?(username)
+      @username = username
+      @options[:basic_auth][:username] = @username
+    end
+
+    def password=(password)
+      satisfy_class?(password)
+      @password = password
+      @options[:basic_auth][:password] = @password
+    end
+
+    def port=(port)
+      satisfy_class?(port, [String, Integer])
+      @port = port
+      @base_uri = "http://#{@server}:#{@port}"
+    end
+
+    def server=(server)
+      satisfy_class?(server, [String, Integer])
+      @server = server
+      @base_uri = "http://#{@server}:#{@port}"
+    end
 
     def to_h
       {
@@ -29,21 +74,8 @@ module Arango
         "async" => @async,
         "verbose" => @verbose,
         "return_output" => @return_output,
-        "initialize_retrieve" => @initialize_retrieve,
         "cluster" => @cluster
       }.delete_if{|k,v| v.nil?}
-    end
-
-    def verbose=(verbose)
-      satisfy_class?(verbose, "verbose", [TrueClass, FalseClass])
-    end
-
-    def return_output=(return_output)
-      satisfy_class?(return_output, "return_output", [TrueClass, FalseClass])
-    end
-
-    def initialize_retrieve=(initialize_retrieve)
-      satisfy_class?(initialize_retrieve, "initialize_retrieve", [TrueClass, FalseClass])
     end
 
     def download(url:, path:, body: {}, headers: {}, query: {})
@@ -109,19 +141,20 @@ module Arango
       result = response.parsed_response
       puts result if @verbose
       if !result.is_a?(Hash) && !result.nil?
-        raise Arango::Error message: "ArangoRB didn't return a valid hash", data: result
+        raise Arango::Error message: "ArangoRB didn't return a valid hash",
+          data: result
       elsif result.is_a?(Hash) && result["error"]
-        raise Arango::Error message: result["errorMessage"], code: result["code"]
+        raise Arango::Error message: result["errorMessage"],
+          code: result["code"], data: result
       end
       return result if return_direct_result || @return_output
-      return true if action == "DELETE"
       return key.nil? ? result.delete_if{|k,v| k == "error" || k == "code"} : result[key]
     end
 
   #  == DATABASE ==
 
     def [](database)
-      satisfy_class?(database, "database")
+      satisfy_class?(database)
       Arango::Database.new(database: database, client: self)
     end
     alias database []
@@ -143,6 +176,7 @@ module Arango
   # == ASYNC ==
 
     def async=(async)
+      satisfy_category?(async, ["true", "false", false, true, "store"])
       if async == true || async == "true"
         @options[:headers]["x-arango-async"] = "true"
         @async = true
@@ -157,8 +191,9 @@ module Arango
 
   # == CLUSTER ==
 
-    def checkPort(port:)
-      query = {"port": port}
+    def checkPort(port: @port)
+      satisfy_class?(port, [String, Integer])
+      query = {"port": port.to_s}
       request(action: "GET", url: "_admin/clusterCheckPort", query: query)
     end
 
@@ -166,17 +201,13 @@ module Arango
 
     def log(upto: nil, level: nil, start: nil, size: nil, offset: nil,
       search: nil, sort: nil)
-      satisfy_category?(upto, [nil, "fatal", 0, "error", 1, "warning", 2, "info", 3, "debug", 4], "upto")
+      satisfy_category?(upto, [nil, "fatal", 0, "error", 1, "warning", 2, "info", 3, "debug", 4])
       query = {
-        "upto": upto,
-        "level": level,
-        "start": start,
-        "size": size,
-        "offset": offset,
-        "search": search,
-        "sort": sort
+        "upto": upto, "level": level, "start": start, "size": size,
+        "offset": offset, "search": search, "sort": sort
       }
-      request(action: "GET", url: "_admin/log", query: query, skip_cluster: true)
+      request(action: "GET", url: "_admin/log", query: query,
+        skip_cluster: true)
     end
 
     def loglevel
@@ -184,14 +215,15 @@ module Arango
     end
 
     def updateLoglevel(body:)
-      request(action: "PUT", url: "_admin/log/level", skip_cluster: true, body: body)
+      request(action: "PUT", url: "_admin/log/level", skip_cluster: true,
+        body: body)
     end
 
     def reload
       request(action: "POST", url: "_admin/routing/reload", skip_cluster: true)
     end
 
-    def statistics description: fals
+    def statistics
       request(action: "GET", url: "_admin/statistics", skip_cluster: true)
     end
 
@@ -201,9 +233,8 @@ module Arango
     end
 
     def role
-      result = request(action: "GET", url: "_admin/server/role", skip_cluster: true)
-      return result if return_directly?(result)
-      return result["role"]
+      request(action: "GET", url: "_admin/server/role", skip_cluster: true,
+        key: "role")
     end
 
     def server
@@ -211,6 +242,7 @@ module Arango
     end
 
     def clusterStatistics dbserver:
+      satisfy_class?(dbserver)
       query = {"DBserver": dbserver}
       request(action: "GET", url: "_admin/clusterStatistics",
         query: query, skip_cluster: true)
@@ -222,21 +254,23 @@ module Arango
       request(action: "GET", url: "/_api/cluster/endpoint")
     end
 
-    def allEndpoints(warning: true)
+    def allEndpoints(warning: @warning)
       puts "ARANGORB WARNING: allEndpoints function is deprecated" if warning
       request(action: "GET", url: "/_api/endpoint")
     end
 
   # === USER ===
     def user(password: "", user:, extra: {}, active: nil)
-      Arango::User.new(client: self, password: "", user:, extra: {}, active: nil)
+      Arango::User.new(client: self, password: password, user: user,
+        extra: extra, active: active)
     end
 
     def users
-      result = request(action: "GET", url: "/_api/user")
+      result = request(action: "GET", url: "/_api/user", key: "result")
       return result if return_directly?(result)
       result["result"].map do |user|
-        Arango::Database.new(user: user["user"], active: user["active"], extra: user["extra"], client: self)
+        Arango::Database.new(user: user["user"], active: user["active"],
+          extra: user["extra"], active: user["active"], client: self)
       end
     end
 
@@ -247,20 +281,23 @@ module Arango
     end
 
     def agency_write(body:, agency_mode: nil)
-      satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil], "agency_mode")
+      satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
       headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
-      request(action: "POST", url: "/_api/agency/write", headers: headers)
+      request(action: "POST", url: "/_api/agency/write", headers: headers,
+        body: body)
     end
 
     def agency_read(body:, agency_mode: nil)
-      satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil], "agency_mode")
+      satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
       headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
-      request(action: "POST", url: "/_api/agency/read", headers: headers)
+      request(action: "POST", url: "/_api/agency/read", headers: headers,
+        body: body)
     end
 
 # === MISCELLANEOUS FUNCTIONS ===
 
     def version(details: nil)
+      satisfy_class?(details, [TrueClass, FalseClass, NilClass])
       query = {"details": details}
       request(action: "GET", url: "/_api/version", query: query)
     end
@@ -270,6 +307,8 @@ module Arango
     end
 
     def flushWAL(waitForSync: nil, waitForCollector: nil)
+      satisfy_class?(waitForSync, [TrueClass, FalseClass, NilClass])
+      satisfy_class?(waitForCollector, [TrueClass, FalseClass, NilClass])
       body = {
         "waitForSync" => waitForSync,
         "waitForCollector" => waitForCollector
@@ -283,6 +322,12 @@ module Arango
     end
 
     def changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil, historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil)
+      satisfy_class?(allowOversizeEntries, [TrueClass, FalseClass, NilClass])
+      [logfileSize, historicLogfiles, reserveLogfiles, throttleWait,
+        throttleWhenPending].each do |val|
+        satisfy_class?(val, [Integer, NilClass])
+      end
+
       body = {
         "allowOversizeEntries" => allowOversizeEntries,
         "logfileSize" => allowOversizeEntries,
@@ -325,6 +370,11 @@ module Arango
 
     def execute(body:)
       request(action: "POST", url: "/_admin/execute", body: body)
+    end
+
+    def return_directly?(result)
+      return @async != false || @return_direct_result
+      return result if result == true
     end
   end
 end

@@ -1,6 +1,12 @@
 module Helper_Return
   def return_directly?(result)
     return @client.async != false || @client.return_direct_result
-    return result if result == true
+    return result == true
+  end
+
+  def return_element(result)
+    return result if @database.client.async != false
+    assign_attributes(result)
+    return return_directly?(result) ? result : self
   end
 end

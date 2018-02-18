@@ -2,6 +2,10 @@
 
 module Arango
   class Document
+    include Helper_Error
+    include Meta_prog
+    include Helper_Return
+
     def initialize(key:, collection:, body: {}, rev: nil, from: nil, to: nil)
       satisfy_class?(key, "key")
       satisfy_class?(collection, "collection", [Arango::Collection])
@@ -19,16 +23,18 @@ module Arango
 
     attr_reader :key, :collection, :database, :client, :id, :rev
 
-    def to_h
-      {
+    def to_h(level=0)
+      satisfy_class?(level, [Integer])
+      hash = {
         "key" => @key,
         "id" => @id,
         "rev" => @rev,
-        "collection" => @collection.name,
         "body" => @body,
         "from" => @from,
         "to" => @to
       }.delete_if{|k,v| v.nil?}
+      hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
+      hash
     end
 
 # == PRIVATE ==
@@ -42,13 +48,6 @@ module Arango
       @to = result["_to"]
     end
 
-    def return_document(result)
-      return result if @database.client.async != false
-      assign_attributes(result)
-      return return_directly?(result) ? result : self
-    end
-
-
 # == GET ==
 
     def retrieve(if_none_match: false, if_match: false)
@@ -57,7 +56,7 @@ module Arango
       headers["If-Match"] = @rev if if_none_match
       result = @database.request(action: "GET", headers: headers,
         url: "_api/document/#{@id}")
-      return_document(result)
+      return_element(result)
     end
 
 # == HEAD ==
@@ -163,7 +162,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @document.request(action: "DELETE",
         url: "_api/document/#{@id}", query: query, headers: headers)
-      return_document(result)
+      return_element(result)
     end
 
   # === EDGE ===

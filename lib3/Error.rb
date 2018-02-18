@@ -7,6 +7,6 @@ module Arango
       @code = code
       super(message)
     end
-    attr_reader :data, :code
+    attr_reader :data, :code, :message
   end
 end
