@@ -8,14 +8,6 @@ module Arango
     def initialize(username: "root", password:, server: "localhost",
       port: "8529", verbose: false, return_output: false,
       initialize_retrieve: true, cluster: nil, warning: true)
-      [username, password, server].each do |val|
-        satisfy_class?(val)
-      end
-      [verbose, return_output, warning].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass])
-      end
-      satisfy_class?(port, [String, Integer])
-      satisfy_class?(cluster, [String, NilClass])
       @base_uri = "http://#{server}:#{port}"
       @server = server
       @port = port
@@ -32,35 +24,24 @@ module Arango
     end
 
     attr_reader :async, :port, :base_uri, :username
-    typesafe_accessor :cluster
-    typesafe_accessor :port, [String, Integer]
-    # If true, print debug data
-    typesafe_accessor :verbose, [TrueClass, FalseClass]
-    # Return ArangoDB output after the request
-    typesafe_accessor :return_output, [TrueClass, FalseClass]
-    # Return Warning
-    typesafe_accessor :warning, [TrueClass, FalseClass]
+    attr_accessor :cluster, :port, :verbose, :return_output, :warning
 
     def username=(username)
-      satisfy_class?(username)
       @username = username
       @options[:basic_auth][:username] = @username
     end
 
     def password=(password)
-      satisfy_class?(password)
       @password = password
       @options[:basic_auth][:password] = @password
     end
 
     def port=(port)
-      satisfy_class?(port, [String, Integer])
       @port = port
       @base_uri = "http://#{@server}:#{@port}"
     end
 
     def server=(server)
-      satisfy_class?(server, [String, Integer])
       @server = server
       @base_uri = "http://#{@server}:#{@port}"
     end
@@ -154,13 +135,11 @@ module Arango
   #  == DATABASE ==
 
     def [](database)
-      satisfy_class?(database)
       Arango::Database.new(database: database, client: self)
     end
     alias database []
 
     def databases(user: nil)
-      satisfy_class?(user, "user", [NilClass, String, Arango::User])
       if user.nil?
         result = request(action: "GET", url: "_api/database")
       else
@@ -192,7 +171,6 @@ module Arango
   # == CLUSTER ==
 
     def checkPort(port: @port)
-      satisfy_class?(port, [String, Integer])
       query = {"port": port.to_s}
       request(action: "GET", url: "_admin/clusterCheckPort", query: query)
     end
@@ -242,7 +220,6 @@ module Arango
     end
 
     def clusterStatistics dbserver:
-      satisfy_class?(dbserver)
       query = {"DBserver": dbserver}
       request(action: "GET", url: "_admin/clusterStatistics",
         query: query, skip_cluster: true)
@@ -251,12 +228,12 @@ module Arango
   # === ENDPOINT ===
 
     def endpoints
-      request(action: "GET", url: "/_api/cluster/endpoint")
+      request(action: "GET", url: "_api/cluster/endpoint")
     end
 
     def allEndpoints(warning: @warning)
       puts "ARANGORB WARNING: allEndpoints function is deprecated" if warning
-      request(action: "GET", url: "/_api/endpoint")
+      request(action: "GET", url: "_api/endpoint")
     end
 
   # === USER ===
@@ -266,7 +243,7 @@ module Arango
     end
 
     def users
-      result = request(action: "GET", url: "/_api/user", key: "result")
+      result = request(action: "GET", url: "_api/user", key: "result")
       return result if return_directly?(result)
       result["result"].map do |user|
         Arango::Database.new(user: user["user"], active: user["active"],
@@ -277,52 +254,49 @@ module Arango
   # === AGENCY ===
 
     def agency_config
-      request(action: "GET", url: "/_api/agency/config")
+      request(action: "GET", url: "_api/agency/config")
     end
 
     def agency_write(body:, agency_mode: nil)
       satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
       headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
-      request(action: "POST", url: "/_api/agency/write", headers: headers,
+      request(action: "POST", url: "_api/agency/write", headers: headers,
         body: body)
     end
 
     def agency_read(body:, agency_mode: nil)
       satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
       headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
-      request(action: "POST", url: "/_api/agency/read", headers: headers,
+      request(action: "POST", url: "_api/agency/read", headers: headers,
         body: body)
     end
 
 # === MISCELLANEOUS FUNCTIONS ===
 
     def version(details: nil)
-      satisfy_class?(details, [TrueClass, FalseClass, NilClass])
       query = {"details": details}
-      request(action: "GET", url: "/_api/version", query: query)
+      request(action: "GET", url: "_api/version", query: query)
     end
 
     def engine
-      request(action: "GET", url: "/_api/engine")
+      request(action: "GET", url: "_api/engine")
     end
 
     def flushWAL(waitForSync: nil, waitForCollector: nil)
-      satisfy_class?(waitForSync, [TrueClass, FalseClass, NilClass])
-      satisfy_class?(waitForCollector, [TrueClass, FalseClass, NilClass])
       body = {
         "waitForSync" => waitForSync,
         "waitForCollector" => waitForCollector
       }
-      result = request(action: "PUT", url: "/_admin/wal/flush", body: body)
+      result = request(action: "PUT", url: "_admin/wal/flush", body: body)
       return return_directly?(result) ? result : true
     end
 
     def propertyWAL
-      request(action: "GET", url: "/_admin/wal/properties")
+      request(action: "GET", url: "_admin/wal/properties")
     end
 
-    def changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil, historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil)
-      satisfy_class?(allowOversizeEntries, [TrueClass, FalseClass, NilClass])
+    def changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil,
+      historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil)
       [logfileSize, historicLogfiles, reserveLogfiles, throttleWait,
         throttleWhenPending].each do |val|
         satisfy_class?(val, [Integer, NilClass])
@@ -336,40 +310,40 @@ module Arango
         "throttleWait" => throttleWait,
         "throttleWhenPending" => throttleWhenPending
       }
-      request(action: "PUT", url: "/_admin/wal/properties", body: body)
+      request(action: "PUT", url: "_admin/wal/properties", body: body)
     end
 
     def transactions
-      request(action: "GET", url: "/_admin/wal/transactions")
+      request(action: "GET", url: "_admin/wal/transactions")
     end
 
     def time
-      request(action: "GET", url: "/_admin/time")
+      request(action: "GET", url: "_admin/time")
     end
 
     def echo
-      request(action: "GET", url: "/_admin/echo")
+      request(action: "GET", url: "_admin/echo")
     end
 
     def echo
-      request(action: "GET", url: "/_admin/long_echo")
+      request(action: "GET", url: "_admin/long_echo")
     end
 
     def target_version
-      request(action: "GET", url: "/_admin/database/target-version")
+      request(action: "GET", url: "_admin/database/target-version")
     end
 
     def shutdown
-      result = request(action: "DELETE", url: "/_admin/shutdown")
+      result = request(action: "DELETE", url: "_admin/shutdown")
       return return_directly?(result) ? result : true
     end
 
     def test(body:)
-      request(action: "POST", url: "/_admin/test", body: body)
+      request(action: "POST", url: "_admin/test", body: body)
     end
 
     def execute(body:)
-      request(action: "POST", url: "/_admin/execute", body: body)
+      request(action: "POST", url: "_admin/execute", body: body)
     end
 
     def return_directly?(result)

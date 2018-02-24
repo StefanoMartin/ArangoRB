@@ -5,7 +5,7 @@ module Helper_Return
   end
 
   def return_element(result)
-    return result if @database.client.async != false
+    return result if @client.async != false
     assign_attributes(result)
     return return_directly?(result) ? result : self
   end

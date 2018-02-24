@@ -6,46 +6,88 @@ module Arango
     include Meta_prog
     include Helper_Return
 
-    def initialize(key:, collection:, body: {}, rev: nil, from: nil, to: nil)
-      satisfy_class?(key, "key")
+    def initialize(name:, collection:, body: {}, rev: nil, from: nil, to: nil)
       satisfy_class?(collection, "collection", [Arango::Collection])
       @collection = collection
       @database = @collection.database
       @client = @database.client
-      body["_key"] ||= key
+      body["_key"] ||= name
       body["_rev"] ||= rev
       body["_to"] ||= to
       body["_from"] || from
-      body["_id"] ||= "#{@collection.name}/#{@key}"
+      body["_id"] ||= "#{@collection.name}/#{name}"
       assign_attributes(body)
-      ignore_exception(retrieve) if @client.initialize_retrieve
+      ["name", "rev", "from", "to", "key"].each do |attribute|
+        define_method(:"=#{attribute}") do |attrs|
+          temp_attrs = attribute
+          temp_attrs = "key" if attribute == "name"
+          body["_#{temp_attrs}"] = attrs
+          assign_attributes(body)
+        end
+      end
     end
 
-    attr_reader :key, :collection, :database, :client, :id, :rev
+    attr_reader :name, :collection, :database, :client, :id, :rev, :body,
+      :from, :to
+    alias_method :key, :name
+
+    def collection=(collection)
+      satisfy_class?(collection, [Arango::Collection])
+      @collection = collection
+      @database = @collection.database
+      @client = @database.client
+    end
+
+    def body=(body)
+      assign_attributes(body)
+    end
 
     def to_h(level=0)
-      satisfy_class?(level, [Integer])
       hash = {
-        "key" => @key,
+        "name" => @name,
         "id" => @id,
         "rev" => @rev,
-        "body" => @body,
-        "from" => @from,
-        "to" => @to
-      }.delete_if{|k,v| v.nil?}
+        "body" => @body
+      }
       hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
+      hash["from"] = level > 0 ? @from.to_h(level-1) : @fromo&.name
+      hash["to"] = level > 0 ? @to.to_h(level-1) : @too&.name
+      hash.delete_if{|k,v| v.nil?}
       hash
+    end
+
+    def set_up_from_or_to(attrs, var)
+      if var.is_a?(NilClass)
+        instance = nil
+        string = nil
+      elsif var.is_a?(String)
+        if !var.is_a?(String) || !var.include?("/")
+          Arango::Error message: "#{attrs} is not a valid document id or an Arango::Document"
+        end
+        collection_name, document_name = var.split("/")
+        collection = Arango::Collection name: collection_name, database: @database
+        instance = Arango::Document name: document_name
+        string = var
+      elsif var.is_a?(Arango::Document)
+        instance = var
+        string = var.name
+      else
+        Arango::Error message: "#{attrs} is not a valid document id or an Arango::Document"
+      end
+      instance_variable_set("@#{attrs}", instance)
+      instance_variable_set("@#{attrs}_string", string)
+      @body["_#{attrs}"] = string unless string.nil?
     end
 
 # == PRIVATE ==
 
     def assign_attributes(result)
       @body = result.delete_if{|k,v| v.nil?}
-      @key = result["_key"]
+      @name = result["_key"]
       @id = result["_id"]
       @rev = result["_rev"]
-      @from = result["_from"]
-      @to = result["_to"]
+      set_up_from_or_to("from", result["_from"])
+      set_up_from_or_to("to", result["_to"])
     end
 
 # == GET ==
@@ -53,7 +95,7 @@ module Arango
     def retrieve(if_none_match: false, if_match: false)
       headers = {}
       headers["If-None-Match"] = @rev if if_none_match
-      headers["If-Match"] = @rev if if_none_match
+      headers["If-Match"]      = @rev if if_none_match
       result = @database.request(action: "GET", headers: headers,
         url: "_api/document/#{@id}")
       return_element(result)
@@ -64,7 +106,7 @@ module Arango
     def head(if_none_match: false, if_match: false)
       headers = {}
       headers["If-None-Match"] = @rev if if_none_match
-      headers["If-Match"] = @rev if if_none_match
+      headers["If-Match"]      = @rev if if_none_match
       @database.request(action: "HEAD", headers: headers,
         url: "_api/document/#{@id}")
     end
@@ -75,8 +117,8 @@ module Arango
       body = @body.merge(body)
       query = {
         "waitForSync" => waitForSync,
-        "returnNew" => returnNew,
-        "silent" => silent
+        "returnNew"   => returnNew,
+        "silent"      => silent
       }
       result = @database.request(action: "POST", body: body,
         query: query, url: "_api/document/#{@collection.name}" )
@@ -93,13 +135,14 @@ module Arango
 
 # == PUT ==
 
-    def replace(body: {}, waitForSync: nil, ignoreRevs: nil, returnOld: nil, returnNew: nil, silent: nil, if_match: false)
+    def replace(body: {}, waitForSync: nil, ignoreRevs: nil, returnOld: nil,
+      returnNew: nil, silent: nil, if_match: false)
       query = {
         "waitForSync" => waitForSync,
-        "returnNew" => returnNew,
-        "returnOld" => returnOld,
-        "ignoreRevs" => ignoreRevs,
-        "silent" => silent
+        "returnNew"   => returnNew,
+        "returnOld"   => returnOld,
+        "ignoreRevs"  => ignoreRevs,
+        "silent"      => silent
       }
       headers = {}
       headers["If-Match"] = @rev if if_match
@@ -121,12 +164,12 @@ module Arango
       mergeObjects: nil, silent: nil, if_match: false)
       query = {
         "waitForSync" => waitForSync,
-        "returnNew" => returnNew,
-        "returnOld" => returnOld,
-        "ignoreRevs" => ignoreRevs,
-        "keepNull" => keepNull,
+        "returnNew"   => returnNew,
+        "returnOld"   => returnOld,
+        "ignoreRevs"  => ignoreRevs,
+        "keepNull"    => keepNull,
         "mergeObjects" => mergeObjects,
-        "silent" => silent
+        "silent"      => silent
       }
       headers = {}
       headers["If-Match"] = @rev if if_match
@@ -152,11 +195,12 @@ module Arango
 
   # === DELETE ===
 
-    def destroy(body: nil, waitForSync: nil, silent: nil, returnOld: nil, if_match: false)
+    def destroy(body: nil, waitForSync: nil, silent: nil, returnOld: nil,
+      if_match: false)
       query = {
         "waitForSync" => waitForSync,
-        "returnOld" => returnOld,
-        "silent" => silent
+        "returnOld"   => returnOld,
+        "silent"      => silent
       }
       headers = {}
       headers["If-Match"] = @rev if if_match
@@ -167,12 +211,6 @@ module Arango
 
   # === EDGE ===
 
-    def create_edge(id, body={})
-      collection_name, key = id.split("/")
-      collection = Arango::Collection.new(name: collection_name, database: @database, type: "Edge")
-      Arango::Document.new(key: key, body: body, collection: collection)
-    end
-
     def edges(direction: nil)
       query = {
         "vertex" => @name,
@@ -182,10 +220,12 @@ module Arango
         url: "_api/edges/#{@collection.name}", query: query)
       return result if return_directly?(result)
       result["edges"].map do |edge|
-        create_edge(edge["_id"], edge)
+        collection_name, key = edge["_id"].split("/")
+        collection = Arango::Collection.new(name: collection_name,
+          database: @database, type: "Edge")
+        Arango::Document.new(name: key, body: body, collection: collection)
       end
     end
-    alias edges any
 
     def out
       edges(direction: "out")
@@ -193,14 +233,6 @@ module Arango
 
     def in
       edges(direction: "in")
-    end
-
-    def from
-      create_edge(@from)
-    end
-
-    def to
-      create_edge(@to)
     end
   end
 end

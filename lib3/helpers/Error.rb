@@ -31,4 +31,10 @@ module Helper_Error
     rescue Exception
     end
   end
+
+  def warning_deprecated(warning, name)
+    if warning
+      puts "ARANGORB WARNING: #{name} function is deprecated"
+    end
+  end
 end

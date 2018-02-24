@@ -7,7 +7,6 @@ module Arango
     include Helper_Return
 
     def initialize(name:, client:)
-      satisfy_class?(name)
       satisfy_class?(client, [Arango::Client])
       @name = name
       @client = client
@@ -18,11 +17,10 @@ module Arango
     end
 
     attr_reader :isSystem, :path, :id
-    typesafe_accessor :name
+    attr_accessor: :name
     typesafe_accessor :client, [Arango::Client]
 
     def to_h(level=0)
-      satisfy_class?(level, [Integer])
       hash = {
         "name" => @name,
         "isSystem" => @isSystem,
@@ -61,19 +59,18 @@ module Arango
 # === POST ===
 
     def create(name: @name, users: nil)
-      satisfy_class?(users, "users", [Hash], true)
       body = {
         "name" => name,
         "users" => users
       }
-      result = @client.request(action: "POST", url: "/_api/database", body: body)
+      result = @client.request(action: "POST", url: "_api/database", body: body)
       return return_directly?(result) ? result : self
     end
 
 # == DELETE ==
 
     def destroy
-      @client.request(action: "DELETE", url: "/_api/database/#{@database}")
+      @client.request(action: "DELETE", url: "_api/database/#{@database}")
     end
 
 # == COLLECTION ==
@@ -100,7 +97,7 @@ module Arango
 # == GRAPH ==
 
     def graphs
-      result = request(action: "GET", url: "/_api/gharial")
+      result = request(action: "GET", url: "_api/gharial")
       return result if return_directly?(result)
       result["graphs"].each do |graph|
         Arango::Graph.new(database: self, key: graph["_key"], body: graph)
@@ -117,7 +114,7 @@ module Arango
 # == QUERY ==
 
     def query_properties
-      request(action: "GET", url: "/_api/query/properties")
+      request(action: "GET", url: "_api/query/properties")
     end
 
     def change_query_properties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil, trackBindVars: nil)
@@ -127,11 +124,11 @@ module Arango
     end
 
     def current_query
-      request(action: "GET", url: "/_api/query/current")
+      request(action: "GET", url: "_api/query/current")
     end
 
     def slow_queries
-      request(action: "GET", url: "/_api/query/slow")
+      request(action: "GET", url: "_api/query/slow")
     end
 
     def stop_slow_queries
@@ -148,7 +145,6 @@ module Arango
 
     def change_property_query_cache(mode:, maxResults: nil)
       satisfy_category?(mode, ["off", "on", "demand"])
-      satisfy_class?(maxResults, [Integer])
       body = { "mode" => mode, "maxResults" => maxResults }
       database.request(action: "PUT", url: "_api/query-cache/properties",
         body: body)
@@ -157,7 +153,6 @@ module Arango
 # === FUNCTION ===
 
     def functions(namespace: nil)
-      satisfy_class?(namespace, [String, NilClass])
       query = {"namespace" => namespace}
       request(action: "GET", url: "_api/aqlfunction",
         query: query)
@@ -165,8 +160,6 @@ module Arango
     end
 
     def createFunction(code:, name:, isDeterministic: nil)
-      satisfy_class?(code)
-      satisfy_class?(name)
       body = {
         "code" => code, "name" => name, "isDeterministic" => isDeterministic
       }
@@ -174,34 +167,28 @@ module Arango
     end
 
     def deleteFunction(name:)
-      satisfy_class?(name)
       request(action: "DELETE",  url: "_api/aqlfunction/#{name}")
     end
 
 # === ASYNC ===
 
     def fetchAsync(id:)
-      satisfy_class?(id)
-      request(action: "PUT", url: "/_api/job/#{id}")
+      request(action: "PUT", url: "_api/job/#{id}")
     end
 
     def cancelAsync(id:)
-      satisfy_class?(id)
-      request(action: "PUT", url: "/_api/job/#{id}/cancel")
+      request(action: "PUT", url: "_api/job/#{id}/cancel")
     end
 
     def destroyAsync(id:, stamp: nil)
-      satisfy_class?(id)
-      satisfy_class?(stamp, [String, NilClass])
       query = {"stamp" => stamp}
-      request(action: "DELETE", url: "/_api/job/#{id}", "query" => query)
+      request(action: "DELETE", url: "_api/job/#{id}", "query" => query)
     end
 
     def destroyAsyncByType(type:, stamp: nil)
       satisfy_category?(type, ["all", "expired"])
-      satisfy_class?(stamp, [String, NilClass])
       query = {"stamp" => stamp}
-      request(action: "DELETE", url: "/_api/job/#{type}", "query" => query)
+      request(action: "DELETE", url: "_api/job/#{type}", "query" => query)
     end
 
     def destroyAllAsync
@@ -213,39 +200,32 @@ module Arango
     end
 
     def retrieveAsync(id:)
-      satisfy_class?(id)
-      request(action: "GET", url: "/_api/job/#{id}")
+      request(action: "GET", url: "_api/job/#{id}")
     end
 
     def retrieveAsyncByType(type:, count: nil)
-      satisfy_category?(type, ["done", "pending"], "type")
-      satisfy_class?(count, [Integer, NilClass])
+      satisfy_category?(type, ["done", "pending"])
       query = {"count" => count}
-      request(action: "GET", url: "/_api/job/#{type}", query: query)
+      request(action: "GET", url: "_api/job/#{type}", query: query)
     end
 
     def retrieveDoneAsync(count: nil)
-      satisfy_class?(count, [Integer, NilClass])
       retrieveAsyncByType(type: "done", count: count)
     end
 
     def retrievePendingAsync(count: nil)
-      satisfy_class?(count, [Integer, NilClass])
       retrieveAsyncByType(type: "pending", count: count)
     end
 
     # === REPLICATION ===
 
     def inventory(includeSystem: false)
-      satisfy_class?(includeSystem, [FalseClass, TrueClass])
       query = { "includeSystem": includeSystem }
-      request(action: "GET", url: "/api/replication/inventory",
+      request(action: "GET", url: "api/replication/inventory",
         query: query)
     end
 
     def createDumpBatch(ttl:, dbserver: nil)
-      satisfy_class?(dbserver, [String, NilClass])
-      satisfy_class?(ttl, [Integer])
       query = { "DBserver" => dbserver }
       body = { "ttl" => ttl }
       result = request(action: "POST", url: "_api/replication/batch",
@@ -255,17 +235,12 @@ module Arango
     end
 
     def destroyDumpBatch(id:, dbserver: nil)
-      satisfy_class?(id)
-      satisfy_class?(dbserver, [String, NilClass])
       query = {"DBserver" => dbserver}
       request(action: "DELETE", url: "_api/replication/batch/#{id}",
         body: body, query: query)
     end
 
     def prolongDumpBatch(id:, ttl:, dbserver: nil)
-      satisfy_class?(id)
-      satisfy_class?(dbserver, [String, NilClass])
-      satisfy_class?(ttl, [Integer])
       query = { "DBserver" => dbserver }
       body = { "ttl" => ttl }
       result = request(action: "PUT", url: "_api/replication/batch/#{id}",
@@ -277,13 +252,7 @@ module Arango
     def sync(endpoint:, username: nil, password:, includeSystem: nil,
       initialSyncMaxWaitTime: 0, restrictType: nil, incremental: nil,
       restrictCollections: nil, database: @name)
-      satisfy_class?(username, [String, NilClass])
-      satisfy_class?(includeSystem, [TrueClass, FalseClass, NilClass])
-      satisfy_class?(endpoint)
-      satisfy_class?(initialSyncMaxWaitTime, [Integer])
-      satisfy_class?(database)
       satisfy_category?(restrictType, ["include", "exclude", nil])
-      satisfy_class?(incremental, [NilClass, TrueClass, FalseClass])
       satisfy_category?(restrictCollections, ["include", "exclude", nil])
       satisfy_class?(password)
       body = {
@@ -301,7 +270,6 @@ module Arango
     end
 
     def clusterInventory(includeSystem: nil)
-      satisfy_class?(includeSystem, [TrueClass, FalseClass, NilClass])
       query = { "includeSystem": includeSystem }
       request(action: "GET", url: "_api/replication/clusterInventory", query: query)
     end
@@ -311,10 +279,6 @@ module Arango
     end
 
     def loggerFollow(from: nil, to: nil, chunkSize: nil, includeSystem: nil)
-      satisfy_class?(from, [String, Integer, NilClass])
-      satisfy_class?(to, [String, Integer, NilClass])
-      satisfy_class?(chunkSize, [ Integer, NilClass])
-      satisfy_class?(includeSystem, [TrueClass, FalseClass, NilClass])
       query = {
         "from": from,
         "to": to,
@@ -344,19 +308,6 @@ module Arango
       initialSyncMaxWaitTime: nil, maxConnectRetries: nil,
       autoStart: nil, adaptivePolling: nil, connectionRetryWaitTime: nil,
       autoResyncRetries: nil, chunkSize: nil, database: @name)
-      [endpoint, database, username, password,
-        restrictCollections].each do |val|
-        satisfy_class?(val, [String, NilClass])
-      end
-      [maxConnectRetries, connectTimeout, requestTimeout, autoResyncRetries,
-        initialSyncMaxWaitTime, initialSyncMaxWaitTime, idleMinWaitTime,
-        idleMaxWaitTime].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
-      [autoStart, adaptivePolling, includeSystem, autoResync,
-        requireFromPresent, verbose].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
       satisfy_category?(restrictType, ["include", "exclude", nil])
       body = {
         "username" => username,
@@ -408,21 +359,6 @@ module Arango
       initialSyncMaxWaitTime: nil, maxConnectRetries: nil,
       adaptivePolling: nil, connectionRetryWaitTime: nil,
       autoResyncRetries: nil, chunkSize: nil, database: @name)
-      [endpoint].each do |val|
-        satisfy_class?(val)
-      end
-      [username, database, restrictCollections, password].each do |val|
-        satisfy_class?(val, [String, NilClass])
-      end
-      [includeSystem, verbose, autoResync, requireFromPresent,
-        adaptivePolling].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
-      [connectTimeout, idleMinWaitTime, requestTimeout, idleMaxWaitTime,
-        initialSyncMaxWaitTime, maxConnectRetries, connectionRetryWaitTime,
-        autoResyncRetries, chunkSize].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
       satisfy_category?(restrictType, ["include", "exclude", nil])
       body = {
         "username" => username,
@@ -467,10 +403,7 @@ module Arango
 # === USER ACCESS ===
 
     def check_user(user)
-      satisfy_class?(user, [Arango::User, String])
-      if user.is_a?(String)
-        user = Arango::User.new(user: user)
-      end
+      user = Arango::User.new(user: user) if user.is_a?(String)
       return user
     end
 
@@ -491,7 +424,7 @@ module Arango
 
   # == TASKS ==
     def tasks
-      result = request(action: "GET", url: "/_api/tasks")
+      result = request(action: "GET", url: "_api/tasks")
       return result if return_directly?(result)
       result["result"].map do |task|
         Arango::Tasks.new(body: task, database: self)

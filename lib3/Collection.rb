@@ -7,9 +7,7 @@ module Arango
     include Helper_Return
 
     def initialize(name:, database:, body: {}, type: "Document")
-      satisfy_class?(name)
       satisfy_class?(database, [Arango::Database])
-      satisfy_class?(body, [Hash])
       satisfy_category?(type, ["Document", "Edge"])
       @name = name
       @database = database
@@ -22,14 +20,17 @@ module Arango
       ignore_exception(retrieve) if @client.initialize_retrieve
     end
 
-    attr_reader :status, :isSystem, :id, :client
-    typesafe_accessor :name
-    typesafe_accessor :body, Hash
+    attr_reader :status, :isSystem, :id, :client, :body, :database
+    attr_accessor :name
 
     def database=(database)
       satisfy_class?(database, [Arango::Database])
       @database = database
       @client = @database.client
+    end
+
+    def body=(body)
+      assign_attributes(body)
     end
 
     def type=(type)
@@ -39,7 +40,6 @@ module Arango
     end
 
     def to_h(level=0)
-      satisfy_class?(level, [Integer])
       hash = {
         "name" => @name,
         "type" => @type,
@@ -98,8 +98,6 @@ module Arango
     end
 
     def checksum(withRevisions: nil, withData: nil)
-      satisfy_class?(withRevisions, [TrueClass, FalseClass, NilClass])
-      satisfy_class?(withData, [TrueClass, FalseClass, NilClass])
       query = {
         "withRevisions": withRevisions,
         "withData": withData
@@ -116,15 +114,6 @@ module Arango
       waitForSync: nil, doCompact: nil,
       isVolatile: nil, shardKeys: nil, numberOfShards: nil,
       isSystem: nil, type: @type, indexBuckets: nil, distributeShardsLike: nil)
-      [shardKeys, distributeShardsLike].each do |val|
-        satisfy_class?(val)
-      end
-      [journalSize, replicationFactor, incrementKeyGenerator, offsetKeyGenerator, indexBuckets].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
-      [allowUserKeys, waitForSync, doCompact, isVolatile, numberOfShards, isSystem].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
       satisfy_category?(typeKeyGenerator, [nil, "traditional", "autoincrement"])
       satisfy_category?(type, ["Edge", "Document", 2, 3, nil])
       keyOptions = {
@@ -164,27 +153,23 @@ module Arango
 # === DELETE ===
 
     def destroy
-      @database.request(action: "DELETE",
-        url: "_api/collection/#{@name}")
+      @database.request(action: "DELETE", url: "_api/collection/#{@name}")
     end
 
     def truncate
-      result = @database.request(action: "PUT",
-        url: "_api/collection/#{@name}/truncate")
+      result = @database.request(action: "PUT", url: "_api/collection/#{@name}/truncate")
       return_element(result)
     end
 
 # === MODIFY ===
 
     def load
-      result = @database.request(action: "PUT",
-        url: "_api/collection/#{@name}/load")
+      result = @database.request(action: "PUT", url: "_api/collection/#{@name}/load")
       return_element(result)
     end
 
     def unload
-      result = @database.request(action: "PUT",
-        url: "_api/collection/#{@name}/unload")
+      result = @database.request(action: "PUT", url: "_api/collection/#{@name}/unload")
       return_element(result)
     end
 
@@ -194,8 +179,6 @@ module Arango
     end
 
     def change(waitForSync: nil, journalSize: nil)
-      satisfy_class?(journalSize, [Integer, NilClass])
-      satisfy_class?(waitForSync, [TrueClass, FalseClass, NilClass])
       body = {
         "journalSize" => journalSize,
         "waitForSync" => waitForSync
@@ -206,7 +189,6 @@ module Arango
     end
 
     def rename(newName:)
-      satisfy_class?(newName)
       body = { "name" => newName }
       result = @database.request(action: "PUT", body: body,
         url: "_api/collection/#{@name}/rename")
@@ -214,8 +196,7 @@ module Arango
     end
 
     def rotate
-      @database.request(action: "PUT",
-        url: "_api/collection/#{@name}/rotate")
+      @database.request(action: "PUT", url: "_api/collection/#{@name}/rotate")
       return true
     end
 
@@ -245,11 +226,8 @@ module Arango
       end
     end
 
-    def create_documents(body: [], waitForSync: nil, returnNew: nil, silent: nil)
-      satisfy_class?(body, "body", [Hash, Arango::Document], nil, true)
-      [waitForSync, returnNew, silent].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
+    def create_documents(body: [], waitForSync: nil, returnNew: nil,
+      silent: nil)
       body = body.each do |x|
         x = x.body if x.is_a?(Arango::Document)
       end
@@ -276,10 +254,6 @@ module Arango
 
     def replace_documents(body: {}, waitForSync: nil, ignoreRevs: nil,
       returnOld: nil, returnNew: nil)
-      satisfy_class?(body, "body", [Hash, Arango::Document], nil, true)
-      [waitForSync, ignoreRevs, returnNew, returnOld].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
       body = body.each do |x|
         x = x.body if x.is_a?(Arango::Document)
       end
@@ -308,11 +282,6 @@ module Arango
     def update_documents(body: {}, waitForSync: nil, ignoreRevs: nil,
       returnOld: nil, returnNew: nil, keepNull: nil,
       mergeObjects: nil)
-      satisfy_class?(body, "body", [Hash, Arango::Document], nil, true)
-      [waitForSync, ignoreRevs, returnNew, returnOld, keepNull,
-        mergeObjects].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
       body = body.each do |x|
         x = x.body if x.is_a?(Arango::Document)
       end
@@ -341,10 +310,6 @@ module Arango
     end
 
     def destroy_documents(body: {}, waitForSync: nil, returnOld: nil, ignoreRevs: nil)
-      satisfy_class?(body, "body", [Hash, Arango::Document], nil, true)
-      [waitForSync, ignoreRevs, returnOld].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
       body = body.each do |x|
         x = x.body if x.is_a?(Arango::Document)
       end
@@ -363,7 +328,8 @@ module Arango
       result = @database.request(action: "PUT", url: url, body: body)
       return result if return_directly?(result)
       if single
-        Arango::Document.new(key: result["document"]["_key"], collection: self, body:  result["document"])
+        Arango::Document.new(key: result["document"]["_key"], collection: self,
+          body:  result["document"])
       else
         result["result"].map do |x|
           Arango::Document.new(key: x["_key"], collection: self, body: x)
@@ -373,9 +339,6 @@ module Arango
     private :generic_document_search
 
     def allDocuments(skip: nil, limit: nil, batchSize: nil)
-      [skip, limit, batchSize].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
       body = {
         "collection" => @name,
         "skip" => skip,
@@ -386,9 +349,6 @@ module Arango
     end
 
     def documentsMatch(match:, skip: nil, limit: nil, batchSize: nil)
-      [skip, limit, batchSize].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
       body = {
         "collection" => @name,
         "example" => match,
@@ -408,7 +368,6 @@ module Arango
     end
 
     def documentByKeys(keys:)
-      satisfy_class?(keys, [String, Arango::Document], nil, true]
       if keys.is_a? Array
         keys = keys.map do |x|
           x.is_a?(Arango::Document) ? x.key : x
@@ -430,13 +389,9 @@ module Arango
     end
 
     def removeByKeys(keys:, returnOld: nil, silent: nil, waitForSync: nil)
-      [returnOld, silent, waitForSync].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
       options = {"returnOld" => returnOld, "silent" => silent,
         "waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
       options = nil if options.empty?
-      satisfy_class?(keys, [String, Arango::Document], nil, true]
       if keys.is_a? Array
         keys = keys.map do |x|
           x.is_a?(String) ? x : x.key
@@ -456,8 +411,6 @@ module Arango
     end
 
     def removeMatch(match:, limit: nil, waitForSync: nil)
-      satisfy_class?(limit, [Integer, NilClass])
-      satisfy_class?(waitForSync, [TrueClass, FalseClass, NilClass])
       options = {"limit" => limit,
         "waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
       options = nil if options.empty?
@@ -471,8 +424,6 @@ module Arango
     end
 
     def replaceMatch(match:, newValue:, limit: nil, waitForSync: nil)
-      satisfy_class?(limit, [Integer, NilClass])
-      satisfy_class?(waitForSync, [TrueClass, FalseClass, NilClass])
       options = {"limit" => limit,
         "waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
       options = nil if options.empty?
@@ -485,11 +436,8 @@ module Arango
       @database.request(action: "PUT", url: "_api/simple/replace-by-example", body: body, key: "replaced")
     end
 
-    def updateMatch(match:, newValue:, keepNull: nil, mergeObjects: nil, limit: nil, waitForSync: nil)
-      [keepNull, mergeObjects, waitForSync].each do |val|
-        satisfy_class?(val, [TrueClass, FalseClass, NilClass])
-      end
-      satisfy_class?(limit, [Integer, NilClass])
+    def updateMatch(match:, newValue:, keepNull: nil, mergeObjects: nil, limit: nil,
+      waitForSync: nil)
       options = {"keepNull" => keepNull,
         "mergeObjects" => mergeObjects, "limit" => limit,
         "waitForSync" => waitForSync}.delete_if{|k,v| v.nil?}
@@ -505,20 +453,9 @@ module Arango
 
 # === SIMPLE DEPRECATED ===
 
-    def range(right:, attribute:, limit: nil, closed: true, skip: nil, left:, warning: @client.warning)
-      [right, left].each do |val|
-        satisfy_class?(val, [Integer])
-      end
-      [limit, skip].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
-      satisfy_class?(attribute, [String])
-      [warning, closed].each do |val|
-        satisfy_class?(val, [FalseClass, TrueClass])
-      end
-      if warning
-        puts "ARANGORB WARNING: range function is deprecated"
-      end
+    def range(right:, attribute:, limit: nil, closed: true, skip: nil, left:,
+      warning: @client.warning)
+      warning_deprecated(warning, "range")
       body = {
         "right" => right,
         "attribute" => attribute,
@@ -528,7 +465,7 @@ module Arango
         "skip" => skip,
         "left" => left
       }
-      result = @database.request(action: "PUT", url: "/_api/simple/range",
+      result = @database.request(action: "PUT", url: "_api/simple/range",
         body: body)
       return result if return_directly?(result)
       result["result"].map do |x|
@@ -536,17 +473,9 @@ module Arango
       end
     end
 
-    def near(distance: nil, longitude:, latitude:, geo: nil, limit: nil, skip: nil, warning: @client.warning)
-      [longitude, latitute].each do |val|
-        satisfy_class?(val, [Integer])
-      end
-      [distance, limit, skip].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
-      satisfy_class?(warning, [FalseClass, TrueClass])
-      if warning
-        puts "ARANGORB WARNING: near function is deprecated"
-      end
+    def near(distance: nil, longitude:, latitude:, geo: nil, limit: nil, skip: nil,
+      warning: @client.warning)
+      warning_deprecated(warning, "near")
       body = {
         "distance" => distance,
         "longitude" => longitude,
@@ -556,7 +485,7 @@ module Arango
         "skip" => skip,
         "geo" => geo
       }
-      result = @database.request(action: "PUT", url: "/_api/simple/near",
+      result = @database.request(action: "PUT", url: "_api/simple/near",
         body: body)
       return result if return_directly?(result)
       result["result"].map do |x|
@@ -564,17 +493,9 @@ module Arango
       end
     end
 
-    def within(distance: nil, longitude:, latitude:, radius:, geo: nil, limit: nil, skip: nil, warning: @client.warning)
-      [longitude, latitute, radius].each do |val|
-        satisfy_class?(val, [Integer])
-      end
-      [distance, limit, skip].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
-      satisfy_class?(warning, [FalseClass, TrueClass])
-      if warning
-        puts "ARANGORB WARNING: within function is deprecated"
-      end
+    def within(distance: nil, longitude:, latitude:, radius:, geo: nil, limit: nil,
+      skip: nil, warning: @client.warning)
+      warning_deprecated(warning, "within")
       body = {
         "distance" => distance,
         "longitude" => longitude,
@@ -585,7 +506,7 @@ module Arango
         "geo" => geo,
         "radius" => radius
       }
-      result = @database.request(action: "PUT", url: "/_api/simple/within",
+      result = @database.request(action: "PUT", url: "_api/simple/within",
         body: body)
       return result if return_directly?(result)
       result["result"].map do |x|
@@ -593,18 +514,9 @@ module Arango
       end
     end
 
-    def withinRectangle(longitude1:, latitude1:, longitude2:, latitude2:, geo: nil, limit: nil, skip: nil, warning: @client.warning)
-      [longitude1, latitude1, longitude2,
-        latitude2].each do |val|
-        satisfy_class?(val, [Integer])
-      end
-      [limit, skip].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
-      satisfy_class?(warning, [FalseClass, TrueClass])
-      if warning
-        puts "ARANGORB WARNING: withinRectangle function is deprecated"
-      end
+    def withinRectangle(longitude1:, latitude1:, longitude2:, latitude2:,
+      geo: nil, limit: nil, skip: nil, warning: @client.warning)
+      warning_deprecated(warning, "withinRectangle")
       body = {
         "longitude1" => longitude1,
         "latitude1" => latitude1,
@@ -617,21 +529,16 @@ module Arango
         "radius" => radius
       }
       result = @database.request(action: "PUT",
-        url: "/_api/simple/within-rectangle", body: body)
+        url: "_api/simple/within-rectangle", body: body)
       return result if return_directly?(result)
       result["result"].map do |x|
         Arango::Document.new(key: x["_key"], collection: self, body: x)
       end
     end
 
-    def fulltext(index:, attribute:, query:, limit: nil, skip: nil, warning: @client.warning)
-      [index, attribute, query].each do |val|
-        satisfy_class?(val, [Integer])
-      end
-      satisfy_class?(warning, [FalseClass, TrueClass])
-      if warning
-        puts "ARANGORB WARNING: fulltext function is deprecated"
-      end
+    def fulltext(index:, attribute:, query:, limit: nil, skip: nil,
+      warning: @client.warning)
+      warning_deprecated(warning, "fulltext")
       body = {
         "index" => index,
         "attribute" => attribute,
@@ -640,7 +547,7 @@ module Arango
         "skip" => skip
       }
       result = @database.request(action: "PUT",
-        url: "/_api/simple/fulltext", body: body)
+        url: "_api/simple/fulltext", body: body)
       return result if return_directly?(result)
       result["result"].map do |x|
         Arango::Document.new(key: x["_key"], collection: self, body: x)
@@ -652,8 +559,6 @@ module Arango
     def import(attributes:, values:, fromPrefix: nil,
       toPrefix: nil, overwrite: nil, waitForSync: nil,
       onDuplicate: nil, complete: nil, details: nil)
-      satisfy_classes?([fromPrefix, toPrefix], [String, NilClass])
-      satisfy_class?(waitForSync, [TrueClass, FalseClass, NilClass])
       satisfy_category?(onDuplicate, [nil, "error", "update", "replace", "ignore"])
       satisfy_category?(overwrite, [nil, "yes", "true", true])
       satisfy_category?(complete, [nil, "yes", "true", true])
@@ -670,14 +575,12 @@ module Arango
       }
       body = "#{attributes}\n"
       values[0].is_a?(Array) ? values.each{|x| body += "#{x}\n"} : body += "#{values}\n"
-      @database.request(action: "POST", url: "/_api/import", query: query, body: body.to_json, skip_to_json: true)
+      @database.request(action: "POST", url: "_api/import", query: query, body: body.to_json, skip_to_json: true)
     end
 
     def importJSON(body:, type: "auto", fromPrefix: nil,
       toPrefix: nil, overwrite: nil, waitForSync: nil,
       onDuplicate: nil, complete: nil, details: nil)
-      satisfy_classes?([fromPrefix, toPrefix], [String, NilClass])
-      satisfy_class?(waitForSync, [TrueClass, FalseClass, NilClass])
       satisfy_category?(type, ["auto", "list", "documents"])
       satisfy_category?(onDuplicate, [nil, "error", "update", "replace", "ignore"])
       satisfy_category?(overwrite, [nil, "yes", "true", true])
@@ -694,15 +597,13 @@ module Arango
         "complete": complete,
         "details": details
       }
-      @database.request(action: "POST", url: "/_api/import", query: query, body: body.to_json, skip_to_json: true)
+      @database.request(action: "POST", url: "_api/import", query: query, body: body.to_json, skip_to_json: true)
     end
 
   # === EXPORT ===
 
     def export(count: nil, restrict: nil, batchSize: nil,
       flush: nil, flushWait: nil, limit: nil, ttl: nil)
-      satisfy_classes?([count, flush], [FalseClass, TrueClass, NilClass])
-      satisfy_classes?([batchSize, flushWait, limit, ttl], [Integer, NilClass])
       query = { "collection" => @name }
       body = {
         "count" => count,
@@ -713,7 +614,7 @@ module Arango
         "limit" => limit,
         "ttl" => ttl
       }
-      result = @database.request(action: "POST", url: "/_api/export", body: body,
+      result = @database.request(action: "POST", url: "_api/export", body: body,
         query: query)
       return reuslt if @client.async != false
       @countExport = result["count"]
@@ -733,7 +634,7 @@ module Arango
         Arango::Error message: "No other results"
       else
         query = { "collection": @name }
-        result = @database.request(action: "PUT", url: "/_api/export/#{@idExport}",
+        result = @database.request(action: "PUT", url: "_api/export/#{@idExport}",
           query: query)
         return reuslt if @client.async != false
         @countExport = result["count"]
@@ -759,8 +660,6 @@ module Arango
 
     def data(batchId: nil, from: nil, to: nil, chunkSize: nil,
       includeSystem: nil, failOnUnknown: nil, ticks: nil, flush: nil)
-      satisfy_classes?([includeSystem, ticks, flush], [FalseClass, TrueClass, NilClass])
-      satisfy_classes?([chunkSize], [Integer, NilClass])
       query = {
         "collection": @name,
         "batchId": batchId,
@@ -779,7 +678,6 @@ module Arango
 # === USER ACCESS ===
 
     def check_user(user)
-      satisfy_class?(user, "user", [Arango::User, String])
       if user.is_a?(String)
         user = Arango::User.new(user: user)
       end
