@@ -99,7 +99,7 @@ module Arango
     def graphs
       result = request(action: "GET", url: "_api/gharial")
       return result if return_directly?(result)
-      result["graphs"].each do |graph|
+      result["graphs"].map do |graph|
         Arango::Graph.new(database: self, key: graph["_key"], body: graph)
       end
     end

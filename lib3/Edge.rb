@@ -35,30 +35,14 @@ module Arango
     attr_reader :name, :collection, :database, :client, :graph, :id, :rev, :body, :from, :to
     alias_method :key, :name
 
-    def collection=(collection)
-      satisfy_class?(collection, [Arango::Collection])
-      @collection = collection
-      @database = @collection.database
-      @client = @database.client
-    end
-
     def graph=(graph)
       satisfy_class?(graph, [Arango::Graph])
       @graph = graph
     end
 
     def to_h(level=0)
-      hash = {
-        "name" => @name,
-        "id" => @id,
-        "rev" => @rev,
-        "body" => @body
-      }
-      hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
+      hash = super(level)
       hash["graph"] = level > 0 ? @graph.to_h(level-1) : @graph.name
-      hash["from"] = level > 0 ? @from.to_h(level-1) : @from&.name
-      hash["to"] = level > 0 ? @to.to_h(level-1) : @to&.name
-      hash.delete_if{|k,v| v.nil?}
       hash
     end
 
@@ -68,7 +52,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_none_match
       result = @graph.request(action: "GET", headers: headers,
-        url: "_api/edge/#{@collection.name}/#{@key}")
+        url: "edge/#{@collection.name}/#{@key}")
       return_element(result)
     end
 
@@ -78,11 +62,11 @@ module Arango
       body = @body.merge(body)
       query = {
         "waitForSync" => waitForSync,
-        "_from" => @from,
-        "_to" => @to
+        "_from" => @from.name,
+        "_to" => @to.name
       }
       result = @graph.request(action: "POST", body: body,
-        query: query, url: "_api/edge/#{@collection.name}" )
+        query: query, url: "edge/#{@collection.name}" )
       return result if @database.client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
@@ -101,7 +85,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
-        url: "_api/vertex/#{@collection.name}/#{@key}")
+        url: "edge/#{@collection.name}/#{@key}")
       return result if @database.client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
@@ -116,7 +100,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "_api/vertex/#{@collection.name}/#{@key}")
+        query: query, headers: headers, url: "edge/#{@collection.name}/#{@key}")
       return result if @database.client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
@@ -134,7 +118,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "DELETE",
-        url: "vertex/#{@collection.name}/#{@key}",
+        url: "edge/#{@collection.name}/#{@key}",
         query: query, headers: headers)
       return_document(result)
     end

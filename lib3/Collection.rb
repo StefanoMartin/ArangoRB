@@ -6,12 +6,17 @@ module Arango
     include Meta_prog
     include Helper_Return
 
-    def initialize(name:, database:, body: {}, type: "Document")
+    def initialize(name:, database:, graph: nil, body: {}, type: "Document")
       satisfy_class?(database, [Arango::Database])
+      satisfy_class?(graph, [Arango::Graph, Arango::NilClass])
       satisfy_category?(type, ["Document", "Edge"])
       @name = name
       @database = database
       @client = @database.client
+      if !graph.nil? && @graph.database.name != @database.name
+        raise Arango::Error.new message: "Database of graph is not the same as the class"
+      end
+      @graph = graph
       body["type"] ||= type == "Document" ? 2 : 3
       body["status"] ||= nil
       body["isSystem"] ||= nil
@@ -20,13 +25,21 @@ module Arango
       ignore_exception(retrieve) if @client.initialize_retrieve
     end
 
-    attr_reader :status, :isSystem, :id, :client, :body, :database
+    attr_reader :status, :isSystem, :id, :client, :body, :database, :graph
     attr_accessor :name
 
     def database=(database)
       satisfy_class?(database, [Arango::Database])
       @database = database
       @client = @database.client
+    end
+
+    def graph=(graph)
+      satisfy_class?(graph, [Arango::Graph, Arango::NilClass])
+      if !graph.nil? && @graph.database.name != @database.name
+        raise Arango::Error.new message: "Database of graph is not the same as the class"
+      end
+      @graph = graph
     end
 
     def body=(body)
@@ -698,6 +711,22 @@ module Arango
     def user_access(user:)
       user = check_user(user)
       user.collection_access(database: @database.name, collection: @name)
+    end
+
+# === GRAPH ===
+
+    def vertex(name:, body: {}, rev: nil, from: nil, to: nil)
+      if @graph.nil?
+        raise Arango::Error.new message: "This class does not have any Graph assigned"
+      end
+      Arango::Vertex.new(name: name, body: body, rev: rev, collection: self, graph: @graph)
+    end
+
+    def vertex(name:, body: {}, rev: nil, from: nil, to: nil)
+      if @graph.nil?
+        raise Arango::Error.new message: "This class does not have any Graph assigned"
+      end
+      Arango::Edge.new(name: name, body: body, rev: rev, from: from, to: to, collection: self, graph: @graph)
     end
   end
 end

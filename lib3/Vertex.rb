@@ -1,11 +1,14 @@
 # === GRAPH VERTEX ===
 
 module Arango
-  class Vertex
-    def initialize(key:, collection:, graph:, body: {}, rev: nil, from: nil, to: nil)
-      satisfy_class?(key, "key")
-      satisfy_class?(collection, "collection", [Arango::Collection])
-      satisfy_class?(graph, "graph", [Arango::Graph])
+  class Vertex < Arango::Document
+    include Helper_Error
+    include Meta_prog
+    include Helper_Return
+
+    def initialize(name:, collection:, graph:, body: {}, rev: nil)
+      satisfy_class?(collection, [Arango::Collection])
+      satisfy_class?(graph, [Arango::Graph])
       if collection.database.name != graph.database.name
         raise Arango::Error.new message: "Database of the collection is not the same as the one of the graph"
       end
@@ -13,39 +16,29 @@ module Arango
       @graph = graph
       @database = @collection.database
       @client = @database.client
-      body["_key"] ||= key
+      body["_key"] ||= name
       body["_rev"] ||= rev
       body["_id"] ||= "#{@collection.name}/#{@key}"
       assign_attributes(body)
       ignore_exception(retrieve) if @client.initialize_retrieve
     end
 
-    attr_reader :key, :collection, :database, :client, :id, :rev
+    attr_reader :name, :collection, :database, :client, :id, :rev
+    alias key, name
 
-    def to_h
-      {
-        "key" => @key,
-        "id" => @id,
-        "rev" => @rev,
-        "collection" => @collection.name,
-        "graph" => @database.name
-        "body" => @body
-      }.delete_if{|k,v| v.nil?}
+    def to_h(level=0)
+      hash = super(level)
+      hash["graph"] = level > 0 ? @graph.to_h(level-1) : @graph.name
+      hash
     end
 
 # == PRIVATE ==
 
     def assign_attributes(result)
       @body = result.delete_if{|k,v| v.nil?}
-      @key = result["_key"]
+      @name = result["_key"]
       @id = result["_id"]
       @rev = result["_rev"]
-    end
-
-    def return_vertex(result)
-      return result if @database.client.async != false
-      assign_attributes(result)
-      return return_directly?(result) ? result : self
     end
 
 # == GET ==
@@ -54,17 +47,15 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_none_match
       result = @graph.request(action: "GET", headers: headers,
-        url: "vertex/#{@collection.name}/#{@key}")
-      return_vertex(result)
+        url: "vertex/#{@collection.name}/#{@name}")
+      return_element(result)
     end
 
 # == POST ==
 
     def create(body: {}, waitForSync: nil)
       body = @body.merge(body)
-      query = {
-        "waitForSync" => waitForSync
-      }
+      query = {"waitForSync" => waitForSync}
       result = @graph.request(action: "POST", body: body,
         query: query, url: "vertex/#{@collection.name}" )
       return result if @database.client.async != false || silent
@@ -76,7 +67,7 @@ module Arango
 
 # == PUT ==
 
-    def replace(body: {}, waitForSync: nil, keepNull: nil, if_match: false)
+    def replace(body: {}, waitForSync: nil, if_match: false)
       query = {
         "waitForSync" => waitForSync,
         "keepNull" => keepNull
@@ -93,10 +84,8 @@ module Arango
       return return_directly?(result) ? result : self
     end
 
-    def update(body: {}, waitForSync: nil, if_match: false)
-      query = {
-        "waitForSync" => waitForSync
-      }
+    def update(body: {}, waitForSync: nil, if_match: false, keepNull: nil)
+      query = {"waitForSync" => waitForSync, "keepNull" => keepNull}
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
@@ -112,9 +101,7 @@ module Arango
 # === DELETE ===
 
     def destroy(waitForSync: nil, if_match: false)
-      query = {
-        "waitForSync" => waitForSync
-      }
+      query = {"waitForSync" => waitForSync}
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "DELETE",
@@ -122,5 +109,12 @@ module Arango
         query: query, headers: headers)
       return_document(result)
     end
+
+# === WRONG ===
+
+    def from=(arg)
+      raise Arango::Error.new message: "You cannot assign from or to to a Vertex"
+    end
+    alias to= from=
   end
 end

@@ -18,7 +18,7 @@ module Arango
       body["_id"] ||= "#{@collection.name}/#{name}"
       assign_attributes(body)
       ["name", "rev", "from", "to", "key"].each do |attribute|
-        define_method(:"=#{attribute}") do |attrs|
+        define_method(:"#{attribute}=") do |attrs|
           temp_attrs = attribute
           temp_attrs = "key" if attribute == "name"
           body["_#{temp_attrs}"] = attrs
@@ -50,7 +50,7 @@ module Arango
         "body" => @body
       }
       hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
-      hash["from"] = level > 0 ? @from.to_h(level-1) : @fromo&.name
+      hash["from"] = level > 0 ? @from.to_h(level-1) : @from&.name
       hash["to"] = level > 0 ? @to.to_h(level-1) : @too&.name
       hash.delete_if{|k,v| v.nil?}
       hash
@@ -59,7 +59,6 @@ module Arango
     def set_up_from_or_to(attrs, var)
       if var.is_a?(NilClass)
         instance = nil
-        string = nil
       elsif var.is_a?(String)
         if !var.is_a?(String) || !var.include?("/")
           Arango::Error message: "#{attrs} is not a valid document id or an Arango::Document"
@@ -67,15 +66,12 @@ module Arango
         collection_name, document_name = var.split("/")
         collection = Arango::Collection name: collection_name, database: @database
         instance = Arango::Document name: document_name
-        string = var
       elsif var.is_a?(Arango::Document)
         instance = var
-        string = var.name
       else
         Arango::Error message: "#{attrs} is not a valid document id or an Arango::Document"
       end
       instance_variable_set("@#{attrs}", instance)
-      instance_variable_set("@#{attrs}_string", string)
       @body["_#{attrs}"] = string unless string.nil?
     end
 
@@ -83,9 +79,9 @@ module Arango
 
     def assign_attributes(result)
       @body = result.delete_if{|k,v| v.nil?}
-      @name = result["_key"]
-      @id = result["_id"]
-      @rev = result["_rev"]
+      @name = result["_key"] || @name
+      @id   = result["_id"]  || @id
+      @rev  = result["_rev"] || @rev
       set_up_from_or_to("from", result["_from"])
       set_up_from_or_to("to", result["_to"])
     end
