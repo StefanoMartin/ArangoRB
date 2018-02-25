@@ -313,6 +313,10 @@ module Arango
       request(action: "PUT", url: "_admin/wal/properties", body: body)
     end
 
+    def transaction(action:, write: [], read: [], params: nil, maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
+      Arango::Transaction.new(client: self, action: action, write: write, read: read, params: params, maxTransactionSize: maxTransactionSize, lockTimeout: lockTimeout, waitForSync: waitForSync, intermediateCommitCount: intermediateCommitCount, intermedateCommitSize: intermedateCommitSize)
+    end
+
     def transactions
       request(action: "GET", url: "_admin/wal/transactions")
     end

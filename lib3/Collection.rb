@@ -665,8 +665,19 @@ module Arango
 
 # === INDEXES ===
 
+    def index(body: {}, id: nil, type: "hash", unique: nil, fields:, sparse: nil, geoJson: nil, minLength: nil, deduplicate: nil)
+      Arango::Index.new(collection: self, body: body, id: id, type: type, unique: unique, fields: fields, sparse: sparse, geoJson: geoJson, minLength: minLength, deduplicate: deduplicate)
+    end
+
     def indexes
-      Arango::Index.indexes(collection: self)
+      query = { "collection": @name }
+      result = collection.database.request(action: "GET",
+        url: "/_api/index", query: query)
+      return result if return_directly?(result)
+      result["indexes"].map do |x|
+        Arango::Index.new(body: x, id: x["id"], collection: self,
+          type: x["type"], unique: x["unique"], fields: x["fields"], sparse: x["sparse"])
+      end
     end
 
 # === REPLICATION ===

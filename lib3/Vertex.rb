@@ -110,6 +110,22 @@ module Arango
       return_document(result)
     end
 
+# === TRAVERSAL ===
+
+    def traversal(body: {}, sort: nil, direction: nil, minDepth: nil,
+      visitor: nil, itemOrder: nil, strategy: nil,
+      filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
+      uniqueness: nil, order: nil, expander: nil,
+      edgeCollection: nil)
+      Arango::Traversal.new(body: body, database: @collection.database,
+        sort: sort, direction: direction, minDepth: minDepth,
+        startVertex: self, visitor: visitor,itemOrder: itemOrder,
+        strategy: strategy, filter: filter, init: init,
+        maxIterations: maxIterations, maxDepth: maxDepth,
+        uniqueness: uniqueness, order: order, graph: @graph,
+        expander: expander, edgeCollection: edgeCollection)
+    end
+
 # === WRONG ===
 
     def from=(arg)

@@ -9,6 +9,7 @@ module Arango
     def initialize(name:, collection:, body: {}, rev: nil, from: nil, to: nil)
       satisfy_class?(collection, "collection", [Arango::Collection])
       @collection = collection
+      @graph = @collection.graph
       @database = @collection.database
       @client = @database.client
       body["_key"] ||= name
@@ -28,12 +29,13 @@ module Arango
     end
 
     attr_reader :name, :collection, :database, :client, :id, :rev, :body,
-      :from, :to
+      :from, :to, :graph
     alias_method :key, :name
 
     def collection=(collection)
       satisfy_class?(collection, [Arango::Collection])
       @collection = collection
+      @graph = @collection.graph
       @database = @collection.database
       @client = @database.client
     end
@@ -229,6 +231,22 @@ module Arango
 
     def in
       edges(direction: "in")
+    end
+
+# === TRAVERSAL ===
+
+    def traversal(body: {}, sort: nil, direction: nil, minDepth: nil,
+      visitor: nil, itemOrder: nil, strategy: nil,
+      filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
+      uniqueness: nil, order: nil, expander: nil,
+      edgeCollection: nil)
+      Arango::Traversal.new(body: body, database: @database,
+        sort: sort, direction: direction, minDepth: minDepth,
+        startVertex: self, visitor: visitor,itemOrder: itemOrder,
+        strategy: strategy, filter: filter, init: init,
+        maxIterations: maxIterations, maxDepth: maxDepth,
+        uniqueness: uniqueness, order: order, graph: @graph,
+        expander: expander, edgeCollection: edgeCollection)
     end
   end
 end

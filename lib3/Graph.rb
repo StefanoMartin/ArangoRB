@@ -5,7 +5,7 @@ module Arango
     include Helper_Error
     include Meta_prog
     include Helper_Return
-    
+
     def initialize(name:, database:, edgeDefinitions: [],
       orphanCollections: [], body: {}, numberOfShards: nil, isSmart: nil, smartGraphAtttribute: nil, replicationFactor: nil)
       satisfy_class?(database, Arango::Database])
@@ -36,9 +36,8 @@ module Arango
       if collection.is_a?(Arango::Collection)
         return collection
       elsif collection.is_a?(String)
-        collection_instance = Arango::Collection.new(name: edgedef["collection"],
+        return Arango::Collection.new(name: collection,
           database: @database, type: type, graph: self)
-        return collection_instance
       else
         raise Arango::Error.new message: "#{collection} should be an Arango::Collection or
         a name of a class"

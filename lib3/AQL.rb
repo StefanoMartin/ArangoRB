@@ -2,23 +2,39 @@
 
 module Arango
   class AQL
-    def initialize(query: nil, batchSize: nil, ttl: nil, cache: nil, options: nil, bindVars: nil, database:, memoryLimit: nil, count: true)
-      satisfy_class?(database, "database", [Arango::Database, String])
-      satisfy_class?(query, "query", [Arango::AQL, String])
-      if query.is_a?(String)
-        @query = query
-      elsif query.is_a?(ArangoAQL)
-        @query = query.query
-      end
-      @database = database
-      @batchSize = batchSize
-      @ttl = ttl
-      @cache = cache
-      @options = options
-      @bindVars = bindVars
-      @memoryLimit = memoryLimit
+    include Helper_Error
+    include Meta_prog
+    include Helper_Return
 
-      @count = count
+    def initialize(query:, database:, count: nil, batchSize: nil, cache: nil, memoryLimit: nil,
+      ttl: nil, bindVars: nil, failOnWarning: nil, profile: nil, maxTransactionSize: nil,
+      skipInaccessibleCollections: nil, maxWarningCount: nil, intermediateCommitCount: nil,
+      satelliteSyncWait: nil, fullCount: nil, intermediateCommitSize: nil,
+      optimizer_rules: nil, maxPlans: nil)
+      satisfy_class?(database, [Arango::Database])
+      satisfy_class?(query, [Arango::AQL, String])
+      @query = query.is_a?(String) ? query : query.query
+      @database = database
+      @client = @database.client
+
+      @count     = count
+      @batchSize = batchSize
+      @cache     = cache
+      @memoryLimit = memoryLimit
+      @ttl       = ttl
+      @bindVars  = bindVars
+      @options   = {}
+      [failOnWarning, profile, maxTransactionSize,
+      skipInaccessibleCollections, maxWarningCount, intermediateCommitCount,
+      satelliteSyncWait, fullCount, intermediateCommitSize,
+      optimizer_rules, maxPlans].each do |val|
+        name = val.object_id.to_s
+        set_option(val, name)
+        define_method("#{name}=") do |value|
+          set_option(value, name)
+        end
+      end
+
       @quantity = nil
       @hasMore = false
       @id = ""
@@ -26,14 +42,34 @@ module Arango
     end
 
     attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars, :quantity
-    attr_reader :hasMore, :id, :result, :idCache
+    attr_reader :hasMore, :id, :result, :idCache, :failOnWarning, :profile,
+      :maxTransactionSize, :skipInaccessibleCollections, :maxWarningCount,
+      :intermediateCommitCount, :satelliteSyncWait, :fullCount,
+      :intermediateCommitSize, :optimizer_rules, :maxPlans, :database, :client, :cached, :extra
     alias size batchSize
     alias size= batchSize=
 
+    def database=(database)
+      satisfy_class?(database, [Arango::Database])
+      @database = database
+      @client = @database.client
+    end
+
+    def set_option(attrs, name)
+      @options ||= {}
+      instance_variable_set("@#{name}", attrs)
+      unless attrs
+        name = "optimizer.rules" if name == "optimizer_rules"
+        @options[name] = attrs
+      end
+      @options.delete_if{|k,v| v.nil?}
+      @options = nil if @options.empty?
+    end
+
   # === RETRIEVE ===
 
-    def to_hash
-      {
+    def to_h(level=0)
+      hash = {
         "query" => @query,
         "database" => @database,
         "result" => @result,
@@ -47,14 +83,17 @@ module Arango
         "idCache" => @idCache,
         "memoryLimit" => @memoryLimit
       }.delete_if{|k,v| v.nil?}
+      hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
+      hash
     end
-    alias to_h to_hash
 
     def return_aql(result)
       return result if @database.client.async != false
+      @extra    = result["extra"]
+      @cached   = result["cached"]
       @quantity = result["count"]
-      @hasMore = result["hasMore"]
-      @id = result["id"]
+      @hasMore  = result["hasMore"]
+      @id       = result["id"]
       if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
         @result = result["result"]
       else
@@ -71,7 +110,7 @@ module Arango
     def execute
       body = {
         "query" => @query,
-        "count" => count,
+        "count" => @count,
         "batchSize" => @batchSize,
         "ttl" => @ttl,
         "cache" => @cache,
@@ -84,11 +123,11 @@ module Arango
     end
 
     def next
-      unless @hasMore
-        Arango::Error message: "No other results"
-      else
+      if @hasMore
         result = @database.request(action: "PUT", url: "_api/cursor/#{@id}")
         return_aql(result)
+      else
+        Arango::Error message: "No other results"
       end
     end
 
@@ -112,92 +151,8 @@ module Arango
       @database.request(action: "POST", url: "/_api/query", body: body)
     end
 
-    # def self.properties(database:)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "GET", url: "/_api/query/properties")
-    # end
-
-    # def self.current(database:)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "GET", url: "/_api/query/current")
-    # end
-
-    # def self.slow(database:)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "GET", url: "/_api/query/slow")
-    # end
-
-# === UPDATE ===
-
-    def self.changeProperties(database:, slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil, trackBindVars: trackBindVars)
-      satisfy_class?(database, "database", [Arango::Database])
-      body = {
-        "slowQueryThreshold" => slowQueryThreshold,
-        "enabled" => enabled,
-        "maxSlowQueries" => maxSlowQueries,
-        "trackSlowQueries" => trackSlowQueries,
-        "maxQueryStringLength" => maxQueryStringLength,
-        "trackBindVars" => trackBindVars
-      }
-      database.request(action: "PUT", url: "_api/query/properties", body: body)
-    end
-
-# === DELETE ===
-
-    # def self.stopSlow(database:)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "DELETE", url: "_api/query/slow")
-    # end
-
-    def kill(id: @id) # TESTED
+    def kill(id: @id)
       @database.request(action: "DELETE", url: "query/#{id}")
     end
-
-# === CACHE ===
-
-    # def self.clearCache(database:)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "DELETE", url: "_api/query-cache")
-    # end
-
-    # def self.propertyCache(database:)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "GET", url: "_api/query-cache/properties")
-    # end
-
-    # def self.changePropertyCache(database:, mode: nil, maxResults: nil)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   body = { "mode" => mode, "maxResults" => maxResults }
-    #   database.request(action: "PUT",
-    #     url: "_api/query-cache/properties",
-    #     body: body)
-    # end
-
-# === FUNCTION ===
-
-    # def self.functions(database:, namespace: nil)
-    #   query = {"namespace" => namespace}
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "GET", url: "_api/aqlfunction",
-    #     query: query)
-    # end
-
-    # def self.createFunction(database:, code:, name:, isDeterministic: nil)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   body = {
-    #     "code" => code,
-    #     "name" => name,
-    #     "isDeterministic" => isDeterministic
-    #   }
-    #   database.request(action: "POST",
-    #     url: "_api/aqlfunction",
-    #     body: body)
-    # end
-    #
-    # def self.deleteFunction(database:, name:)
-    #   satisfy_class?(database, "database", [Arango::Database])
-    #   database.request(action: "DELETE",
-    #     url: "_api/aqlfunction/#{name}")
-    # end
   end
 end

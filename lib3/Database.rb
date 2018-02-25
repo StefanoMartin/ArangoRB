@@ -118,9 +118,15 @@ module Arango
     end
 
     def change_query_properties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil, trackBindVars: nil)
-      Arango::AQL.changeProperties(database: self, slowQueryThreshold: slowQueryThreshold, trackBindVars: trackBindVars,
-        enabled: enabled, maxSlowQueries: maxSlowQueries,
-        trackSlowQueries: trackSlowQueries, maxQueryStringLength: maxQueryStringLength)
+      body = {
+        "slowQueryThreshold" => slowQueryThreshold,
+        "enabled" => enabled,
+        "maxSlowQueries" => maxSlowQueries,
+        "trackSlowQueries" => trackSlowQueries,
+        "maxQueryStringLength" => maxQueryStringLength,
+        "trackBindVars" => trackBindVars
+      }
+      request(action: "PUT", url: "_api/query/properties", body: body)
     end
 
     def current_query
@@ -150,23 +156,34 @@ module Arango
         body: body)
     end
 
+# === AQL ===
+
+  def aql(query:, count: nil, batchSize: nil, cache: nil, memoryLimit: nil, ttl: nil, bindVars: nil, failOnWarning: nil, profile: nil, maxTransactionSize: nil,
+  skipInaccessibleCollections: nil, maxWarningCount: nil, intermediateCommitCount: nil,
+  satelliteSyncWait: nil, fullCount: nil, intermediateCommitSize: nil,
+  optimizer_rules: nil, maxPlans: nil)
+    Arango::AQL.new(query: query, database: self, count: count, batchSize: batchSize, cache: cache, memoryLimit: memoryLimit, ttl: ttl, bindVars: bindVars, failOnWarning: failOnWarning, profile: profile, maxTransactionSize: maxTransactionSize,
+    skipInaccessibleCollections: skipInaccessibleCollections, maxWarningCount: maxWarningCount, intermediateCommitCount: intermediateCommitCount,
+    satelliteSyncWait: satelliteSyncWait, fullCount: fullCount, intermediateCommitSize: intermediateCommitSize,
+    optimizer_rules: optimizer_rules, maxPlans: maxPlans)
+  end
+
 # === FUNCTION ===
 
-    def functions(namespace: nil)
+    def aql_functions(namespace: nil)
       query = {"namespace" => namespace}
       request(action: "GET", url: "_api/aqlfunction",
         query: query)
-      # Arango::AQL.functions(database: self, namespace: namespace)
     end
 
-    def createFunction(code:, name:, isDeterministic: nil)
+    def create_aql_function(code:, name:, isDeterministic: nil)
       body = {
         "code" => code, "name" => name, "isDeterministic" => isDeterministic
       }
       request(action: "POST", url: "_api/aqlfunction", body: body)
     end
 
-    def deleteFunction(name:)
+    def delete_aql_function(name:)
       request(action: "DELETE",  url: "_api/aqlfunction/#{name}")
     end
 
