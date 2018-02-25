@@ -37,12 +37,10 @@ module Arango
 
     ### RETRIEVE ###
 
-    def to_h
-      {
+    def to_h(level=0)
+      hash = {
         "key" => @key,
         "id" => @id,
-        "collection" => @collection,
-        "database" => @database,
         "body" => @body,
         "type" => @type,
         "sparse" => @sparse,
@@ -53,6 +51,7 @@ module Arango
         "minLength" => @minLength,
         "deduplicate" => @deduplicate
       }.delete_if{|k,v| v.nil?}
+      hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
     end
 
 # == PRIVATE ==

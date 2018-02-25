@@ -3,7 +3,9 @@
 module Arango
   class Task
     def initialize(id: nil, name: nil, type: nil, period: nil, command: nil, params: {}, created: nil, database:, body: {})
-      satisfy_class?(database, "database", [Arango::Database])
+      satisfy_class?(database, [Arango::Database])
+      @database = database
+      @client = @database.client
       body2 = {
         "id" => id,
         "name" => name,
@@ -15,11 +17,31 @@ module Arango
       }
       body.merge!(body2)
       assign_attributes(body)
+    end
+
+    attr_reader :client, :database
+    attr_accessor :id, :name, :type, :period, :created,
+      :command, :params, :idCache, :offset
+
+    def database=(database)
+      satisfy_class?(database, [Arango::Database])
       @database = database
       @client = @database.client
     end
 
-    attr_reader :id, :name, :type, :period, :created, :command, :params, :idCache, :offset, :client, :database
+    def to_h(level=0)
+      hash = {
+        "id" => @id,
+        "name" => @name,
+        "type" => @type,
+        "period" => @period,
+        "command" => @command,
+        "params" => @params,
+        "created" => @created
+      }.delete_if{|k,v| v.nil?}
+      hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
+      hash
+    end
 
   # == PRIVATE ==
 
@@ -35,17 +57,11 @@ module Arango
       @created = result["created"]
     end
 
-    def return_task(result)
-      return result if @client.async != false
-      assign_attributes(result)
-      return return_directly?(result) ? result : self
-    end
-
 # == RETRIEVE
 
     def retrieve
       result = @database.request(action: "GET", url: "/_api/tasks/#{@id}")
-      return return_task(result)
+      return return_element(result)
     end
 
     def create
@@ -57,7 +73,7 @@ module Arango
         "params" => @params
       }
       result = @database.request(action: "POST", url: "/_api/tasks")
-      return return_task(result)
+      return return_element(result)
     end
 
     def update
@@ -69,7 +85,7 @@ module Arango
         "params" => @params
       }
       result = @database.request(action: "PUT", url: "/_api/task/#{@id}")
-      return return_task(result)
+      return return_element(result)
     end
 
     def destroy

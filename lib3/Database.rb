@@ -409,7 +409,11 @@ module Arango
 
 # === FOXX ===
 
-    def foxx
+    def foxx(body: {}, mount:, development: nil, legacy: nil, provides: nil, name: nil, version: nil, type: "application/json", setup: nil, teardown: nil)
+      Arango::Foxx.new(database: self, body: body, mount: mount, development: development, legacy: legacy, provides: provides, name: name, version: version, type: type, setup: setup, teardown: teardown)
+    end
+
+    def foxxes
       result = request(action: "GET", url: "_api/foxx")
       return result if return_directly?(result)
       result.map do |fox|
@@ -448,10 +452,10 @@ module Arango
       end
     end
 
-    def task(id: nil, name: nil, type: nil, period: nil, command: nil,
-      params: {}, created: nil)
-      Arango::Tasks.new(id: id, name: name, type: type, period: period,
-        command: command, params: params, created: created, database: self)
+    def task(id: nil, name: nil, type: nil, period: nil, command: nil, params: {}, created: nil)
+      Arango::Tasks.new(id: id, name: name, type: type,
+        period: period, command: command, params: params,
+        created: created, database: self)
     end
   end
 end

@@ -46,7 +46,7 @@ module Arango
       @base_uri = "http://#{@server}:#{@port}"
     end
 
-    def to_h
+    def to_h(level=0)
       {
         "base_uri" => @base_uri
         "server" => @server,
@@ -177,9 +177,9 @@ module Arango
 
   # === MONITORING ===
 
-    def log(upto: nil, level: nil, start: nil, size: nil, offset: nil,
-      search: nil, sort: nil)
+    def log(upto: nil, level: nil, start: nil, size: nil, offset: nil, search: nil, sort: nil)
       satisfy_category?(upto, [nil, "fatal", 0, "error", 1, "warning", 2, "info", 3, "debug", 4])
+      satisfy_category?(sort, [nil, "asc", "desc"])
       query = {
         "upto": upto, "level": level, "start": start, "size": size,
         "offset": offset, "search": search, "sort": sort
@@ -232,11 +232,12 @@ module Arango
     end
 
     def allEndpoints(warning: @warning)
-      puts "ARANGORB WARNING: allEndpoints function is deprecated" if warning
+      warning_deprecated(warning, "allEndpoints")
       request(action: "GET", url: "_api/endpoint")
     end
 
   # === USER ===
+
     def user(password: "", user:, extra: {}, active: nil)
       Arango::User.new(client: self, password: password, user: user,
         extra: extra, active: active)
