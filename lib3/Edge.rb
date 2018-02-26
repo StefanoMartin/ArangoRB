@@ -2,26 +2,21 @@
 
 module Arango
   class Edge < Arango::Document
-    include Helper_Error
-    include Meta_prog
-    include Helper_Return
-
-    def initialize(name:, collection:, graph:, body: {}, rev: nil, from: nil, to: nil)
-      satisfy_class?(collection, [Arango::Collection])
+    def initialize(name:, collection:, graph:, body: {}, rev: nil, from: nil,
+      to: nil)
+      assign_collection(collection)
       satisfy_class?(graph, [Arango::Graph])
-      if collection.database.name != graph.database.name
+      if @database.name != graph.database.name
         raise Arango::Error.new message: "Database of the collection is not the same as the one of the graph"
       end
-      @collection = collection
       @graph = graph
-      @database = @collection.database
-      @client = @database.client
       body["_key"] ||= name
       body["_rev"] ||= rev
       body["_from"] ||= from
       body["_to"] ||= to
       body["_id"] ||= "#{@collection.name}/#{name}"
       assign_attributes(body)
+      # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
         define_method(:"=#{attribute}") do |attrs|
           temp_attrs = attribute
@@ -32,13 +27,18 @@ module Arango
       end
     end
 
-    attr_reader :name, :collection, :database, :client, :graph, :id, :rev, :body, :from, :to
+# === DEFINE ===
+
+    attr_reader :name, :collection, :database, :client, :graph, :id, :rev,
+      :body, :from, :to
     alias_method :key, :name
 
     def graph=(graph)
       satisfy_class?(graph, [Arango::Graph])
       @graph = graph
     end
+
+# === TO HASH ===
 
     def to_h(level=0)
       hash = super(level)
@@ -52,7 +52,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_none_match
       result = @graph.request(action: "GET", headers: headers,
-        url: "edge/#{@collection.name}/#{@key}")
+        url: "edge/#{@collection.name}/#{@name}")
       return_element(result)
     end
 
@@ -62,12 +62,12 @@ module Arango
       body = @body.merge(body)
       query = {
         "waitForSync" => waitForSync,
-        "_from" => @from.name,
-        "_to" => @to.name
+        "_from"       => @from.name,
+        "_to"         => @to.name
       }
       result = @graph.request(action: "POST", body: body,
         query: query, url: "edge/#{@collection.name}" )
-      return result if @database.client.async != false || silent
+      return result if @client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -79,14 +79,14 @@ module Arango
     def replace(body: {}, waitForSync: nil, keepNull: nil, if_match: false)
       query = {
         "waitForSync" => waitForSync,
-        "keepNull" => keepNull
+        "keepNull"    => keepNull
       }
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
-        url: "edge/#{@collection.name}/#{@key}")
-      return result if @database.client.async != false || silent
+        url: "edge/#{@collection.name}/#{@name}")
+      return result if @client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -94,14 +94,12 @@ module Arango
     end
 
     def update(body: {}, waitForSync: nil, if_match: false)
-      query = {
-        "waitForSync" => waitForSync
-      }
+      query = {"waitForSync" => waitForSync}
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "edge/#{@collection.name}/#{@key}")
-      return result if @database.client.async != false || silent
+        query: query, headers: headers, url: "edge/#{@collection.name}/#{@name}")
+      return result if @client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       body = @body.merge(body)
@@ -112,15 +110,13 @@ module Arango
 # === DELETE ===
 
     def destroy(waitForSync: nil, if_match: false)
-      query = {
-        "waitForSync" => waitForSync
-      }
+      query = {"waitForSync" => waitForSync}
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "DELETE",
-        url: "edge/#{@collection.name}/#{@key}",
+        url: "edge/#{@collection.name}/#{@name}",
         query: query, headers: headers)
-      return_document(result)
+      return_element(result)
     end
   end
 end

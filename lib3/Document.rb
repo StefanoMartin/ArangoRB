@@ -2,22 +2,19 @@
 
 module Arango
   class Document
-    include Helper_Error
-    include Meta_prog
-    include Helper_Return
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+    include Arango::Collection_Return
 
     def initialize(name:, collection:, body: {}, rev: nil, from: nil, to: nil)
-      satisfy_class?(collection, "collection", [Arango::Collection])
-      @collection = collection
-      @graph = @collection.graph
-      @database = @collection.database
-      @client = @database.client
-      body["_key"] ||= name
-      body["_rev"] ||= rev
-      body["_to"] ||= to
+      assign_collection(collection)
+      body["_key"]  ||= name
+      body["_rev"]  ||= rev
+      body["_to"]   ||= to
       body["_from"] || from
-      body["_id"] ||= "#{@collection.name}/#{name}"
+      body["_id"]   ||= "#{@collection.name}/#{name}"
       assign_attributes(body)
+      # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
         define_method(:"#{attribute}=") do |attrs|
           temp_attrs = attribute
@@ -28,32 +25,34 @@ module Arango
       end
     end
 
-    attr_reader :name, :collection, :database, :client, :id, :rev, :body,
-      :from, :to, :graph
+# === DEFINE ==
+
+    attr_reader :name, :collection, :graph, :database, :client, :id, :rev,
+      :body, :from, :to
     alias_method :key, :name
 
-    def collection=(collection)
-      satisfy_class?(collection, [Arango::Collection])
-      @collection = collection
-      @graph = @collection.graph
-      @database = @collection.database
-      @client = @database.client
+    def body=(result)
+      @body = result.delete_if{|k,v| v.nil?}
+      @name = result["_key"] || @name
+      @id   = result["_id"]  || @id || "#{@collection.name}/#{@name}"
+      @rev  = result["_rev"] || @rev
+      set_up_from_or_to("from", result["_from"] || @from)
+      set_up_from_or_to("to", result["_to"] || @to)
     end
+    alias assign_attributes body=
 
-    def body=(body)
-      assign_attributes(body)
-    end
+# === TO HASH ===
 
     def to_h(level=0)
       hash = {
         "name" => @name,
-        "id" => @id,
-        "rev" => @rev,
+        "id"   => @id,
+        "rev"  => @rev,
         "body" => @body
       }
       hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
-      hash["from"] = level > 0 ? @from.to_h(level-1) : @from&.name
-      hash["to"] = level > 0 ? @to.to_h(level-1) : @too&.name
+      hash["from"] = level > 0 ? @from&.to_h(level-1) : @from&.name
+      hash["to"] = level > 0 ? @to&.to_h(level-1) : @to&.name
       hash.delete_if{|k,v| v.nil?}
       hash
     end
@@ -63,29 +62,19 @@ module Arango
         instance = nil
       elsif var.is_a?(String)
         if !var.is_a?(String) || !var.include?("/")
-          Arango::Error message: "#{attrs} is not a valid document id or an Arango::Document"
+          raise Arango::Error.new message: "#{attrs} #{var} is not a valid document id or an Arango::Document"
         end
         collection_name, document_name = var.split("/")
-        collection = Arango::Collection name: collection_name, database: @database
+        collection = Arango::Collection name: collection_name,
+          database: @database
         instance = Arango::Document name: document_name
       elsif var.is_a?(Arango::Document)
         instance = var
       else
-        Arango::Error message: "#{attrs} is not a valid document id or an Arango::Document"
+        raise Arango::Error.new message: "#{attrs} is not a valid document id or an Arango::Document"
       end
       instance_variable_set("@#{attrs}", instance)
-      @body["_#{attrs}"] = string unless string.nil?
-    end
-
-# == PRIVATE ==
-
-    def assign_attributes(result)
-      @body = result.delete_if{|k,v| v.nil?}
-      @name = result["_key"] || @name
-      @id   = result["_id"]  || @id
-      @rev  = result["_rev"] || @rev
-      set_up_from_or_to("from", result["_from"])
-      set_up_from_or_to("to", result["_to"])
+      @body["_#{attrs}"] = instance&.name
     end
 
 # == GET ==
@@ -120,7 +109,7 @@ module Arango
       }
       result = @database.request(action: "POST", body: body,
         query: query, url: "_api/document/#{@collection.name}" )
-      return result if @database.client.async != false || silent
+      return result if @client.async != false || silent
       body2 = result.clone
       if returnNew
         body2.delete("new")
@@ -146,7 +135,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @database.request(action: "PUT", body: body,
         query: query, headers: headers, url: "_api/document/#{@id}")
-      return result if @database.client.async != false || silent
+      return result if @client.async != false || silent
       body2 = result.clone
       if returnNew
         body2.delete("new")
@@ -172,8 +161,9 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @database.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "_api/document/#{@id}")
-      return result if @database.client.async != false || silent
+        query: query, headers: headers, url: "_api/document/#{@id}",
+        keepNull: keepNull)
+      return result if @client.async != false || silent
       body2 = result.clone
       if returnNew
         body2.delete("new")
@@ -181,13 +171,11 @@ module Arango
       end
       body = body.merge(body2)
       if mergeObjects
-        body = @body.merge(body)
+        @body = @body.merge(body)
       else
-        body.each do |key, value|
-          @body[key] = value
-        end
+        body.each{|key, value| @body[key] = value}
       end
-      assign_attributes(body)
+      assign_attributes(@body)
       return return_directly?(result) ? result : self
     end
 
@@ -211,7 +199,7 @@ module Arango
 
     def edges(direction: nil)
       query = {
-        "vertex" => @name,
+        "vertex"    => @name,
         "direction" => direction
       }
       result = @document.request(action: "GET",

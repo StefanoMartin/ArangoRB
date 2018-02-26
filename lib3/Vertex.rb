@@ -2,26 +2,29 @@
 
 module Arango
   class Vertex < Arango::Document
-    include Helper_Error
-    include Meta_prog
-    include Helper_Return
-
     def initialize(name:, collection:, graph:, body: {}, rev: nil)
-      satisfy_class?(collection, [Arango::Collection])
+      assign_collection(collection)
       satisfy_class?(graph, [Arango::Graph])
-      if collection.database.name != graph.database.name
+      if @database.name != graph.database.name
         raise Arango::Error.new message: "Database of the collection is not the same as the one of the graph"
       end
-      @collection = collection
       @graph = graph
-      @database = @collection.database
-      @client = @database.client
       body["_key"] ||= name
       body["_rev"] ||= rev
       body["_id"] ||= "#{@collection.name}/#{@key}"
       assign_attributes(body)
-      ignore_exception(retrieve) if @client.initialize_retrieve
+      # DEFINE
+      ["name", "rev", "key"].each do |attribute|
+        define_method(:"=#{attribute}") do |attrs|
+          temp_attrs = attribute
+          temp_attrs = "key" if attribute == "name"
+          body["_#{temp_attrs}"] = attrs
+          assign_attributes(body)
+        end
+      end
     end
+
+# === DEFINE ===
 
     attr_reader :name, :collection, :database, :client, :id, :rev
     alias key, name
@@ -30,15 +33,6 @@ module Arango
       hash = super(level)
       hash["graph"] = level > 0 ? @graph.to_h(level-1) : @graph.name
       hash
-    end
-
-# == PRIVATE ==
-
-    def assign_attributes(result)
-      @body = result.delete_if{|k,v| v.nil?}
-      @name = result["_key"]
-      @id = result["_id"]
-      @rev = result["_rev"]
     end
 
 # == GET ==
@@ -58,7 +52,7 @@ module Arango
       query = {"waitForSync" => waitForSync}
       result = @graph.request(action: "POST", body: body,
         query: query, url: "vertex/#{@collection.name}" )
-      return result if @database.client.async != false || silent
+      return result if @client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -77,7 +71,7 @@ module Arango
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
         url: "vertex/#{@collection.name}/#{@key}")
-      return result if @database.client.async != false || silent
+      return result if @client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -90,7 +84,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
         query: query, headers: headers, url: "vertex/#{@collection.name}/#{@key}")
-      return result if @database.client.async != false || silent
+      return result if @client.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       body = @body.merge(body)
@@ -107,7 +101,7 @@ module Arango
       result = @graph.request(action: "DELETE",
         url: "vertex/#{@collection.name}/#{@key}",
         query: query, headers: headers)
-      return_document(result)
+      return_element(result)
     end
 
 # === TRAVERSAL ===
@@ -117,7 +111,7 @@ module Arango
       filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
       uniqueness: nil, order: nil, expander: nil,
       edgeCollection: nil)
-      Arango::Traversal.new(body: body, database: @collection.database,
+      Arango::Traversal.new(body: body, database: @database,
         sort: sort, direction: direction, minDepth: minDepth,
         startVertex: self, visitor: visitor,itemOrder: itemOrder,
         strategy: strategy, filter: filter, init: init,

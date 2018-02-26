@@ -1,10 +1,14 @@
 module Arango
   class Batch
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+    include Arango::Database_Return
+
     def initialize(database:, boundary: "XboundaryX")
       satisfy_class?(database, [Arango::Database])
       @headers = {
-        "Content-Type": "multipart/form-data",
-        "boundary": boundary
+        "Content-Type" => "multipart/form-data",
+        "boundary"     => boundary
       }
       @boundary = boundary
       @database = database
@@ -33,7 +37,7 @@ module Arango
         "queries" => @queries
       }.delete_if{|k,v| v.nil?}
       hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
-      hash      
+      hash
     end
 
     def add_query(id: @id, method:, url:, body: nil)

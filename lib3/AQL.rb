@@ -2,28 +2,33 @@
 
 module Arango
   class AQL
-    include Helper_Error
-    include Meta_prog
-    include Helper_Return
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+    include Arango::Database_Return
 
-    def initialize(query:, database:, count: nil, batchSize: nil, cache: nil, memoryLimit: nil,
-      ttl: nil, bindVars: nil, failOnWarning: nil, profile: nil, maxTransactionSize: nil,
-      skipInaccessibleCollections: nil, maxWarningCount: nil, intermediateCommitCount: nil,
+    def initialize(query:, database:, count: nil, batchSize: nil, cache: nil,
+      memoryLimit: nil, ttl: nil, bindVars: nil, failOnWarning: nil,
+      profile: nil, maxTransactionSize: nil, skipInaccessibleCollections: nil,
+      maxWarningCount: nil, intermediateCommitCount: nil,
       satelliteSyncWait: nil, fullCount: nil, intermediateCommitSize: nil,
       optimizer_rules: nil, maxPlans: nil)
-      satisfy_class?(database, [Arango::Database])
       satisfy_class?(query, [Arango::AQL, String])
       @query = query.is_a?(String) ? query : query.query
-      @database = database
-      @client = @database.client
+      assign_database(database)
 
-      @count     = count
-      @batchSize = batchSize
-      @cache     = cache
+      @count       = count
+      @batchSize   = batchSize
+      @cache       = cache
       @memoryLimit = memoryLimit
-      @ttl       = ttl
-      @bindVars  = bindVars
-      @options   = {}
+      @ttl         = ttl
+      @bindVars    = bindVars
+
+      @quantity = nil
+      @hasMore  = false
+      @id       = ""
+      @result   = []
+      @options  = {}
+      # DEFINE
       [failOnWarning, profile, maxTransactionSize,
       skipInaccessibleCollections, maxWarningCount, intermediateCommitCount,
       satelliteSyncWait, fullCount, intermediateCommitSize,
@@ -34,12 +39,9 @@ module Arango
           set_option(value, name)
         end
       end
-
-      @quantity = nil
-      @hasMore = false
-      @id = ""
-      @result = []
     end
+
+# === DEFINE ===
 
     attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars, :quantity
     attr_reader :hasMore, :id, :result, :idCache, :failOnWarning, :profile,
@@ -48,12 +50,6 @@ module Arango
       :intermediateCommitSize, :optimizer_rules, :maxPlans, :database, :client, :cached, :extra
     alias size batchSize
     alias size= batchSize=
-
-    def database=(database)
-      satisfy_class?(database, [Arango::Database])
-      @database = database
-      @client = @database.client
-    end
 
     def set_option(attrs, name)
       @options ||= {}
@@ -66,29 +62,31 @@ module Arango
       @options = nil if @options.empty?
     end
 
-  # === RETRIEVE ===
+  # === TO HASH ===
 
     def to_h(level=0)
       hash = {
-        "query" => @query,
-        "database" => @database,
-        "result" => @result,
-        "count" => @count,
-        "quantity" => @quantity,
-        "ttl" => @ttl,
-        "cache" => @cache,
-        "batchSize" => @batchSize,
-        "bindVars" => @bindVars,
-        "options" => @options,
-        "idCache" => @idCache,
+        "query"       => @query,
+        "database"    => @database,
+        "result"      => @result,
+        "count"       => @count,
+        "quantity"    => @quantity,
+        "ttl"         => @ttl,
+        "cache"       => @cache,
+        "batchSize"   => @batchSize,
+        "bindVars"    => @bindVars,
+        "options"     => @options,
+        "idCache"     => @idCache,
         "memoryLimit" => @memoryLimit
       }.delete_if{|k,v| v.nil?}
       hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
     end
 
+# === REQUEST ===
+
     def return_aql(result)
-      return result if @database.client.async != false
+      return result if @client.async != false
       @extra    = result["extra"]
       @cached   = result["cached"]
       @quantity = result["count"]
@@ -99,7 +97,7 @@ module Arango
       else
         @result = result["result"].map{|x|
           collection = Arango::Collection.new(name: x["_id"].split("/")[0], database: @database)
-          Arango::Document.new(key: x["_key"], collection: collection, database: @database, body: x)
+          Arango::Document.new(name: x["_key"], collection: collection, database: @database, body: x)
         end
       end
       return return_directly?(result) ? result : self
@@ -109,13 +107,13 @@ module Arango
 
     def execute
       body = {
-        "query" => @query,
-        "count" => @count,
-        "batchSize" => @batchSize,
-        "ttl" => @ttl,
-        "cache" => @cache,
-        "options" => @options,
-        "bindVars" => @bindVars,
+        "query"       => @query,
+        "count"       => @count,
+        "batchSize"   => @batchSize,
+        "ttl"         => @ttl,
+        "cache"       => @cache,
+        "options"     => @options,
+        "bindVars"    => @bindVars,
         "memoryLimit" => @memoryLimit
       }
       result = @database.request(action: "POST", url: "_api/cursor", body: body)
@@ -139,20 +137,20 @@ module Arango
 
     def explain
       body = {
-        "query" => @query,
-        "options" => @options,
+        "query"    => @query,
+        "options"  => @options,
         "bindVars" => @bindVars
       }
-      @database.request(action: "POST", url: "/_api/explain", body: body)
+      @database.request(action: "POST", url: "_api/explain", body: body)
     end
 
     def parse
       body = { "query" => @query }
-      @database.request(action: "POST", url: "/_api/query", body: body)
+      @database.request(action: "POST", url: "_api/query", body: body)
     end
 
     def kill(id: @id)
-      @database.request(action: "DELETE", url: "query/#{id}")
+      @database.request(action: "DELETE", url: "_api/query/#{id}")
     end
   end
 end

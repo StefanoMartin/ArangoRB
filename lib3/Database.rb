@@ -13,7 +13,6 @@ module Arango
       @isSystem = nil
       @path = nil
       @id = nil
-      ignore_exception(retrieve) if @client.initialize_retrieve
     end
 
     attr_reader :isSystem, :path, :id
@@ -33,12 +32,12 @@ module Arango
 
     def request(action:, url:, body: {}, headers: {},
       query: {}, key: nil, return_direct_result: false,
-      skip_to_json: false)
+      skip_to_json: false, keepNull: false)
       url = "_db/#{@name}/#{url}"
       @client.request(action: action, url: url, body: body,
         headers: headers, query: query, key: key,
         return_direct_result: return_direct_result,
-        skip_to_json: skip_to_json)
+        skip_to_json: skip_to_json, keepNull: keepNull)
     end
 
 # === GET ===
@@ -166,6 +165,10 @@ module Arango
     skipInaccessibleCollections: skipInaccessibleCollections, maxWarningCount: maxWarningCount, intermediateCommitCount: intermediateCommitCount,
     satelliteSyncWait: satelliteSyncWait, fullCount: fullCount, intermediateCommitSize: intermediateCommitSize,
     optimizer_rules: optimizer_rules, maxPlans: maxPlans)
+  end
+
+  def kill_aql(id:)
+    request(action: "DELETE", url: "_api/query/#{id}")
   end
 
 # === FUNCTION ===
@@ -427,6 +430,7 @@ module Arango
       user = Arango::User.new(user: user) if user.is_a?(String)
       return user
     end
+    private :check_user
 
     def add_user_access(grant:, user:)
       user = check_user(user)

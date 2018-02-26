@@ -2,30 +2,43 @@
 
 module Arango
   class Graph
-    include Helper_Error
-    include Meta_prog
-    include Helper_Return
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+    include Arango::Database_Return
 
     def initialize(name:, database:, edgeDefinitions: [],
       orphanCollections: [], body: {}, numberOfShards: nil, isSmart: nil, smartGraphAtttribute: nil, replicationFactor: nil)
-      satisfy_class?(database, Arango::Database])
-
-      @database = database
-      @client = @database.client
-      body["_key"] ||= name
-      body["_id"] ||= "_graphs/#{name}"
-      body["edgeDefinitions"] ||= edgeDefinitions
-      body["orphanCollections"] ||= orphanCollections
+      assign_database(database)
+      body["_key"]    ||= name
+      body["_id"]     ||= "_graphs/#{name}"
       body["isSmart"] ||= isSmart
-      body["numberOfShards"] = numberOfShards
-      body["replicationFactor"] = replicationFactor
-      body["smartGraphAttribute"] = smartGraphAttribute
+      body["edgeDefinitions"]     ||= edgeDefinitions
+      body["orphanCollections"]   ||= orphanCollections
+      body["numberOfShards"]      ||= numberOfShards
+      body["replicationFactor"]   ||= replicationFactor
+      body["smartGraphAttribute"] ||= smartGraphAttribute
       assign_attributes(body)
     end
+
+# === DEFINE ===
 
     attr_reader :name, :database, :client, :id, :body, :rev, :isSmart
     attr_accessor :numberOfShards, :replicationFactor, :smartGraphAttribute
     alias key name
+
+    def body=(result)
+      result.delete_if{|k,v| v.nil?}
+      @name = result["name"]
+      assign_edgeDefinitions(result["edgeDefinitions"])
+      assign_orphanCollections(result["orphanCollections"])
+      @id = result["_id"]
+      @rev = result["_rev"]
+      @isSmart = result["isSmart"]
+      @numberOfShards = result["numberOfShards"]
+      @replicationFactor = result["replicationFactor"]
+      @smartGraphAttribute = result["smartGraphAttribute"]
+    end
+    alias assign_attributes body=
 
     def name=(name)
       @name = name
@@ -39,8 +52,7 @@ module Arango
         return Arango::Collection.new(name: collection,
           database: @database, type: type, graph: self)
       else
-        raise Arango::Error.new message: "#{collection} should be an Arango::Collection or
-        a name of a class"
+        raise Arango::Error.new message: "#{collection} should be an Arango::Collection or a name of a class"
       end
     end
 
@@ -49,11 +61,12 @@ module Arango
       @edgeDefinitions.map do |edgedef|
         {
           "collection" => edgedef["collection"].name,
-          "from" => edgedef["from"].map{|t| t.name},
-          "to"   => edgedef["to"].map{|t| t.name}
+          "from"       => edgedef["from"].map{|t| t.name},
+          "to"         => edgedef["to"].map{|t| t.name}
         }
       end
     end
+    private :edgeDefinitionsRaw
 
     def edgeDefinitions(raw=false)
       return edgeDefinitionsRaw if raw
@@ -66,29 +79,17 @@ module Arango
       edgeDefinitions.each do |edgeDefinition|
         hash["collection"] = return_collection(edgeDefinition["collection"], "Edge")
         edgeDefinition["from"] ||= []
-        hash["from"] = edgeDefinition["from"].map do |t|
-          return_collection(t)
-        end
-        edgeDefinition["to"] ||= []
-        hash["to"] = edgeDefinition["to"].map do |t|
-          return_collection(t)
-        end
+        edgeDefinition["to"]   ||= []
+        hash["from"] = edgeDefinition["from"].map{|t| return_collection(t)}
+        hash["to"]   = edgeDefinition["to"].map{|t| return_collection(t)}
         @edgeDefinitions << hash
       end
     end
     alias assign_edgeDefinitions edgeDefinitions=
 
-    def database=(database)
-      satisfy_class?(database, [Arango::Database])
-      @database = database
-      @client = @database.client
-    end
-
     def orphanCollections=(orphanCollections)
       orphanCollections ||= []
-      @orphanCollections = orphanCollections.map do |oc|
-        return_collection(oc)
-      end
+      @orphanCollections = orphanCollections.map{|oc| return_collection(oc)}
     end
     alias assign_orphanCollections edgeDefinitions=
 
@@ -96,70 +97,65 @@ module Arango
       @orphanCollections ||= []
       @orphanCollections.map{|oc| oc.name}
     end
+    private :orphanCollectionsRaw
 
     def orphanCollections(raw=false)
       return orphanCollectionsRaw if raw
       return @orphanCollections
     end
 
-    def assign_attributes(result)
-      result.delete_if{|k,v| v.nil?}
-      @name = result["name"]
-      assign_edgeDefinitions(result["edgeDefinitions"])
-      assign_orphanCollections(result["orphanCollections"])
-      @id = result["_id"]
-      @rev = result["_rev"]
-      @isSmart = result["isSmart"]
-      @numberOfShards = result["numberOfShards"]
-      @replicationFactor = result["replicationFactor"]
-      @smartGraphAttribute = result["smartGraphAttribute"]
-    end
+# === REQUEST ===
 
     def request(action:, url:, body: {}, headers: {}, query: {}, key: nil, return_direct_result: false, skip_to_json: false)
-      url = "_api/gharial/#{@key}/#{url}"
+      url = "_api/gharial/#{@name}/#{url}"
       @database.request(action: action, url: url, body: body, headers: headers,
         query: query, key: key, return_direct_result: return_direct_result,
         skip_to_json: skip_to_json)
     end
 
+# === TO HASH ===
+
     def to_h(level=0)
       hash = {
-        "name" => @name,
-        "id" => @id,
-        "rev" => @rev,
+        "name"    => @name,
+        "id"      => @id,
+        "rev"     => @rev,
         "isSmart" => @isSmart,
-        "numberOfShards" => @numberOfShards,
-        "replicationFactor" @replicationFactor,
+        "numberOfShards"      => @numberOfShards,
+        "replicationFactor"   => @replicationFactor,
         "smartGraphAttribute" => @smartGraphAttribute,
-        "edgeDefinitions" => edgeDefinitionsRaw,
-        "orphanCollections" => orphanCollectionsRaw
+        "edgeDefinitions"     => edgeDefinitionsRaw,
+        "orphanCollections"   => orphanCollectionsRaw
       }.delete_if{|k,v| v.nil?}
       hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
-
       hash
     end
 
 # === GET ===
 
     def retrieve
-      result = @database.request(action: "GET", url: "_api/gharial/#{@key}")
+      result = @database.request(action: "GET", url: "_api/gharial/#{@name}")
       return_element(result)
     end
 
 # === POST ===
 
-    def create(isSmart: @isSmart, smartGraphAttribute: @smartGraphAttribute, numberOfShards: @numberOfShards)
+    def create(isSmart: @isSmart, smartGraphAttribute: @smartGraphAttribute,
+      numberOfShards: @numberOfShards)
       body = {
-        "name" => @key, "edgeDefinitions" => edgeDefinitionsRaw,
-        "orphanCollections" => orphanCollectionsRaw, "isSmart" => isSmart,
+        "name" => @name,
+        "edgeDefinitions"   => edgeDefinitionsRaw,
+        "orphanCollections" => orphanCollectionsRaw,
+        "isSmart"           => isSmart,
         "options" => {
           "smartGraphAttribute" => smartGraphAttribute,
-          "numberOfShards" => numberOfShards
+          "numberOfShards"      => numberOfShards
         }
       }
       body["options"].delete_if{|key, val| val.nil?}
       body.delete("options") if body["options"].empty?
-      result = @database.request(action: "POST", url: "_api/gharial", body: body)
+      result = @database.request(action: "POST", url: "_api/gharial",
+        body: body)
       return_element(result)
     end
 
@@ -167,7 +163,7 @@ module Arango
 
     def destroy(dropCollections: nil)
       query = { "dropCollections" => dropCollections }
-      result = @database.request(action: "DELETE", url: "_api/gharial/#{@key}",
+      result = @database.request(action: "DELETE", url: "_api/gharial/#{@name}",
         query: query)
       return_element(result)
     end

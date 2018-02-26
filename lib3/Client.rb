@@ -2,29 +2,28 @@
 
 module Arango
   class Client
-    include Helper_Error
-    include Meta_prog
+    include Arango::Helper_Error
 
-    def initialize(username: "root", password:, server: "localhost",
-      port: "8529", verbose: false, return_output: false,
-      initialize_retrieve: true, cluster: nil, warning: true)
+    def initialize(username: "root", password:, server: "localhost", warning: true,
+      port: "8529", verbose: false, return_output: false, cluster: nil,
+      async: false)
       @base_uri = "http://#{server}:#{port}"
       @server = server
       @port = port
       @username = username
-      @async = false
+      assign_async(async)
       @options = {:body => {}, :headers => {}, :query => {},
-      :basic_auth => {:username => @username, :password => @password }}
+        :basic_auth => {:username => @username, :password => @password }}
       @verbose = verbose
       @return_output = return_output
       @cluster = cluster
       @warning = warning
-
-      define_singleton_method(key_sym)
     end
 
-    attr_reader :async, :port, :base_uri, :username
-    attr_accessor :cluster, :port, :verbose, :return_output, :warning
+# === DEFINE ===
+
+    attr_reader :async, :port, :server, :base_uri, :username
+    attr_accessor :cluster, :verbose, :return_output, :warning
 
     def username=(username)
       @username = username
@@ -46,29 +45,50 @@ module Arango
       @base_uri = "http://#{@server}:#{@port}"
     end
 
+    def async=(async)
+      satisfy_category?(async, ["true", "false", false, true, "store"])
+      case async
+      when true, "true"
+        @options[:headers]["x-arango-async"] = "true"
+        @async = true
+      when "store"
+        @options[:headers]["x-arango-async"] ="store"
+        @async = "store"
+      when false, "false"
+        @options[:headers].delete("x-arango-async")
+        @async = false
+      end
+    end
+    alias assign_async async=
+
+# === TO HASH ===
+
     def to_h(level=0)
       {
         "base_uri" => @base_uri
-        "server" => @server,
-        "port" => @port,
+        "server"   => @server,
+        "port"     => @port,
         "username" => @username,
-        "async" => @async,
-        "verbose" => @verbose,
+        "async"    => @async,
+        "verbose"  => @verbose,
         "return_output" => @return_output,
-        "cluster" => @cluster
+        "cluster"       => @cluster
+        "warning"       => @warning
       }.delete_if{|k,v| v.nil?}
     end
 
-    def download(url:, path:, body: {}, headers: {}, query: {})
+# === REQUESTS ===
+
+    def download(url:, path:, body: {}, headers: {}, query: {}, skip_cluster: false)
       send_url = "#{@base_uri}/"
       if !@cluster.nil? && !skip_cluster
         send_url += "_admin/#{@cluster}/"
       end
       send_url += url
       body.delete_if{|k,v| v.nil?}
-      body = body.to_json
       query.delete_if{|k,v| v.nil?}
       headers.delete_if{|k,v| v.nil?}
+      body = body.to_json
       options = @options.merge({:body => body, :query => query,
         :headers => headers, :stream_body => true})
       puts "\n#{action} #{send_url}\n" if @verbose
@@ -82,7 +102,7 @@ module Arango
 
     def request(action:, url:, body: {}, headers: {}, query: {},
       key: nil, return_direct_result: false, skip_to_json: false,
-      skip_cluster: false)
+      skip_cluster: false, keepNull: false)
       send_url = "#{@base_uri}/"
       if !@cluster.nil? && !skip_cluster
         send_url += "_admin/#{@cluster}/"
@@ -91,7 +111,7 @@ module Arango
       puts "\n#{action} #{send_url}\n" if @verbose
 
       unless skip_to_json
-        body.delete_if{|k,v| v.nil?}
+        body.delete_if{|k,v| v.nil?} unless keepNull
         body = body.to_json
       end
       query.delete_if{|k,v| v.nil?}
@@ -122,10 +142,10 @@ module Arango
       result = response.parsed_response
       puts result if @verbose
       if !result.is_a?(Hash) && !result.nil?
-        raise Arango::Error message: "ArangoRB didn't return a valid hash",
+        raise Arango::Error.new message: "ArangoRB didn't return a valid hash",
           data: result
       elsif result.is_a?(Hash) && result["error"]
-        raise Arango::Error message: result["errorMessage"],
+        raise Arango::Error.new message: result["errorMessage"],
           code: result["code"], data: result
       end
       return result if return_direct_result || @return_output
@@ -149,22 +169,6 @@ module Arango
       return result if return_directly?(result)
       result["result"].map do |db|
         Arango::Database.new(database: db, client: self)
-      end
-    end
-
-  # == ASYNC ==
-
-    def async=(async)
-      satisfy_category?(async, ["true", "false", false, true, "store"])
-      if async == true || async == "true"
-        @options[:headers]["x-arango-async"] = "true"
-        @async = true
-      elsif async == "store"
-        @options[:headers]["x-arango-async"] ="store"
-        @async = "store"
-      else
-        @options[:headers].delete("x-arango-async")
-        @async = false
       end
     end
 
@@ -297,25 +301,26 @@ module Arango
     end
 
     def changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil,
-      historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil, throttleWhenPending: nil)
-      [logfileSize, historicLogfiles, reserveLogfiles, throttleWait,
-        throttleWhenPending].each do |val|
-        satisfy_class?(val, [Integer, NilClass])
-      end
-
+      historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil,
+      throttleWhenPending: nil)
       body = {
         "allowOversizeEntries" => allowOversizeEntries,
-        "logfileSize" => allowOversizeEntries,
-        "historicLogfiles" => historicLogfiles,
-        "reserveLogfiles" => reserveLogfiles,
-        "throttleWait" => throttleWait,
+        "logfileSize"         => allowOversizeEntries,
+        "historicLogfiles"    => historicLogfiles,
+        "reserveLogfiles"     => reserveLogfiles,
+        "throttleWait"        => throttleWait,
         "throttleWhenPending" => throttleWhenPending
       }
       request(action: "PUT", url: "_admin/wal/properties", body: body)
     end
 
-    def transaction(action:, write: [], read: [], params: nil, maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
-      Arango::Transaction.new(client: self, action: action, write: write, read: read, params: params, maxTransactionSize: maxTransactionSize, lockTimeout: lockTimeout, waitForSync: waitForSync, intermediateCommitCount: intermediateCommitCount, intermedateCommitSize: intermedateCommitSize)
+    def transaction(action:, write: [], read: [], params: nil, maxTransactionSize: nil,
+      lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil,
+      intermedateCommitSize: nil)
+      Arango::Transaction.new(client: self, action: action, write: write, read: read,
+        params: params, maxTransactionSize: maxTransactionSize, lockTimeout: lockTimeout,
+        waitForSync: waitForSync, intermediateCommitCount: intermediateCommitCount,
+        intermedateCommitSize: intermedateCommitSize)
     end
 
     def transactions
