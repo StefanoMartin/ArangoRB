@@ -4,9 +4,9 @@ module Arango
   class Client
     include Arango::Helper_Error
 
-    def initialize(username: "root", password:, server: "localhost", warning: true,
-      port: "8529", verbose: false, return_output: false, cluster: nil,
-      async: false)
+    def initialize(username: "root", password:, server: "localhost",
+      warning: true, port: "8529", verbose: false, return_output: false,
+      cluster: nil, async: false)
       @base_uri = "http://#{server}:#{port}"
       @server = server
       @port = port
@@ -314,12 +314,12 @@ module Arango
       request(action: "PUT", url: "_admin/wal/properties", body: body)
     end
 
-    def transaction(action:, write: [], read: [], params: nil, maxTransactionSize: nil,
-      lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil,
-      intermedateCommitSize: nil)
-      Arango::Transaction.new(client: self, action: action, write: write, read: read,
-        params: params, maxTransactionSize: maxTransactionSize, lockTimeout: lockTimeout,
-        waitForSync: waitForSync, intermediateCommitCount: intermediateCommitCount,
+    def transaction(action:, write: [], read: [], params: nil,
+      maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
+      Arango::Transaction.new(client: self, action: action, write: write,
+        read: read, params: params, maxTransactionSize: maxTransactionSize,
+        lockTimeout: lockTimeout, waitForSync: waitForSync,
+        intermediateCommitCount: intermediateCommitCount,
         intermedateCommitSize: intermedateCommitSize)
     end
 

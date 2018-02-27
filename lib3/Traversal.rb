@@ -2,9 +2,9 @@
 
 module Arango
   class Traversal
-    include Helper_Error
-    include Meta_prog
-    include Helper_Return
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+    include Arango::Database_Return
 
     def initialize(body: {}, database:, edgeCollection: nil,
       sort: nil, direction: nil, minDepth: nil,
@@ -12,115 +12,129 @@ module Arango
       filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
       uniqueness: nil, order: nil, graphName: nil, graph: nil, expander: nil,
       edgeCollection: nil)
-    satisfy_class?(database, [Arango::Database])
-    satisfy_category?(direction, ["outbound", "inbound", "any", nil])
-    satisfy_category?(itemOrder, ["forward", "backward", nil])
-    satisfy_category?(strategy, ["depthfirst", "breadthfirst", nil])
-    satisfy_category?(order, ["preorder", "postorder", "preorder-expander", nil])
-    @database = database
-    @client = @database.client
-    @sort        = body["sort"] || sort
-    @direction   = body["direction"] || direction
-    @maxDepth    = body["maxDepth"] || maxDepth
-    @minDepth    = body["minDepth"] || minDepth
-    @startVertex = return_vertex(body["startVertex"] || startVertex)
-    @visitor     = body["visitor"] || visitor
-    @itemOrder   = body["itemOrder"] || itemOrder
-    @strategy    = body["strategy"] || strategy
-    @filter      = body["filter"] || filter
-    @init        = body["init"] || init
-    @maxIterations = body["maxiterations"] || maxIterations
-    @uniqueness  = body["uniqueness"] || uniqueness
-    @order       = body["order"] || order
-    @expander    = body["expander"] || expander
-    @edgeCollection = return_collection(body["edgeCollection"] || edgeCollection, "Edge")
-    @graph = return_graph(body["graphName"] || graph || graphName)
-    @graphName = @graph&.name
-    @vertices = nil
-    @paths = nil
-  end
-
-  def return_vertex(vertex)
-    if vertex.is_a?(Arango::Vertex) || vertex.is_a?(Arango::Document)
-      return vertex
-    elsif vertex.is_a?(String) && vertex.include?("/")
-      val = vertex.split("/")
-      collection = Arango::Collection.new(database: @database, name: val[0])
-      return Arango::Document.new(collection: collection, name: val[1])
-    else
-      raise Arango::Error.new message: "#{vertex} should be an Arango::Vertex, an Arango::Document or a valid vertex id"
+      assign_database(database)
+      satisfy_category?(direction, ["outbound", "inbound", "any", nil])
+      satisfy_category?(itemOrder, ["forward", "backward", nil])
+      satisfy_category?(strategy, ["depthfirst", "breadthfirst", nil])
+      satisfy_category?(order, ["preorder", "postorder", "preorder-expander", nil])
+      @sort        = body["sort"] || sort
+      @direction   = body["direction"] || direction
+      @maxDepth    = body["maxDepth"] || maxDepth
+      @minDepth    = body["minDepth"] || minDepth
+      return_vertex(body["startVertex"] || startVertex)
+      @visitor     = body["visitor"] || visitor
+      @itemOrder   = body["itemOrder"] || itemOrder
+      @strategy    = body["strategy"] || strategy
+      @filter      = body["filter"] || filter
+      @init        = body["init"] || init
+      @maxIterations = body["maxiterations"] || maxIterations
+      @uniqueness  = body["uniqueness"] || uniqueness
+      @order       = body["order"] || order
+      @expander    = body["expander"] || expander
+      return_collection(body["edgeCollection"] || edgeCollection, "Edge")
+      return_graph(body["graphName"] || graph || graphName)
+      @vertices = nil
+      @paths = nil
     end
-  end
 
-  def return_collection(collection, type=nil)
-    if collection.is_a?(Arango::Collection) || collection.nil?
-      return collection
-    elsif collection.is_a?(String)
-      collection_instance = Arango::Collection.new(name: edgedef["collection"],
-        database: @database, type: type)
-      return collection_instance
-    else
-      raise Arango::Error.new message: "#{collection} should be an Arango::Collection or
-      a name of a class"
+# === DEFINE ===
+
+    attr_accessor :sort, :maxDepth, :minDepth, :visitor, :filter, :init, :maxiterations, :uniqueness, :expander
+    attr_reader :vertices, :paths, :direction, :itemOrder,
+      :strategy, :order, :database, :client, :startVertex, :edgeCollection, :graph
+
+    def direction=(direction)
+      satisfy_category?(direction, ["outbound", "inbound", "any", nil])
+      @direction = direction
     end
-  end
 
-  def return_graph(graph)
-    if graph.is_a?(Arango::Graph) || graph.nil?
-      return graph
-    elsif graph.is_a?(String)
-      return Arango::Graph.new(name: graph, database: @database)
-    else
-      raise Arango::Error.new message: "#{graph} should be an Arango::Graph or
-      a name of a graph"
+    def itemOrder=(itemOrder)
+      satisfy_category?(itemOrder, ["forward", "backward", nil])
+      @itemOrder = itemOrder
     end
-  end
 
-  attr_accessor :sort, :maxDepth, :minDepth, :visitor, :filter, :init, :maxiterations,
-    :uniqueness, :expander
-  attr_reader :idCache, :vertices, :paths, :direction, :itemOrder,
-    :strategy, :order, :database, :client, :startVertex, :edgeCollection, :graph
+    def strategy=(strategy)
+      satisfy_category?(strategy, ["depthfirst", "breadthfirst", nil])
+      @strategy = strategy
+    end
 
-  def direction=(direction)
-    satisfy_category?(direction, ["outbound", "inbound", "any", nil])
-    @direction = direction
-  end
+    def order=(order)
+      satisfy_category?(order, ["preorder", "postorder", "preorder-expander", nil])
+      @order = order
+    end
 
-  def itemOrder=(itemOrder)
-    satisfy_category?(itemOrder, ["forward", "backward", nil])
-    @itemOrder = itemOrder
-  end
+    def startVertex=(vertex)
+      if vertex.is_a?(Arango::Vertex) || vertex.is_a?(Arango::Document)
+        @startVertex = vertex
+      elsif vertex.is_a?(String) && vertex.include?("/")
+        val = vertex.split("/")
+        collection = Arango::Collection.new(database: @database, name: val[0])
+        @startVertex = Arango::Document.new(collection: collection, name: val[1])
+      else
+        raise Arango::Error.new message: "#{vertex} should be an Arango::Vertex, an Arango::Document or a valid vertex id"
+      end
+    end
+    alias return_vertex startVertex=
 
-  def strategy=(strategy)
-    satisfy_category?(strategy, ["depthfirst", "breadthfirst", nil])
-    @strategy = strategy
-  end
+    def edgeCollection=(collection)
+      if collection.is_a?(Arango::Collection) && collection.type != "Edge"
+        raise Arango::Error.new message: "#{collection} should be an Edge Arango::Collection or a name of a class"
+      elsif (collection.is_a?(Arango::Collection) && collection.type == "Edge") || collection.nil?
+        @edgeCollection = collection
+      elsif collection.is_a?(String)
+        collection_instance = Arango::Collection.new(name: edgedef["collection"],
+          database: @database, type: "Edge")
+        @edgeCollection = collection_instance
+      else
+        raise Arango::Error.new message: "#{collection} should be an Arango::Collection or
+        a name of a class"
+      end
+    end
+    alias return_collection edgeCollection=
 
-  def order=(order)
-    satisfy_category?(order, ["preorder", "postorder", "preorder-expander", nil])
-    @order = order
-  end
+    def graph=(graph)
+      if graph.is_a?(Arango::Graph)
+        if graph.database.name != @database.name
+          raise Arango::Error.new message: "#{graph} should have the same database of the chosen database"
+        end
+        @graph = graph
+      elsif graph.nil?
+        @graph = nil
+      elsif graph.is_a?(String)
+        @graph = Arango::Graph.new(name: graph, database: @database)
+      else
+        raise Arango::Error.new message: "#{graph} should be an Arango::Graph or a name of a graph"
+      end
+    end
+    alias return_graph graph=
 
-  def database=(database)
-    satisfy_class?(database, [Arango::Database])
-    @database = database
-    @client = @database.client
-  end
+    def graphName
+      @graph&.name
+    end
 
-  def graph=(graphName)
-    @graph = return_graph(graphName)
-    @graphName = @graph&.name
-  end
+    alias vertex= startVertex=
+    alias vertex startVertex
+    alias max maxDepth
+    alias max= maxDepth=
+    alias min minDepth
+    alias min= minDepth=
+    alias collection edgeCollection
+    alias collection= edgeCollection=
+    alias graphName= graph=
 
-  def startVertex=(startVertex)
-    @startVertex = return_vertex(startVertex)
-  end
+    def in
+      @direction = "inbound"
+    end
 
-  def edgeCollection=(edgeCollection)
-    return_collection(body["edgeCollection"] || edgeCollection, "Edge")
-  end
+    def out
+      @direction = "outbound"
+    end
 
-  ### RETRIEVE ###
+    def any
+      @direction = "any"
+    end
+
+# === TO HASH ===
 
   def to_h(level=0)
     hash = {
@@ -154,30 +168,9 @@ module Arango
     hash
   end
 
-  def in
-    @direction = "inbound"
-  end
+# === EXECUTE ===
 
-  def out
-    @direction = "outbound"
-  end
-
-  def any
-    @direction = "any"
-  end
-
-  alias vertex= startVertex=
-  alias vertex startVertex
-  alias max maxDepth
-  alias max= maxDepth=
-  alias min minDepth
-  alias min= minDepth=
-  alias collection edgeCollection
-  alias collection= edgeCollection=
-  alias graphName graph
-  alias graphName= graph=
-
-  def execute # TESTED
+  def execute
     body = {
       "sort"        => @sort,
       "direction"   => @direction,
@@ -197,7 +190,7 @@ module Arango
       "edgeCollection" => @edgeCollection&.name
     }
     result = @database.request(action: "POST", url: "_api/traversal", body: body)
-    return result if @database.client.async != false
+    return result if @client.async != false
     @vertices = result["result"]["visited"]["vertices"].map do |x|
       collection = Arango::Collection.new(name: x["_id"].split("/")[0], database:  @database)
       Arango::Document.new(name: x["_key"], collection: collection, body: x)

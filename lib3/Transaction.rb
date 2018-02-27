@@ -2,20 +2,30 @@
 
 module Arango
   class Transaction
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+
     def initialize(client:, action:, write: [], read: [], params: nil, maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
       satisfy_class?(database, [Arango::Client])
       @client = client
       @action = action
-      @write = return_write_or_read(write)
-      @read  = return_write_or_read(read)
+      @write  = return_write_or_read(write)
+      @read   = return_write_or_read(read)
       @params = params
-      @maxTransactionSize = maxTransactionSize
-      @lockTimeout = lockTimeout
-      @waitForSync = waitForSync
+      @maxTransactionSize      = maxTransactionSize
+      @lockTimeout             = lockTimeout
+      @waitForSync             = waitForSync
       @intermediateCommitCount = intermediateCommitCount
-      @intermedateCommitSize = intermedateCommitSize
+      @intermedateCommitSize   = intermedateCommitSize
       @result = nil
     end
+
+# === DEFINE ===
+
+    attr_reader :read, :write, :result, :client
+    attr_accessor :action, :params, :maxTransactionSize,
+      :lockTimeout, :waitForSync, :intermediateCommitCount,
+      :intermedateCommitSize
 
     def client=(client)
       satisfy_class?(client,[Arango::Client])
@@ -54,12 +64,7 @@ module Arango
       end
     end
 
-    attr_reader :read, :write, :result, :client
-    attr_accessor :action, :params, :maxTransactionSize,
-      :lockTimeout, :waitForSync, :intermediateCommitCount,
-      :intermedateCommitSize
-
-    ### RETRIEVE ###
+# === TO HASH ===
 
     def to_h(level=0)
       hash = {
@@ -67,25 +72,31 @@ module Arango
         "collections" => @collections,
         "result"      => @result,
         "params"      => @params,
-        "read"  => @read.map{|x| x.name},
-        "write" => @write.map{|x| x.name}
+        "read"        => @read.map{|x| x.name},
+        "write"       => @write.map{|x| x.name}
       }.delete_if{|k,v| v.nil?}
       hash["client"] = level > 0 ? @client.to_h(level-1) : @client.base_uri
     end
 
-    def execute
+# === EXECUTE ===
+
+    def execute(action: @action, params: @params,
+      maxTransactionSize: @maxTransactionSize,
+      lockTimeout: @lockTimeout, waitForSync: @waitForSync,
+      intermediateCommitCount: @intermediateCommitCount,
+      intermedateCommitSize: @intermedateCommitSize)
       body = {
-        "action" => @action,
         "collections" => {
-          "read" => @read.map{|x| x.name},
+          "read"  => @read.map{|x| x.name},
           "write" =>  @write.map{|x| x.name}
         },
-        "params" => @params,
-        "lockTimeout" => @lockTimeout,
-        "waitForSync" => @waitForSync,
-        "maxTransactionSize" => @maxTransactionSize,
-        "intermediateCommitCount" => @intermediateCommitCount,
-        "intermedateCommitSize" => @intermedateCommitSize
+        "action"      => action,
+        "params"      => params,
+        "lockTimeout" => lockTimeout,
+        "waitForSync" => waitForSync,
+        "maxTransactionSize"      => maxTransactionSize,
+        "intermediateCommitCount" => intermediateCommitCount,
+        "intermedateCommitSize"   => intermedateCommitSize
       }
       request = @client.request(action: "POST", url: "/_api/transaction", body: body)
       return result if @client.async != false

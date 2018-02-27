@@ -2,12 +2,14 @@
 
 module Arango
   class Index
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+    include Arango::Collection_Return
+    
     def initialize(collection:, body: {}, id: nil, type: "hash", unique: nil, fields:, sparse: nil, geoJson: nil, minLength: nil, deduplicate: nil)
-      satisfy_class?(collection, [Arango::Collection])
-      satisfy_category?(type, "type", ["hash", "skiplist", "persistent", "geo", "fulltext"])
-      @collection = collection
-      @database = collection.database
-      @client = collection.client
+      assign_collection(collection)
+      satisfy_category?(type, "type", ["hash", "skiplist", "persistent",
+        "geo", "fulltext"])
       body["type"] ||= type
       body["id"] ||= id
       body["sparse"] ||= sparse
@@ -20,7 +22,10 @@ module Arango
       assign_attributes(body)
     end
 
-    attr_accessor :id, :unique, :fields, :key, :sparse, :geoJson, :minLenght, :deduplicate
+# === DEFINE ===
+
+    attr_accessor :id, :unique, :fields, :key, :sparse, :geoJson, :minLenght,
+      :deduplicate
     attr_reader :type, :database, :collection, :client
 
     def type=(type)
@@ -28,35 +33,7 @@ module Arango
       @type = type
     end
 
-    def collection=(collection)
-      satisfy_class?(collection, [Arango::Collection])
-      @collection = collection
-      @database = collection.database
-      @client = collection.client
-    end
-
-    ### RETRIEVE ###
-
-    def to_h(level=0)
-      hash = {
-        "key" => @key,
-        "id" => @id,
-        "body" => @body,
-        "type" => @type,
-        "sparse" => @sparse,
-        "unique" => @unique,
-        "fields" => @fields,
-        "idCache" => @idCache,
-        "geoJson" => @geoJson,
-        "minLength" => @minLength,
-        "deduplicate" => @deduplicate
-      }.delete_if{|k,v| v.nil?}
-      hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
-    end
-
-# == PRIVATE ==
-
-    def assign_attributes(result)
+    def body=(result)
       @body        = result
       @id          = result["id"]
       @key         = @id.split("/")[1]
@@ -67,6 +44,26 @@ module Arango
       @geoJson     = result["geoJson"]
       @minLength   = result["minLength"]
       @deduplicate = result["deduplicate"]
+    end
+    alias assign_attributes body=
+
+# === DEFINE ===
+
+    def to_h(level=0)
+      hash = {
+        "key"    => @key,
+        "id"     => @id,
+        "body"   => @body,
+        "type"   => @type,
+        "sparse" => @sparse,
+        "unique" => @unique,
+        "fields" => @fields,
+        "idCache" => @idCache,
+        "geoJson" => @geoJson,
+        "minLength"   => @minLength,
+        "deduplicate" => @deduplicate
+      }.delete_if{|k,v| v.nil?}
+      hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
     end
 
 # === COMMANDS ===
@@ -79,12 +76,12 @@ module Arango
 
     def create
       body = {
-        "fields" => @fields,
-        "unique" => @unique,
-        "type" => @type,
-        "id" => @id,
-        "geoJson" => @geoJson,
-        "minLength" => @minLength,
+        "fields"      => @fields,
+        "unique"      => @unique,
+        "type"        => @type,
+        "id"          => @id,
+        "geoJson"     => @geoJson,
+        "minLength"   => @minLength,
         "deduplicate" => @deduplicate
       }
       query = { "collection": @collection.name }

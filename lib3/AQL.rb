@@ -61,6 +61,7 @@ module Arango
       @options.delete_if{|k,v| v.nil?}
       @options = nil if @options.empty?
     end
+    private :set_option
 
   # === TO HASH ===
 
@@ -125,7 +126,7 @@ module Arango
         result = @database.request(action: "PUT", url: "_api/cursor/#{@id}")
         return_aql(result)
       else
-        Arango::Error message: "No other results"
+        raise Arango::Error.new message: "No other results"
       end
     end
 

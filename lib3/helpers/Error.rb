@@ -1,40 +1,42 @@
-module Helper_Error
-  def satisfy_class?(object, classes=[String], array=false)
-    if array
-      object = [object] unless object.is_a?(Array)
-      object.each do |obj|
-        satisfy_class?(obj, name, classes)
+module Arango
+  module Helper_Error
+    def satisfy_class?(object, classes=[String], array=false)
+      if array
+        object = [object] unless object.is_a?(Array)
+        object.each do |obj|
+          satisfy_class?(obj, name, classes)
+        end
+      else
+        unless classes.include?(obj.class)
+          name ||= object.object_id.to_s
+          raise Arango::Error.new message: "#{name} should be a #{classes.to_s}, not a #{object.class}"
+        end
       end
-    else
-      unless classes.include?(obj.class)
-        name ||= object.object_id.to_s
-        raise Arango::Error.new message: "#{name} should be a #{classes.to_s}, not a #{object.class}"
+    end
+
+    def satisfy_classes?(objects, classes=[String], array=false)
+      objects.each do |object|
+        satisfy_class?(object, classes, nil, array)
       end
     end
-  end
 
-  def satisfy_classes?(objects, classes=[String], array=false)
-    objects.each do |object|
-      satisfy_class?(object, classes, nil, array)
+    def satisfy_category?(object, list)
+      unless list.include?(object)
+        raise Arango::Error.new message "#{name.object_id.to_s} should be part of the list #{list}"
+      end
     end
-  end
 
-  def satisfy_category?(object, list)
-    unless list.include?(object)
-      raise Arango::Error.new message "#{name.object_id.to_s} should be part of the list #{list}"
+    def ignore_exception
+      begin
+        yield
+      rescue Exception
+      end
     end
-  end
 
-  def ignore_exception
-    begin
-      yield
-    rescue Exception
-    end
-  end
-
-  def warning_deprecated(warning, name)
-    if warning
-      puts "ARANGORB WARNING: #{name} function is deprecated"
+    def warning_deprecated(warning, name)
+      if warning
+        puts "ARANGORB WARNING: #{name} function is deprecated"
+      end
     end
   end
 end

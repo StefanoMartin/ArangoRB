@@ -2,9 +2,8 @@
 
 module Arango
   class Database
-    include Helper_Error
-    include Meta_prog
-    include Helper_Return
+    include Arango::Helper_Error
+    include Arango::Helper_Return
 
     def initialize(name:, client:)
       satisfy_class?(client, [Arango::Client])
@@ -15,9 +14,17 @@ module Arango
       @id = nil
     end
 
+# === DEFINE ===
+
     attr_reader :isSystem, :path, :id
     attr_accessor: :name
-    typesafe_accessor :client, [Arango::Client]
+
+    def client=(client)
+      satisfy_class?(client, [Arango::Client])
+      @client = client
+    end
+
+# === TO HASH ===
 
     def to_h(level=0)
       hash = {
@@ -29,6 +36,8 @@ module Arango
       hash["client"] = level > 0 ? @client.to_h(level-1) : @client.base_uri
       hash
     end
+
+# === REQUEST ===
 
     def request(action:, url:, body: {}, headers: {},
       query: {}, key: nil, return_direct_result: false,
@@ -157,18 +166,32 @@ module Arango
 
 # === AQL ===
 
-  def aql(query:, count: nil, batchSize: nil, cache: nil, memoryLimit: nil, ttl: nil, bindVars: nil, failOnWarning: nil, profile: nil, maxTransactionSize: nil,
-  skipInaccessibleCollections: nil, maxWarningCount: nil, intermediateCommitCount: nil,
-  satelliteSyncWait: nil, fullCount: nil, intermediateCommitSize: nil,
-  optimizer_rules: nil, maxPlans: nil)
-    Arango::AQL.new(query: query, database: self, count: count, batchSize: batchSize, cache: cache, memoryLimit: memoryLimit, ttl: ttl, bindVars: bindVars, failOnWarning: failOnWarning, profile: profile, maxTransactionSize: maxTransactionSize,
-    skipInaccessibleCollections: skipInaccessibleCollections, maxWarningCount: maxWarningCount, intermediateCommitCount: intermediateCommitCount,
-    satelliteSyncWait: satelliteSyncWait, fullCount: fullCount, intermediateCommitSize: intermediateCommitSize,
-    optimizer_rules: optimizer_rules, maxPlans: maxPlans)
+  def aql(query:, count: nil, batchSize: nil, cache: nil, memoryLimit: nil,
+    ttl: nil, bindVars: nil, failOnWarning: nil, profile: nil,
+    maxTransactionSize: nil, skipInaccessibleCollections: nil,
+    maxWarningCount: nil, intermediateCommitCount: nil,
+    satelliteSyncWait: nil, fullCount: nil, intermediateCommitSize: nil,
+    optimizer_rules: nil, maxPlans: nil)
+    Arango::AQL.new(query: query, database: self, count: count,
+      batchSize: batchSize, cache: cache, memoryLimit: memoryLimit, ttl: ttl,
+      bindVars: bindVars, failOnWarning: failOnWarning, profile: profile,
+      maxTransactionSize: maxTransactionSize,
+      skipInaccessibleCollections: skipInaccessibleCollections,
+      maxWarningCount: maxWarningCount,
+      intermediateCommitCount: intermediateCommitCount,
+      satelliteSyncWait: satelliteSyncWait, fullCount: fullCount,
+      intermediateCommitSize: intermediateCommitSize,
+      optimizer_rules: optimizer_rules, maxPlans: maxPlans)
   end
 
   def kill_aql(id:)
     request(action: "DELETE", url: "_api/query/#{id}")
+  end
+
+# === BATCH ===
+
+  def batch(boundary: "XboundaryX")
+    Arango::Batch.new(database: self, boundary: boundary)
   end
 
 # === FUNCTION ===
@@ -278,13 +301,13 @@ module Arango
       body = {
         "username" => username,
         "password" => password,
-        "includeSystem" => includeSystem,
         "endpoint" => endpoint,
-        "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
         "database" => database,
-        "restrictType" => restrictType,
-        "incremental" => incremental,
-        "restrictCollections" =>  restrictCollections
+        "restrictType"  => restrictType,
+        "incremental"   => incremental,
+        "includeSystem" => includeSystem,
+        "restrictCollections"    =>  restrictCollections,
+        "initialSyncMaxWaitTime" => initialSyncMaxWaitTime
       }
       request(action: "PUT", url: "_api/replication/sync", body: body)
     end
@@ -300,10 +323,10 @@ module Arango
 
     def loggerFollow(from: nil, to: nil, chunkSize: nil, includeSystem: nil)
       query = {
-        "from": from,
-        "to": to,
-        "chunkSize": chunkSize,
-        "includeSystem": includeSystem
+        "from" => from,
+        "to"   => to,
+        "chunkSize"     => chunkSize,
+        "includeSystem" => includeSystem
       }
       request(action: "GET", url: "_api/replication/logger-follow", query: query)
     end
@@ -332,25 +355,25 @@ module Arango
       body = {
         "username" => username,
         "password" => password,
-        "includeSystem" => includeSystem,
         "endpoint" => endpoint,
-        "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
         "database" => database,
-        "verbose" => verbose,
-        "connectTimeout" => connectTimeout,
+        "verbose"    => verbose,
         "autoResync" => autoResync,
+        "autoStart"  => autoStart,
+        "chunkSize"  => chunkSize,
+        "includeSystem"   => includeSystem,
+        "connectTimeout"  => connectTimeout,
         "idleMinWaitTime" => idleMinWaitTime,
-        "requestTimeout" => requestTimeout,
+        "requestTimeout"  => requestTimeout,
+        "restrictType"    => restrictType,
         "requireFromPresent" => requireFromPresent,
-        "idleMaxWaitTime" => idleMaxWaitTime,
-        "restrictType" => restrictType,
-        "maxConnectRetries" => maxConnectRetries,
-        "autoStart" => autoStart,
-        "adaptivePolling" => adaptivePolling,
+        "idleMaxWaitTime"    => idleMaxWaitTime,
+        "maxConnectRetries"  => maxConnectRetries,
+        "adaptivePolling"    => adaptivePolling,
+        "initialSyncMaxWaitTime"  => initialSyncMaxWaitTime,
         "connectionRetryWaitTime" => connectionRetryWaitTime,
         "restrictCollections" =>  restrictCollections,
-        "autoResyncRetries" => autoResyncRetries,
-        "chunkSize" => chunkSize
+        "autoResyncRetries"   => autoResyncRetries
       }
       request(action: "PUT", url: "_api/replication/applier-config",
         body: body)
@@ -381,26 +404,26 @@ module Arango
       autoResyncRetries: nil, chunkSize: nil, database: @name)
       satisfy_category?(restrictType, ["include", "exclude", nil])
       body = {
-        "username" => username,
-        "password" => password,
+        "username"      => username,
+        "password"      => password,
         "includeSystem" => includeSystem,
-        "endpoint" => endpoint,
+        "endpoint"      => endpoint,
         "initialSyncMaxWaitTime" => initialSyncMaxWaitTime,
-        "database" => database,
-        "verbose" => verbose,
-        "connectTimeout" => connectTimeout,
-        "autoResync" => autoResync,
+        "database"        => database,
+        "verbose"         => verbose,
+        "connectTimeout"  => connectTimeout,
+        "autoResync"      => autoResync,
         "idleMinWaitTime" => idleMinWaitTime,
-        "requestTimeout" => requestTimeout,
+        "requestTimeout"  => requestTimeout,
         "requireFromPresent" => requireFromPresent,
-        "idleMaxWaitTime" => idleMaxWaitTime,
-        "restrictType" => restrictType,
-        "maxConnectRetries" => maxConnectRetries,
-        "adaptivePolling" => adaptivePolling,
+        "idleMaxWaitTime"    => idleMaxWaitTime,
+        "restrictType"       => restrictType,
+        "maxConnectRetries"  => maxConnectRetries,
+        "adaptivePolling"    => adaptivePolling,
         "connectionRetryWaitTime" => connectionRetryWaitTime,
-        "restrictCollections" =>  restrictCollections,
+        "restrictCollections"     =>  restrictCollections,
         "autoResyncRetries" => autoResyncRetries,
-        "chunkSize" => chunkSize
+        "chunkSize"         => chunkSize
       }
       request(action: "PUT", url: "_api/replication/make-slave",
         body: body)
@@ -412,8 +435,13 @@ module Arango
 
 # === FOXX ===
 
-    def foxx(body: {}, mount:, development: nil, legacy: nil, provides: nil, name: nil, version: nil, type: "application/json", setup: nil, teardown: nil)
-      Arango::Foxx.new(database: self, body: body, mount: mount, development: development, legacy: legacy, provides: provides, name: name, version: version, type: type, setup: setup, teardown: teardown)
+    def foxx(body: {}, mount:, development: nil, legacy: nil, provides: nil,
+      name: nil, version: nil, type: "application/json", setup: nil,
+      teardown: nil)
+      Arango::Foxx.new(database: self, body: body, mount: mount,
+        development: development, legacy: legacy, provides: provides,
+        name: name, version: version, type: type, setup: setup,
+        teardown: teardown)
     end
 
     def foxxes
@@ -448,6 +476,7 @@ module Arango
     end
 
   # == TASKS ==
+
     def tasks
       result = request(action: "GET", url: "_api/tasks")
       return result if return_directly?(result)
@@ -456,7 +485,8 @@ module Arango
       end
     end
 
-    def task(id: nil, name: nil, type: nil, period: nil, command: nil, params: {}, created: nil)
+    def task(id: nil, name: nil, type: nil, period: nil, command: nil,
+      params: {}, created: nil)
       Arango::Tasks.new(id: id, name: name, type: type,
         period: period, command: command, params: params,
         created: created, database: self)

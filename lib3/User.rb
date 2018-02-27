@@ -2,17 +2,22 @@
 
 module Arango
   class User
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+
     def initialize(client:, password: "", user:, extra: {}, active: nil)
       satisfy_class?(client, [Arango::Client])
       @password = password
-      @user = user
-      @extra = extra
-      @active = active
-      @client = client
+      @user     = user
+      @extra    = extra
+      @active   = active
+      @client   = client
     end
 
+# === DEFINE ===
+
     attr_accessor :user, :extra, :active
-    attr_reader :client
+    attr_reader :client, :body
     attr_writer :password
     alias :name :user
 
@@ -20,6 +25,16 @@ module Arango
       satisfy_class?(client, [Arango::Client])
       @client = client
     end
+
+    def body=(result)
+      @body   = result.delete_if{|k,v| v.nil?}
+      @user   = result["user"]
+      @extra  = result["extra"]
+      @active = result["active"]
+    end
+    alias assign_attributes body=
+
+# === TO HASH ===
 
     def to_h(level=0)
       hash = {
@@ -29,23 +44,14 @@ module Arango
       }.delete_if{|k,v| v.nil?}
       hash["client"] = level > 0 ? @client.to_h(level-1) : @client.base_uri
 
-  # == PRIVATE ==
-
-    def assign_attributes(result)
-      @body = result.delete_if{|k,v| v.nil?}
-      @user = result["user"]
-      @extra = result["extra"]
-      @active = result["active"]
-    end
-
   # == USER ACTION ==
 
-    def create
+    def create(password: @password, active: @active, extra: @extra)
       body = {
         "user"   => @user,
-        "passwd" => @password,
-        "extra"  => @extra,
-        "active" => @active
+        "passwd" => password,
+        "extra"  => extra,
+        "active" => active
       }
       result = @client.request(action: "POST", url: "_api/user", body: body)
       return_element(result)
@@ -68,13 +74,14 @@ module Arango
       return_element(result)
     end
 
-    def update(password: @password, active: nil, extra: nil)
+    def update(password: @password, active: @active, extra: @extra)
       body = {
         "passwd" => password,
         "active" => active,
         "extra" => extra
       }
-      result = @client.request(action: "PATCH", url: "_api/user/#{@user}",  body: body)
+      result = @client.request(action: "PATCH", url: "_api/user/#{@user}",
+        body: body)
       @password = password
       return_element(result)
     end

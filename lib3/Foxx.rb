@@ -2,11 +2,14 @@
 
 module Arango
   class Foxx
+    include Arango::Helper_Error
+    include Arango::Helper_Return
+    include Arango::Database_Return
+
     def initialize(database:, body: {}, mount:, development: nil, legacy: nil, provides: nil, name: nil, version: nil, type: "application/json", setup: nil, teardown: nil)
-      satisfy_class?(database, [Arango::Database])
-      @database = database
-      @client = @database.client
+      assign_database(database)
       assign_attributes(body)
+      assign_type(type)
       @mount       ||= mount
       @development ||= development
       @setup       ||= setup
@@ -14,13 +17,37 @@ module Arango
       @provides    ||= provides
       @name        ||= name
       @version     ||= version
-      assign_type(type)
       @teardown    ||= teardown
     end
 
-    attr_reader :database, :client, :type
+# === DEFINE ===
+
+    attr_reader :database, :client, :type, :body
     attr_accessor :name, :development, :legacy, :provides,
       :version, :mount, :setup, :teardown
+
+    def body=(result)
+      if result.is_a?(Hash)
+        @body        = result
+        @name        = result["name"]
+        @version     = result["version"]
+        @mount       = result["mount"]
+        @development = result["development"]
+        @legacy      = result["legacy"]
+        @provides    = result["provides"]
+      end
+    end
+    alias assign_attributes body=
+
+    def type=(type)
+      satisfy_category?(type, ["application/zip", "zip", "application/javascript", "javascript", "application/json", "json", "multipart/form-data", "data"], "type")
+      type = "application/#{type}" if ["zip", "javascript", "json"].include?(type)
+      type = "multipart/form-data" if type == "data"
+      @type = type
+    end
+    alias assign_type type=
+
+# === TO HASH ===
 
     def to_h(level=0)
       hash = {
@@ -37,26 +64,8 @@ module Arango
       hash
     end
 
-    def database=(database)
-      satisfy_class?(database, [Arango::Database])
-      @database = database
-      @client = @database.client
-    end
-
-    def assign_attributes(result)
-      if result.is_a?(Hash)
-        @body        = result
-        @name        = result["name"]
-        @version     = result["version"]
-        @mount       = result["mount"]
-        @development = result["development"]
-        @legacy      = result["legacy"]
-        @provides    = result["provides"]
-      end
-    end
-
     def return_foxx(result, val=nil)
-      return result if @database.client.async != false
+      return result if @client.async != false
       if val == "configuration"
         @configuration = result
       elsif val == "dependencies"
@@ -66,16 +75,9 @@ module Arango
       end
       return return_directly?(result) ? result : self
     end
+    private :return_foxx
 
-    def assign_type(type)
-      satisfy_category?(type, ["application/zip", "zip", "application/javascript", "javascript", "application/json", "json", "multipart/form-data", "data"], "type")
-      type = "application/#{type}" if ["zip", "javascript", "json"].include?(type)
-      type = "multipart/form-data" if type == "data"
-      @type = type
-    end
-    alias type= assign_type
-
-  # === RETRIEVE ===
+  # === ACTIONS ===
 
     def retrieve
       query = {"mount": @mount}
@@ -83,11 +85,16 @@ module Arango
       return_foxx(result)
     end
 
-    def create(body: @body, type: @type, development: @development, setup: @setup, legacy: @legacy)
-      headers = {"Accept": @type}
-      skip_to_json = @type != "application/json"
-      query = {"mount": @mount, "setup": setup,
-        "development ": development , "legacy": legacy }
+    def create(body: @body, type: @type, development: @development,
+      setup: @setup, legacy: @legacy)
+      headers = {"Accept" => type}
+      skip_to_json = type != "application/json"
+      query = {
+        "mount"        => @mount,
+        "setup"        => setup,
+        "development " => development ,
+        "legacy"       => legacy
+      }
       result = @database.request(action: "POST",
         url: "_api/foxx", body: body, headers: headers,
         skip_to_json: skip_to_json, query: query)
@@ -95,17 +102,25 @@ module Arango
     end
 
     def destroy(teardown: @teardown)
-      query = {mount: @mount, teardown: teardown}
+      query = {
+        "mount"    => @mount,
+        "teardown" => teardown
+      }
       result = @database.request(action: "DELETE",
         url: "_api/foxx/service",  query: query)
       return_foxx(result)
     end
 
-    def replace(body: @body, type: @type, teardown: @teardown, setup: @setup, legacy: @legacy)
-      headers = {"Accept": @type}
-      skip_to_json = @type != "application/json"
-      query = {"mount": @mount, "setup": setup,
-        "teardown": teardown, "legacy": legacy }
+    def replace(body: @body, type: @type, teardown: @teardown, setup: @setup,
+      legacy: @legacy)
+      headers = {"Accept": type}
+      skip_to_json = type != "application/json"
+      query = {
+        "mount"        => @mount,
+        "setup"        => setup,
+        "development " => development ,
+        "legacy"       => legacy
+      }
       result = @database.request(action: "PUT",
         url: "_api/foxx/service", body: body, headers: headers,
         skip_to_json: skip_to_json, query: query)
@@ -114,11 +129,15 @@ module Arango
 
     def update(body: @body, type: @type, teardown: @teardown,
       setup: @setup, legacy: @legacy)
-      @type = assign_type(type)
-      headers = {"Accept": @type}
+      assign_type(type)
+      headers = {"Accept": type}
       skip_to_json = @type != "application/json"
-      query = {"mount": @mount, "setup": setup,
-        "teardown": teardown, "legacy": legacy }
+      query = {
+        "mount"        => @mount,
+        "setup"        => setup,
+        "development " => development ,
+        "legacy"       => legacy
+      }
       result = @database.request(action: "PATCH",
         url: "_api/foxx/service", body: body, headers: headers,
         skip_to_json: skip_to_json, query: query)

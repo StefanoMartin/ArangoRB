@@ -2,7 +2,7 @@
 
 module Arango
   class Error < StandardError
-    def initialize(message: , data: nil, code: code)
+    def initialize(message:, data: nil, code: nil)
       @data = data
       @code = code
       super(message)
