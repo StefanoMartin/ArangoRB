@@ -227,11 +227,37 @@ module Arango
       end
     end
 
+    def return_body(x, type=="Document")
+      body = case x.class
+      when Hash
+        x
+      when Arango::Document, Arango::Edge, Arango::Vertex
+        if (x.is_a?(Arango::Edge) && type == "Vertex") ||
+           (x.is_a?(Arango::Vertex) && type == "Edge")
+          raise Arango::Error.new message: "#{x.name} is not a #{type}"
+        end
+        x.body
+      else
+        raise Arango::Error.new "Only Hash, Arango::Document, Arango::Edge, or Arango::Vertex documents are valid"
+      end
+      return body
+    end
+
+    def return_id(x)
+      body = case x.class
+      when String
+        x
+      when Arango::Document, Arango::Vertex
+        x.id
+      else
+        raise Arango::Error.new "Only String, Arango::Document,or  Arango::Edge"
+      end
+      return body
+
     def create_documents(body: [], waitForSync: nil, returnNew: nil,
       silent: nil)
-      body = body.each do |x|
-        x = x.body if x.is_a?(Arango::Document)
-      end
+      body = [body] unless body.is_a? Array
+      body = body.map{|x| return_body(x)}
       query = {
         "waitForSync" => waitForSync,
         "returnNew"   => returnNew,
@@ -251,6 +277,27 @@ module Arango
         Arango::Document.new(name: result["_key"], collection: self,
           body: real_body)
       end
+    end
+
+    def create_edges(body: {}, from:, to:, waitForSync: nil, returnNew: nil)
+      edges = []
+      from = [from] unless from.is_a? Array
+      to   = [to]   unless to.is_a? Array
+      body = [body] unless body.is_a? Array
+      body = body.map{|x| return_body(x, "Edge")}
+      from = from.map{|x| return_id(x)}
+      to   = to.map{|x| return_id(x)}
+      body.each do |b|
+        from.each do |f|
+          to.each do |t|
+            b["_from"] = f
+            b["_to"] = t
+            edges << b.clone
+          end
+        end
+      end
+      create_documents(body: body, waitForSync: waitForSync,
+        returnNew: returnNew, silent: silent)
     end
 
     def replace_documents(body: {}, waitForSync: nil, ignoreRevs: nil,
@@ -742,6 +789,9 @@ module Arango
       if @graph.nil?
         raise Arango::Error.new message: "This class does not have any Graph assigned"
       end
+      if @type == "Edge"
+        raise Arango::Error.new message: "This class is an Edge class"
+      end
       Arango::Vertex.new(name: name, body: body, rev: rev, collection: self,
         graph: @graph)
     end
@@ -749,6 +799,9 @@ module Arango
     def edge(name:, body: {}, rev: nil, from: nil, to: nil)
       if @graph.nil?
         raise Arango::Error.new message: "This class does not have any Graph assigned"
+      end
+      if @type == "Document"
+        raise Arango::Error.new message: "This class is a Document/Vertex class"
       end
       Arango::Edge.new(name: name, body: body, rev: rev, from: from, to: to,
         collection: self, graph: @graph)

@@ -242,8 +242,8 @@ module Arango
 
   # === USER ===
 
-    def user(password: "", user:, extra: {}, active: nil)
-      Arango::User.new(client: self, password: password, user: user,
+    def user(password: "", name:, extra: {}, active: nil)
+      Arango::User.new(client: self, password: password, name: user,
         extra: extra, active: active)
     end
 
@@ -251,7 +251,7 @@ module Arango
       result = request(action: "GET", url: "_api/user", key: "result")
       return result if return_directly?(result)
       result["result"].map do |user|
-        Arango::Database.new(user: user["user"], active: user["active"],
+        Arango::User.new(name: user["user"], active: user["active"],
           extra: user["extra"], active: user["active"], client: self)
       end
     end

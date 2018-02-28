@@ -5,10 +5,10 @@ module Arango
     include Arango::Helper_Error
     include Arango::Helper_Return
 
-    def initialize(client:, password: "", user:, extra: {}, active: nil)
+    def initialize(client:, password: "", name:, extra: {}, active: nil)
       satisfy_class?(client, [Arango::Client])
       @password = password
-      @user     = user
+      @name     = name
       @extra    = extra
       @active   = active
       @client   = client
@@ -16,10 +16,10 @@ module Arango
 
 # === DEFINE ===
 
-    attr_accessor :user, :extra, :active
+    attr_accessor :name, :extra, :active
     attr_reader :client, :body
     attr_writer :password
-    alias :name :user
+    alias :user :name
 
     def client=(client)
       satisfy_class?(client, [Arango::Client])
@@ -28,7 +28,7 @@ module Arango
 
     def body=(result)
       @body   = result.delete_if{|k,v| v.nil?}
-      @user   = result["user"]
+      @name   = result["user"]
       @extra  = result["extra"]
       @active = result["active"]
     end
@@ -38,7 +38,7 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "user" => @user,
+        "user" => @name,
         "extra" => @extra,
         "active" => @active
       }.delete_if{|k,v| v.nil?}
@@ -48,7 +48,7 @@ module Arango
 
     def create(password: @password, active: @active, extra: @extra)
       body = {
-        "user"   => @user,
+        "user"   => @name,
         "passwd" => password,
         "extra"  => extra,
         "active" => active
@@ -58,7 +58,7 @@ module Arango
     end
 
     def retrieve
-      result = @client.request(action: "GET", url: "_api/user/#{@user}",
+      result = @client.request(action: "GET", url: "_api/user/#{@name}",
         body: body)
       return_element(result)
     end
@@ -69,7 +69,7 @@ module Arango
         "active" => active,
         "extra"  => extra
       }
-      result = @client.request(action: "PUT", url: "_api/user/#{@user}",  body: body)
+      result = @client.request(action: "PUT", url: "_api/user/#{@name}",  body: body)
       @password = password
       return_element(result)
     end
@@ -80,14 +80,14 @@ module Arango
         "active" => active,
         "extra" => extra
       }
-      result = @client.request(action: "PATCH", url: "_api/user/#{@user}",
+      result = @client.request(action: "PATCH", url: "_api/user/#{@name}",
         body: body)
       @password = password
       return_element(result)
     end
 
     def destroy
-      result = @client.request(action: "DELETE", url: "_api/user/#{@user}")
+      result = @client.request(action: "DELETE", url: "_api/user/#{@name}")
       return return_directly?(result) ? result : true
     end
 
@@ -100,7 +100,7 @@ module Arango
         database = database.name
       end
       body = {"grant" => grant}
-      result = @client.request(action: "POST", url: "_api/user/#{@user}/database/#{database}",
+      result = @client.request(action: "POST", url: "_api/user/#{@name}/database/#{database}",
         body: body)
       return return_directly?(result) ? result : result[database]
     end
@@ -112,7 +112,7 @@ module Arango
       database = database.name     if database.is_a?(Arango::Database)
       collection = collection.name if collection.is_a?(Arango::Collection)
       body = {"grant" => grant}
-      result = @client.request(action: "POST", url: "_api/user/#{@user}/database/#{database}/#{collection}",
+      result = @client.request(action: "POST", url: "_api/user/#{@name}/database/#{database}/#{collection}",
         body: body)
       return return_directly?(result) ? result : result["#{database}/#{collection}"]
     end
@@ -120,7 +120,7 @@ module Arango
     def clear_database_access(database:)
       satisfy_class?(database, [Arango::Database, String])
       database = database.name if database.is_a?(Arango::Database)
-      result = @client.request(action: "DELETE", url: "_api/user/#{@user}/database/#{database}")
+      result = @client.request(action: "DELETE", url: "_api/user/#{@name}/database/#{database}")
       return return_directly?(result) ? result : true
     end
 
@@ -130,20 +130,20 @@ module Arango
       satisfy_class?(collection, [Arango::Collection, String])
       database = database.name     if database.is_a?(Arango::Database)
       collection = collection.name if collection.is_a?(Arango::Collection)
-      result = @client.request(action: "DELETE", url: "_api/user/#{@user}/database/#{database}/#{collection}")
+      result = @client.request(action: "DELETE", url: "_api/user/#{@name}/database/#{database}/#{collection}")
       return return_directly?(result) ? result : true
     end
 
     def list_access(full: nil)
       query = {"full" => full}
-      result = @client.request(action: "GET", url: "_api/user/#{@user}/database", query: query)
+      result = @client.request(action: "GET", url: "_api/user/#{@name}/database", query: query)
       return return_directly?(result) ? result : result["result"]
     end
 
     def database_access(database:)
       satisfy_class?(database, [Arango::Database, String])
       database = database.name if database.is_a?(Arango::Database)
-      result = @client.request(action: "GET", url: "_api/user/#{@user}/database/#{database}")
+      result = @client.request(action: "GET", url: "_api/user/#{@name}/database/#{database}")
       return return_directly?(result) ? result : result["result"]
     end
 
@@ -152,7 +152,7 @@ module Arango
     satisfy_class?(collection, [Arango::Collection, String])
     database = database.name     if database.is_a?(Arango::Database)
     collection = collection.name if collection.is_a?(Arango::Collection)
-      result = @client.request(action: "GET", url: "_api/user/#{@user}/database/#{database}/#{collection}",
+      result = @client.request(action: "GET", url: "_api/user/#{@name}/database/#{database}/#{collection}",
         body: body)
       return return_directly?(result) ? result : result["result"]
     end
