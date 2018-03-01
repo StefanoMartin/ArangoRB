@@ -5,16 +5,16 @@ module Arango
     include Arango::Helper_Error
     include Arango::Helper_Return
     include Arango::Collection_Return
-    
+
     def initialize(collection:, body: {}, id: nil, type: "hash", unique: nil, fields:, sparse: nil, geoJson: nil, minLength: nil, deduplicate: nil)
       assign_collection(collection)
       satisfy_category?(type, "type", ["hash", "skiplist", "persistent",
         "geo", "fulltext"])
-      body["type"] ||= type
-      body["id"] ||= id
-      body["sparse"] ||= sparse
-      body["unique"] ||= unique
-      body["fields"] ||= fields.is_a?(String) ? [fields] : fields
+      body["type"]        ||= type
+      body["id"]          ||= id
+      body["sparse"]      ||= sparse
+      body["unique"]      ||= unique
+      body["fields"]      ||= fields.is_a?(String) ? [fields] : fields
       body["deduplicate"] ||= deduplicate
       body["geoJson"]     ||= geoJson
       body["minLength"]   ||= minLength
@@ -32,18 +32,19 @@ module Arango
       satisfy_category?(type, "type", ["hash", "skiplist", "persistent", "geo", "fulltext"])
       @type = type
     end
+    alias assign_type type=
 
     def body=(result)
       @body        = result
-      @id          = result["id"]
+      @id          = result["id"] || @id
       @key         = @id.split("/")[1]
-      @type        = result["type"]
-      @unique      = result["unique"]
-      @fields      = result["fields"]
-      @sparse      = result["sparse"]
-      @geoJson     = result["geoJson"]
-      @minLength   = result["minLength"]
-      @deduplicate = result["deduplicate"]
+      @type        = assign_type(result["type"] || @type)
+      @unique      = result["unique"]      || @unique
+      @fields      = result["fields"]      || @fields
+      @sparse      = result["sparse"]      || @sparse
+      @geoJson     = result["geoJson"]     || @geoJson
+      @minLength   = result["minLength"]   || @minLength
+      @deduplicate = result["deduplicate"] || @deduplicate
     end
     alias assign_attributes body=
 
@@ -51,15 +52,15 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "key"    => @key,
-        "id"     => @id,
-        "body"   => @body,
-        "type"   => @type,
-        "sparse" => @sparse,
-        "unique" => @unique,
-        "fields" => @fields,
-        "idCache" => @idCache,
-        "geoJson" => @geoJson,
+        "key"         => @key,
+        "id"          => @id,
+        "body"        => @body,
+        "type"        => @type,
+        "sparse"      => @sparse,
+        "unique"      => @unique,
+        "fields"      => @fields,
+        "idCache"     => @idCache,
+        "geoJson"     => @geoJson,
         "minLength"   => @minLength,
         "deduplicate" => @deduplicate
       }.delete_if{|k,v| v.nil?}

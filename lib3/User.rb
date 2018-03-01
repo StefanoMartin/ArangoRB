@@ -27,10 +27,10 @@ module Arango
     end
 
     def body=(result)
-      @body   = result.delete_if{|k,v| v.nil?}
-      @name   = result["user"]
-      @extra  = result["extra"]
-      @active = result["active"]
+      @body   = result
+      @name   = result["user"]   || @name
+      @extra  = result["extra"]  || @extra
+      @active = result["active"] || @active
     end
     alias assign_attributes body=
 
@@ -38,8 +38,8 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "user" => @name,
-        "extra" => @extra,
+        "user"   => @name,
+        "extra"  => @extra,
         "active" => @active
       }.delete_if{|k,v| v.nil?}
       hash["client"] = level > 0 ? @client.to_h(level-1) : @client.base_uri
@@ -93,7 +93,7 @@ module Arango
 
   # == ACCESS ==
 
-    def add_database_access(grant:, database:)
+    def addDatabaseAccess(grant:, database:)
       satisfy_category?(grant, ["rw", "ro", "none"])
       satisfy_class?(database, [Arango::Database, String])
       if database.is_a?(Arango::Database)
@@ -105,7 +105,7 @@ module Arango
       return return_directly?(result) ? result : result[database]
     end
 
-    def add_collection_access(grant:, database:, collection:)
+    def addCollectionAccess(grant:, database:, collection:)
       satisfy_category?(grant, ["rw", "ro", "none"])
       satisfy_class?(database, [Arango::Database, String])
       satisfy_class?(collection, [Arango::Collection, String])
@@ -117,15 +117,14 @@ module Arango
       return return_directly?(result) ? result : result["#{database}/#{collection}"]
     end
 
-    def clear_database_access(database:)
+    def revokeDatabaseAccess(database:)
       satisfy_class?(database, [Arango::Database, String])
       database = database.name if database.is_a?(Arango::Database)
       result = @client.request(action: "DELETE", url: "_api/user/#{@name}/database/#{database}")
       return return_directly?(result) ? result : true
     end
 
-    def clear_collection_access(grant:, database:, collection:)
-      satisfy_category?(grant, ["rw", "ro", "none"])
+    def revokeCollectionAccess(database:, collection:)
       satisfy_class?(database, [Arango::Database, String])
       satisfy_class?(collection, [Arango::Collection, String])
       database = database.name     if database.is_a?(Arango::Database)
@@ -134,20 +133,20 @@ module Arango
       return return_directly?(result) ? result : true
     end
 
-    def list_access(full: nil)
+    def listAccess(full: nil)
       query = {"full" => full}
       result = @client.request(action: "GET", url: "_api/user/#{@name}/database", query: query)
       return return_directly?(result) ? result : result["result"]
     end
 
-    def database_access(database:)
+    def databaseAccess(database:)
       satisfy_class?(database, [Arango::Database, String])
       database = database.name if database.is_a?(Arango::Database)
       result = @client.request(action: "GET", url: "_api/user/#{@name}/database/#{database}")
       return return_directly?(result) ? result : result["result"]
     end
 
-    def collection_access(database:, collection:)
+    def collectionAccess(database:, collection:)
     satisfy_class?(database, [Arango::Database, String])
     satisfy_class?(collection, [Arango::Collection, String])
     database = database.name     if database.is_a?(Arango::Database)

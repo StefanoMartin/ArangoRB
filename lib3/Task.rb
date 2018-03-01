@@ -23,26 +23,20 @@ module Arango
 
  # === DEFINE ===
 
-    attr_reader :client, :database
+    attr_reader :client, :database, :body
     attr_accessor :id, :name, :type, :period, :created,
-      :command, :params, :offset, :body
-
-    def database=(database)
-      satisfy_class?(database, [Arango::Database])
-      @database = database
-      @client = @database.client
-    end
+      :command, :params, :offset
 
     def body=(result)
-      @body    = result.delete_if{|k,v| v.nil?}
-      @id      = result["id"]
-      @name    = result["name"]
-      @type    = result["type"]
-      @period  = result["period"]
-      @command = result["command"]
-      @params  = result["params"]
-      @offset  = result["offset"]
-      @created = result["created"]
+      @body    = result
+      @id      = result["id"]      || @id
+      @name    = result["name"]    || @name
+      @type    = result["type"]    || @type
+      @period  = result["period"]  || @period
+      @command = result["command"] || @command
+      @params  = result["params"]  || @params
+      @offset  = result["offset"]  || @offset
+      @created = result["created"] || @created
     end
     alias assign_attributes body=
 

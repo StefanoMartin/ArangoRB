@@ -38,42 +38,50 @@ module Arango
     end
 
     def body=(result)
-      @name = result["name"]
-      @type = result["type"] == 2 ? "Document" : "Edge"
-      @status = reference_status(result["status"])
-      @id     = result["id"]
-      @name   = result["name"]
-      @isSystem = result["isSystem"]
+      @body     = result
+      @name     = result["name"] || @name
+      @type     = assign_type(result["type"])
+      @status   = reference_status(result["status"])
+      @id       = result["id"] || @id
+      @isSystem = result["isSystem"] || @isSystem
     end
     alias assign_attributes body=
 
     def type=(type)
-      satisfy_category?(type, ["Document", "Edge"])
+      type ||= @type
+      satisfy_category?(type, ["Document", "Edge", 2, 3])
+      type = case result["type"]
+      when 2, "Document"
+        "Document"
+      when 3, "Edge"
+        "Edge"
+      end
       @type = type
     end
     alias assign_type type=
+
+    def reference_status(number)
+      number ||= @number
+      return nil if number.nil?
+      hash = ["new born collection", "unloaded", "loaded",
+        "in the process of being unloaded", "deleted", "loading"]
+      return hash[number-1]
+    end
+    private :reference_status
 
 # === TO HASH ===
 
     def to_h(level=0)
       hash = {
-        "name" => @name,
-        "type" => @type,
-        "status" => @status,
-        "id"     => @id,
-        "isSystem" => @isSystem
+        "name"     => @name,
+        "type"     => @type,
+        "status"   => @status,
+        "id"       => @id,
+        "isSystem" => @isSystem,
+        "body"     => @body
       }.delete_if{|k,v| v.nil?}
       hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
-    end
-
-# === PRIVATE ===
-
-    def reference_status(number)
-      return nil if number.nil?
-      hash = ["new born collection", "unloaded", "loaded",
-        "in the process of being unloaded", "deleted", "loading"]
-      return hash[number-1]
     end
 
 # === GET ===
@@ -177,7 +185,7 @@ module Arango
       return_element(result)
     end
 
-    def load_indexes_into_memory
+    def loadIndexesIntoMemory
       @database.request(action: "PUT", url: "_api/collection/#{@name}/loadIndexesIntoMemory")
       return true
     end
@@ -209,7 +217,7 @@ module Arango
       Arango::Document.new(name: document_name, collection: self)
     end
 
-    def document(name:, body: {}, rev: nil, from: nil, to: nil)
+    def document(name: nil, body: {}, rev: nil, from: nil, to: nil)
       Arango::Document.new(name: name, collection: self, body: body, rev: rev,
         from: from, to: to)
     end
@@ -228,6 +236,7 @@ module Arango
     end
 
     def return_body(x, type=="Document")
+      satisfy_class?(x, [Hash, Arango::Document, Arango::Edge, Arango::Vertex])
       body = case x.class
       when Hash
         x
@@ -237,24 +246,18 @@ module Arango
           raise Arango::Error.new message: "#{x.name} is not a #{type}"
         end
         x.body
-      else
-        raise Arango::Error.new "Only Hash, Arango::Document, Arango::Edge, or Arango::Vertex documents are valid"
       end
       return body
     end
+    private :return_body
 
     def return_id(x)
-      body = case x.class
-      when String
-        x
-      when Arango::Document, Arango::Vertex
-        x.id
-      else
-        raise Arango::Error.new "Only String, Arango::Document,or  Arango::Edge"
-      end
-      return body
+      satisfy_class?(x, [String, Arango::Document, Arango::Vertex])
+      return x.is_a?(String) ? x : x.id
+    end
+    private :return_id
 
-    def create_documents(body: [], waitForSync: nil, returnNew: nil,
+    def createDocuments(body: [], waitForSync: nil, returnNew: nil,
       silent: nil)
       body = [body] unless body.is_a? Array
       body = body.map{|x| return_body(x)}
@@ -279,7 +282,7 @@ module Arango
       end
     end
 
-    def create_edges(body: {}, from:, to:, waitForSync: nil, returnNew: nil)
+    def createEdges(body: {}, from:, to:, waitForSync: nil, returnNew: nil)
       edges = []
       from = [from] unless from.is_a? Array
       to   = [to]   unless to.is_a? Array
@@ -300,7 +303,7 @@ module Arango
         returnNew: returnNew, silent: silent)
     end
 
-    def replace_documents(body: {}, waitForSync: nil, ignoreRevs: nil,
+    def replaceDocuments(body: {}, waitForSync: nil, ignoreRevs: nil,
       returnOld: nil, returnNew: nil)
       body = body.each do |x|
         x = x.body if x.is_a?(Arango::Document)
@@ -327,7 +330,7 @@ module Arango
       end
     end
 
-    def update_documents(body: {}, waitForSync: nil, ignoreRevs: nil,
+    def updateDocuments(body: {}, waitForSync: nil, ignoreRevs: nil,
       returnOld: nil, returnNew: nil, keepNull: nil,
       mergeObjects: nil)
       body = body.each do |x|
@@ -357,7 +360,7 @@ module Arango
       end
     end
 
-    def destroy_documents(body: {}, waitForSync: nil, returnOld: nil,
+    def destroyDocuments(body: {}, waitForSync: nil, returnOld: nil,
       ignoreRevs: nil)
       body = body.each do |x|
         x = x.body if x.is_a?(Arango::Document)
@@ -767,25 +770,25 @@ module Arango
     end
     private :check_user
 
-    def add_user_access(grant:, user:)
+    def addUserAccess(grant:, user:)
       user = check_user(user)
       user.add_collection_access(grant: grant, database: @database.name,
         collection: @name)
     end
 
-    def clear_user_access(user:)
+    def revokeUserAccess(user:)
       user = check_user(user)
       user.clear_collection_access(database: @database.name, collection: @name)
     end
 
-    def user_access(user:)
+    def userAccess(user:)
       user = check_user(user)
       user.collection_access(database: @database.name, collection: @name)
     end
 
 # === GRAPH ===
 
-    def vertex(name:, body: {}, rev: nil, from: nil, to: nil)
+    def vertex(name: nil, body: {}, rev: nil, from: nil, to: nil)
       if @graph.nil?
         raise Arango::Error.new message: "This class does not have any Graph assigned"
       end
@@ -796,7 +799,7 @@ module Arango
         graph: @graph)
     end
 
-    def edge(name:, body: {}, rev: nil, from: nil, to: nil)
+    def edge(name: nil, body: {}, rev: nil, from: nil, to: nil)
       if @graph.nil?
         raise Arango::Error.new message: "This class does not have any Graph assigned"
       end

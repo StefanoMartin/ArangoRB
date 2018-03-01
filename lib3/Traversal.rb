@@ -17,22 +17,23 @@ module Arango
       satisfy_category?(itemOrder, ["forward", "backward", nil])
       satisfy_category?(strategy, ["depthfirst", "breadthfirst", nil])
       satisfy_category?(order, ["preorder", "postorder", "preorder-expander", nil])
-      @sort        = body["sort"] || sort
-      @direction   = body["direction"] || direction
-      @maxDepth    = body["maxDepth"] || maxDepth
-      @minDepth    = body["minDepth"] || minDepth
-      return_vertex(body["startVertex"] || startVertex)
-      @visitor     = body["visitor"] || visitor
-      @itemOrder   = body["itemOrder"] || itemOrder
-      @strategy    = body["strategy"] || strategy
-      @filter      = body["filter"] || filter
-      @init        = body["init"] || init
-      @maxIterations = body["maxiterations"] || maxIterations
-      @uniqueness  = body["uniqueness"] || uniqueness
-      @order       = body["order"] || order
-      @expander    = body["expander"] || expander
-      return_collection(body["edgeCollection"] || edgeCollection, "Edge")
-      return_graph(body["graphName"] || graph || graphName)
+      body["sort"]           ||= sort
+      body["direction"]      ||= direction
+      body["maxDepth"]       ||= maxDepth
+      body["minDepth"]       ||= minDepth
+      body["startVertex"]    ||= startVertex)
+      body["visitor"]        ||= visitor
+      body["itemOrder"]      ||= itemOrder
+      body["strategy"]       ||= strategy
+      body["filter"]         ||= filter
+      body["init"]           ||= init
+      body["maxiterations"]  ||= maxIterations
+      body["uniqueness"]     ||= uniqueness
+      body["order"]          ||= order
+      body["expander"]       ||= expander
+      body["edgeCollection"] ||= edgeCollection
+      body["graphName"]      ||= graph || graphName
+      assign_body(body)
       @vertices = nil
       @paths = nil
     end
@@ -41,7 +42,28 @@ module Arango
 
     attr_accessor :sort, :maxDepth, :minDepth, :visitor, :filter, :init, :maxiterations, :uniqueness, :expander
     attr_reader :vertices, :paths, :direction, :itemOrder,
-      :strategy, :order, :database, :client, :startVertex, :edgeCollection, :graph
+      :strategy, :order, :database, :client, :startVertex, :edgeCollection, :graph, :body
+
+    def body=(body)
+      @body = body
+      @sort        = body["sort"] || @sort
+      @direction   = body["direction"] || @direction
+      @maxDepth    = body["maxDepth"] || @maxDepth
+      @minDepth    = body["minDepth"] || @minDepth
+      return_vertex(body["startVertex"] || @startVertex)
+      @visitor     = body["visitor"] || @visitor
+      @itemOrder   = body["itemOrder"] || @itemOrder
+      @strategy    = body["strategy"] || @strategy
+      @filter      = body["filter"] || @filter
+      @init        = body["init"] || @init
+      @maxIterations = body["maxiterations"] || @maxIterations
+      @uniqueness  = body["uniqueness"] || @uniqueness
+      @order       = body["order"] || @order
+      @expander    = body["expander"] || @expander
+      return_collection(body["edgeCollection"] || @edgeCollection, "Edge")
+      return_graph(body["graphName"] || @graph || @graphName)
+    end
+    alias assign_body body=
 
     def direction=(direction)
       satisfy_category?(direction, ["outbound", "inbound", "any", nil])

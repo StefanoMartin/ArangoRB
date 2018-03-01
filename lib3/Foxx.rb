@@ -29,12 +29,12 @@ module Arango
     def body=(result)
       if result.is_a?(Hash)
         @body        = result
-        @name        = result["name"]
-        @version     = result["version"]
-        @mount       = result["mount"]
-        @development = result["development"]
-        @legacy      = result["legacy"]
-        @provides    = result["provides"]
+        @name        = result["name"]        || @name 
+        @version     = result["version"]     || @version 
+        @mount       = result["mount"]       || @mount
+        @development = result["development"] || @development
+        @legacy      = result["legacy"]      || @legacy
+        @provides    = result["provides"]    || @provides
       end
     end
     alias assign_attributes body=

@@ -2,7 +2,7 @@
 
 module Arango
   class Vertex < Arango::Document
-    def initialize(name:, collection:, graph:, body: {}, rev: nil)
+    def initialize(name: nil, collection:, graph:, body: {}, rev: nil)
       assign_collection(collection)
       satisfy_class?(graph, [Arango::Graph])
       if @database.name != graph.database.name
@@ -11,7 +11,7 @@ module Arango
       @graph = graph
       body["_key"] ||= name
       body["_rev"] ||= rev
-      body["_id"] ||= "#{@collection.name}/#{@key}"
+      body["_id"]  ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "key"].each do |attribute|

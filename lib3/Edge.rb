@@ -2,7 +2,7 @@
 
 module Arango
   class Edge < Arango::Document
-    def initialize(name:, collection:, graph:, body: {}, rev: nil, from: nil,
+    def initialize(name: nil, collection:, graph:, body: {}, rev: nil, from: nil,
       to: nil)
       assign_collection(collection)
       satisfy_class?(graph, [Arango::Graph])
@@ -14,7 +14,7 @@ module Arango
       body["_rev"] ||= rev
       body["_from"] ||= from
       body["_to"] ||= to
-      body["_id"] ||= "#{@collection.name}/#{name}"
+      body["_id"] ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|

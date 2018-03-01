@@ -52,17 +52,17 @@ module Arango
         raise Arango::Error.new message: "read or write should be an array of name classes or Arango::Collections"
       end
     end
+    private :return_write_or_read
 
     def return_collection(collection, type=nil)
+      satisfy_class?(collection, [Arango::Collection, String])
       if collection.is_a?(Arango::Collection)
         return collection
       elsif collection.is_a?(String)
         return Arango::Collection.new(name: collection, database: @database)
-      else
-        raise Arango::Error.new message: "#{collection} should be an Arango::Collection or
-        a name of a class"
       end
     end
+    private :return_collection
 
 # === TO HASH ===
 

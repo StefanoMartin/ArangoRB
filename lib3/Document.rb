@@ -6,21 +6,22 @@ module Arango
     include Arango::Helper_Return
     include Arango::Collection_Return
 
-    def initialize(name:, collection:, body: {}, rev: nil, from: nil, to: nil)
+    def initialize(name: nil, collection:, body: {}, rev: nil, from: nil,
+      to: nil)
       assign_collection(collection)
       body["_key"]  ||= name
       body["_rev"]  ||= rev
       body["_to"]   ||= to
-      body["_from"] || from
-      body["_id"]   ||= "#{@collection.name}/#{name}"
+      body["_from"] ||= from
+      body["_id"]   ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
         define_method(:"#{attribute}=") do |attrs|
           temp_attrs = attribute
           temp_attrs = "key" if attribute == "name"
-          body["_#{temp_attrs}"] = attrs
-          assign_attributes(body)
+          @body["_#{temp_attrs}"] = attrs
+          assign_attributes(@body)
         end
       end
     end
@@ -34,7 +35,10 @@ module Arango
     def body=(result)
       @body = result.delete_if{|k,v| v.nil?}
       @name = result["_key"] || @name
-      @id   = result["_id"]  || @id || "#{@collection.name}/#{@name}"
+      @id   = result["_id"]  || @id
+      if @id.nil? && !@name.nil?
+        @id = "#{@collection.name}/#{@name}"
+      end
       @rev  = result["_rev"] || @rev
       set_up_from_or_to("from", result["_from"] || @from)
       set_up_from_or_to("to", result["_to"] || @to)
@@ -76,6 +80,7 @@ module Arango
       instance_variable_set("@#{attrs}", instance)
       @body["_#{attrs}"] = instance&.name
     end
+    private :set_up_from_or_to
 
 # == GET ==
 
@@ -197,13 +202,15 @@ module Arango
 
   # === EDGE ===
 
-    def edges(direction: nil)
+    def edges(direction: nil, collection:)
+      satisfy_class?(collection, [Arango::Collection, String])
+      collection = collection.is_a?(Arango::Collection) ? collection.name : collection
       query = {
         "vertex"    => @name,
         "direction" => direction
       }
       result = @document.request(action: "GET",
-        url: "_api/edges/#{@collection.name}", query: query)
+        url: "_api/edges/#{collection}", query: query)
       return result if return_directly?(result)
       result["edges"].map do |edge|
         collection_name, key = edge["_id"].split("/")
@@ -213,12 +220,12 @@ module Arango
       end
     end
 
-    def out
-      edges(direction: "out")
+    def out(collection)
+      edges(direction: "out", collection: collection)
     end
 
-    def in
-      edges(direction: "in")
+    def in(collection)
+      edges(direction: "in", collection: collection)
     end
 
 # === TRAVERSAL ===

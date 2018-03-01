@@ -103,6 +103,7 @@ module Arango
       end
       return return_directly?(result) ? result : self
     end
+    private :return_aql
 
   # === EXECUTE QUERY ===
 

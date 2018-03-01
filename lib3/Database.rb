@@ -28,10 +28,10 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "name" => @name,
+        "name"     => @name,
         "isSystem" => @isSystem,
-        "path" => @path,
-        "id" => @id
+        "path"     => @path,
+        "id"       => @id
       }.delete_if{|k,v| v.nil?}
       hash["client"] = level > 0 ? @client.to_h(level-1) : @client.base_uri
       hash
@@ -108,24 +108,25 @@ module Arango
       result = request(action: "GET", url: "_api/gharial")
       return result if return_directly?(result)
       result["graphs"].map do |graph|
-        Arango::Graph.new(database: self, key: graph["_key"], body: graph)
+        Arango::Graph.new(database: self, name: graph["_key"], body: graph)
       end
     end
 
     def graph(key:, edgeDefinitions: [], orphanCollections: [],
       body: {})
-      Arango::Graph.new(key: key, database: database,
+      Arango::Graph.new(name: key, database: database,
         edgeDefinitions: edgeDefinitions,
         orphanCollections: orphanCollections, body: body)
     end
 
 # == QUERY ==
 
-    def query_properties
+    def queryProperties
       request(action: "GET", url: "_api/query/properties")
     end
 
-    def change_query_properties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil, trackSlowQueries: nil, maxQueryStringLength: nil, trackBindVars: nil)
+    def changeQueryProperties(slowQueryThreshold: nil, enabled: nil, maxSlowQueries: nil,
+      trackSlowQueries: nil, maxQueryStringLength: nil, trackBindVars: nil)
       body = {
         "slowQueryThreshold" => slowQueryThreshold,
         "enabled" => enabled,
@@ -137,27 +138,27 @@ module Arango
       request(action: "PUT", url: "_api/query/properties", body: body)
     end
 
-    def current_query
+    def currentQuery
       request(action: "GET", url: "_api/query/current")
     end
 
-    def slow_queries
+    def slowQueries
       request(action: "GET", url: "_api/query/slow")
     end
 
-    def stop_slow_queries
+    def stopSlowQueries
       request(action: "DELETE", url: "_api/query/slow")
     end
 
-    def clear_query_cache
+    def clearQueryCache
       request(action: "DELETE", url: "_api/query-cache")
     end
 
-    def property_query_cache
+    def propertyQueryCache
       request(action: "GET", url: "_api/query-cache/properties")
     end
 
-    def change_property_query_cache(mode:, maxResults: nil)
+    def changePropertyQueryCache(mode:, maxResults: nil)
       satisfy_category?(mode, ["off", "on", "demand"])
       body = { "mode" => mode, "maxResults" => maxResults }
       database.request(action: "PUT", url: "_api/query-cache/properties",
@@ -184,7 +185,9 @@ module Arango
       optimizer_rules: optimizer_rules, maxPlans: maxPlans)
   end
 
-  def kill_aql(id:)
+  def killAql(query:)
+    satisfy_class?(query, [Arango::AQL, String])
+    id = query.is_a?(String) ? id : query.id
     request(action: "DELETE", url: "_api/query/#{id}")
   end
 
@@ -196,20 +199,20 @@ module Arango
 
 # === FUNCTION ===
 
-    def aql_functions(namespace: nil)
+    def aqlFunctions(namespace: nil)
       query = {"namespace" => namespace}
       request(action: "GET", url: "_api/aqlfunction",
         query: query)
     end
 
-    def create_aql_function(code:, name:, isDeterministic: nil)
+    def createAqlFunction(code:, name:, isDeterministic: nil)
       body = {
         "code" => code, "name" => name, "isDeterministic" => isDeterministic
       }
       request(action: "POST", url: "_api/aqlfunction", body: body)
     end
 
-    def delete_aql_function(name:)
+    def deleteAqlFunction(name:)
       request(action: "DELETE",  url: "_api/aqlfunction/#{name}")
     end
 
@@ -454,23 +457,23 @@ module Arango
 
 # === USER ACCESS ===
 
-    def check_user(user)
+    def checkUser(user)
       user = Arango::User.new(user: user) if user.is_a?(String)
       return user
     end
     private :check_user
 
-    def add_user_access(grant:, user:)
+    def addUserAccess(grant:, user:)
       user = check_user(user)
       user.add_database_access(grant: grant, database: @name)
     end
 
-    def clear_user_access(user:)
+    def revokeUserAccess(user:)
       user = check_user(user)
       user.clear_database_access(database: @name)
     end
 
-    def user_access(user:)
+    def userAccess(user:)
       user = check_user(user)
       user.database_access(database: @name)
     end

@@ -37,7 +37,7 @@ module Arango
 
 # === QUERY ===
 
-    def add_query(id: @id, method:, url:, body: nil)
+    def addQuery(id: @id, method:, url:, body: nil)
       id = id.to_s
       @queries[id.to_s] = {
         "id"     => id,
@@ -48,7 +48,7 @@ module Arango
       @id += 1
     end
 
-    def remove_query(id:)
+    def removeQuery(id:)
       @queries.delete(id)
     end
 

@@ -1,6 +1,6 @@
 require_relative './../../spec_helper'
 
-describe ArangoCollection do
+describe Arango::Collection do
   context "#new" do
     it "create a new instancel" do
       myCollection = @myDatabase.collection name: "MyCollection"

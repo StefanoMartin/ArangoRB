@@ -258,18 +258,18 @@ module Arango
 
   # === AGENCY ===
 
-    def agency_config
+    def agencyConfig
       request(action: "GET", url: "_api/agency/config")
     end
 
-    def agency_write(body:, agency_mode: nil)
+    def agencyWrite(body:, agency_mode: nil)
       satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
       headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
       request(action: "POST", url: "_api/agency/write", headers: headers,
         body: body)
     end
 
-    def agency_read(body:, agency_mode: nil)
+    def agencyRead(body:, agency_mode: nil)
       satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
       headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
       request(action: "POST", url: "_api/agency/read", headers: headers,

@@ -1,6 +1,6 @@
 require_relative './../../spec_helper'
 
-describe ArangoAQL do
+describe Arango::AQL do
   context "#new" do
     it "create a new AQL instance" do
       myAQL = @myDatabase.aql query: "FOR u IN MyCollection RETURN u.num"

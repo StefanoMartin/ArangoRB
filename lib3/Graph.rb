@@ -27,16 +27,16 @@ module Arango
     alias key name
 
     def body=(result)
-      result.delete_if{|k,v| v.nil?}
-      @name = result["name"]
-      assign_edgeDefinitions(result["edgeDefinitions"])
-      assign_orphanCollections(result["orphanCollections"])
-      @id = result["_id"]
-      @rev = result["_rev"]
-      @isSmart = result["isSmart"]
-      @numberOfShards = result["numberOfShards"]
-      @replicationFactor = result["replicationFactor"]
-      @smartGraphAttribute = result["smartGraphAttribute"]
+      @body = result
+      assign_edgeDefinitions(result["edgeDefinitions"] || @edgeDefinitions)
+      assign_orphanCollections(result["orphanCollections"] || @orphanCollections)
+      @name    = result["name"]    || @name
+      @id      = result["_id"]     || @id
+      @rev     = result["_rev"]    || @rev
+      @isSmart = result["isSmart"] || @isSmart
+      @numberOfShards = result["numberOfShards"] || @numberOfShards
+      @replicationFactor = result["replicationFactor"] || @replicationFactor
+      @smartGraphAttribute = result["smartGraphAttribute"] || @smartGraphAttribute
     end
     alias assign_attributes body=
 
@@ -46,13 +46,12 @@ module Arango
     end
 
     def return_collection(collection, type=nil)
+      satisfy_class?(collection, [Arango::Collection, String])
       if collection.is_a?(Arango::Collection)
         return collection
       elsif collection.is_a?(String)
         return Arango::Collection.new(name: collection,
           database: @database, type: type, graph: self)
-      else
-        raise Arango::Error.new message: "#{collection} should be an Arango::Collection or a name of a class"
       end
     end
 
@@ -177,6 +176,7 @@ module Arango
         Arango::Collection.new(name: x, database: @database, graph: self)
       end
     end
+    alias vertexCollections getVertexCollections
 
     def addVertexCollection(collection:)
       satisfy_class?(collection, [String, Arango::Collection])
