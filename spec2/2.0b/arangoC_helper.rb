@@ -1,6 +1,6 @@
 require_relative './../../spec_helper'
 
-describe ArangoCollection do
+describe Arango::Collection do
   context "#get" do
     it "revision" do
       expect(@myCollection.revision.class).to be String
@@ -36,13 +36,13 @@ describe ArangoCollection do
   context "#export" do
     it "export" do
       result = @myCollection.export flush: true
-      expect(result[0].class).to be ArangoDocument
+      expect(result[0].class).to be Arango::Document
     end
 
     it "exportNext" do
       result = @myCollection.export batchSize: 3, flush: true
       result = @myCollection.exportNext
-      expect(result[0].class).to be ArangoDocument
+      expect(result[0].class).to be Arango::Document
     end
   end
 

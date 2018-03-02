@@ -4,10 +4,11 @@ module Arango
   class Task
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Database_Return
+    include Arango::Server_Return
 
-    def initialize(id: nil, name: nil, type: nil, period: nil, command: nil, params: {}, created: nil, database:, body: {})
-      assign_database(database)
+    def initialize(id: nil, name: nil, type: nil, period: nil, command: nil,
+      params: {}, created: nil, server:, body: {})
+      assign_server(server)
       body2 = {
         "id"      => id,
         "name"    => name,
@@ -23,7 +24,7 @@ module Arango
 
  # === DEFINE ===
 
-    attr_reader :client, :database, :body
+    attr_reader :server, :body
     attr_accessor :id, :name, :type, :period, :created,
       :command, :params, :offset
 
@@ -52,7 +53,7 @@ module Arango
         "params"  => @params,
         "created" => @created
       }.delete_if{|k,v| v.nil?}
-      hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
+      hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
       hash
     end
 

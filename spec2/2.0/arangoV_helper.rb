@@ -33,8 +33,8 @@ describe Arango::Vertex do
     end
 
     it "retrieve Edges" do
-      @myEdgeCollection.create_edges from: ["MyCollection/myA", "MyCollection/myB"], to: @myVertex
-      myEdges = @myVertex.retrieve_edges(collection: @myEdgeCollection)
+      @myEdgeCollection.createEdges from: ["MyCollection/myA", "MyCollection/myB"], to: @myVertex
+      myEdges = @myVertex.retrieveEdges(collection: @myEdgeCollection)
       expect(myEdges.length).to eq 2
     end
 

@@ -3,13 +3,8 @@ require_relative './../../spec_helper'
 describe ArangoIndex do
   context "#new" do
     it "create a new Index without global" do
-      myIndex = ArangoIndex.new collection: @myCollection, database: @myDatabase, fields: "num", unique: false, id: "myIndex"
+      myIndex = @myCollection.index fields: "num", unique: false, id: "myIndex"
       expect(myIndex.id).to eq "myIndex"
-    end
-
-    it "create a new Index with global" do
-      myIndex = ArangoIndex.new fields: "num", unique: false, id: "myIndex2"
-      expect(myIndex.id).to eq "myIndex2"
     end
   end
 
@@ -29,7 +24,7 @@ describe ArangoIndex do
 
   context "#info" do
     it "list Indexes" do
-      result = ArangoIndex.indexes
+      result = @myCollection.indexes
       expect(result["indexes"][0].class).to be ArangoIndex
     end
   end

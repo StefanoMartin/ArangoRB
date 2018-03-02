@@ -1,14 +1,24 @@
 module Arango
   module Helper_Return
   def return_directly?(result)
-    return @client.async != false || @client.return_direct_result
+    return @server.async != false || @server.return_direct_result
     return result == true
   end
 
   def return_element(result)
-    return result if @client.async != false
+    return result if @server.async != false
     assign_attributes(result)
     return return_directly?(result) ? result : self
+  end
+end
+
+module Arango
+  module Server_Return
+    def server=(server)
+      satisfy_class?(server, [Arango::Server])
+      @server = @server
+    end
+    alias assign_server server=
   end
 end
 
@@ -17,7 +27,7 @@ module Arango
     def database=(database)
       satisfy_class?(database, [Arango::Database])
       @database = database
-      @client = @database.client
+      @server = @database.server
     end
     alias assign_database database=
   end
@@ -30,7 +40,7 @@ module Arango
       @collection = collection
       @graph = @collection.graph
       @database = @collection.database
-      @client = @database.client
+      @server = @database.server
     end
     alias assign_collection collection=
   end

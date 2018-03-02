@@ -28,7 +28,7 @@ module Arango
 
 # === DEFINE ==
 
-    attr_reader :name, :collection, :graph, :database, :client, :id, :rev,
+    attr_reader :name, :collection, :graph, :database, :server, :id, :rev,
       :body, :from, :to
     alias_method :key, :name
 
@@ -114,7 +114,7 @@ module Arango
       }
       result = @database.request(action: "POST", body: body,
         query: query, url: "_api/document/#{@collection.name}" )
-      return result if @client.async != false || silent
+      return result if @server.async != false || silent
       body2 = result.clone
       if returnNew
         body2.delete("new")
@@ -140,7 +140,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @database.request(action: "PUT", body: body,
         query: query, headers: headers, url: "_api/document/#{@id}")
-      return result if @client.async != false || silent
+      return result if @server.async != false || silent
       body2 = result.clone
       if returnNew
         body2.delete("new")
@@ -168,7 +168,7 @@ module Arango
       result = @database.request(action: "PATCH", body: body,
         query: query, headers: headers, url: "_api/document/#{@id}",
         keepNull: keepNull)
-      return result if @client.async != false || silent
+      return result if @server.async != false || silent
       body2 = result.clone
       if returnNew
         body2.delete("new")

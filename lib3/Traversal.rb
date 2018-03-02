@@ -42,7 +42,7 @@ module Arango
 
     attr_accessor :sort, :maxDepth, :minDepth, :visitor, :filter, :init, :maxiterations, :uniqueness, :expander
     attr_reader :vertices, :paths, :direction, :itemOrder,
-      :strategy, :order, :database, :client, :startVertex, :edgeCollection, :graph, :body
+      :strategy, :order, :database, :server, :startVertex, :edgeCollection, :graph, :body
 
     def body=(body)
       @body = body
@@ -212,7 +212,7 @@ module Arango
       "edgeCollection" => @edgeCollection&.name
     }
     result = @database.request(action: "POST", url: "_api/traversal", body: body)
-    return result if @client.async != false
+    return result if @server.async != false
     @vertices = result["result"]["visited"]["vertices"].map do |x|
       collection = Arango::Collection.new(name: x["_id"].split("/")[0], database:  @database)
       Arango::Document.new(name: x["_key"], collection: collection, body: x)

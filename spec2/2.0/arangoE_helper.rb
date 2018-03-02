@@ -12,7 +12,8 @@ describe ArangoEdge do
 
   context "#create" do
     it "create a new Edge" do
-      myDoc = @myCollection.create_documents body: [{"A" => "B", "num" => 1}, {"C" => "D", "num" => 3}]
+      myDoc = @myCollection.createDocuments document: [{"A" => "B", "num" => 1},
+        {"C" => "D", "num" => 3}]
       myEdge = @myEdgeCollection.edge(from: myDoc[0].id, to: myDoc[1].id)
       myEdge = myEdge.create
       expect(myEdge.body["_from"]).to eq myDoc[0].id

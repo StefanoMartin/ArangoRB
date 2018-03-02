@@ -47,7 +47,7 @@ module Arango
     attr_reader :hasMore, :id, :result, :idCache, :failOnWarning, :profile,
       :maxTransactionSize, :skipInaccessibleCollections, :maxWarningCount,
       :intermediateCommitCount, :satelliteSyncWait, :fullCount,
-      :intermediateCommitSize, :optimizer_rules, :maxPlans, :database, :client, :cached, :extra
+      :intermediateCommitSize, :optimizer_rules, :maxPlans, :database, :server, :cached, :extra
     alias size batchSize
     alias size= batchSize=
 
@@ -87,7 +87,7 @@ module Arango
 # === REQUEST ===
 
     def return_aql(result)
-      return result if @client.async != false
+      return result if @server.async != false
       @extra    = result["extra"]
       @cached   = result["cached"]
       @quantity = result["count"]

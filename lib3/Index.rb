@@ -6,7 +6,8 @@ module Arango
     include Arango::Helper_Return
     include Arango::Collection_Return
 
-    def initialize(collection:, body: {}, id: nil, type: "hash", unique: nil, fields:, sparse: nil, geoJson: nil, minLength: nil, deduplicate: nil)
+    def initialize(collection:, body: {}, id: nil, type: "hash", unique: nil,
+      fields:, sparse: nil, geoJson: nil, minLength: nil, deduplicate: nil)
       assign_collection(collection)
       satisfy_category?(type, "type", ["hash", "skiplist", "persistent",
         "geo", "fulltext"])
@@ -26,7 +27,7 @@ module Arango
 
     attr_accessor :id, :unique, :fields, :key, :sparse, :geoJson, :minLenght,
       :deduplicate
-    attr_reader :type, :database, :collection, :client
+    attr_reader :type, :database, :collection, :server
 
     def type=(type)
       satisfy_category?(type, "type", ["hash", "skiplist", "persistent", "geo", "fulltext"])

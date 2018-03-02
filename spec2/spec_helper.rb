@@ -5,10 +5,10 @@ require "arangorb"
 RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
-		@client = Arango::Client.new user: "root", password: "root",
+		@server = Arango::Server.new user: "root", password: "root",
 			server: "localhost", port: "8529"
-		@myDatabase    = @client.database(name: "MyDatabase").create
-		@myGraph       = @client.graph(name: "MyGraph").create
+		@myDatabase    = @server.database(name: "MyDatabase").create
+		@myGraph       = @server.graph(name: "MyGraph").create
 		@myCollection  = @myDatabase.collection(name: "MyCollection").create
 		@myCollectionB = @myDatabase.collection(name: "MyCollectionB").create
 		@myDocument    = @myCollection.document(name: "FirstDocument",
@@ -18,7 +18,10 @@ RSpec.configure do |config|
 		@myGraph.addVertexCollection collection: "MyCollection"
 		@myGraph.addEdgeCollection collection: "MyEdgeCollection", from: "MyCollection", to: "MyCollection"
 		@myAQL = @myDatabase.aql query: "FOR u IN MyCollection RETURN u.num"
-		@myDoc = @myCollection.create_documents document: [{"num" => 1, "_key" => "FirstKey"}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3}, {"num" => 2}, {"num" => 5}, {"num" => 2}]
+		@myDoc = @myCollection.createDocuments document: [{"num" => 1, "_key" => "FirstKey"},
+			{"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1},
+			{"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3},
+			{"num" => 2}, {"num" => 5}, {"num" => 2}]
 		@myCollection.graph = @myGraph
 		@myVertex = @myCollection.vertex(body: {"Hello" => "World", "num" => 1},
 			name: "FirstVertex").create
@@ -28,11 +31,12 @@ RSpec.configure do |config|
 		@myIndex = @myCollection.index(unique: false, fields: "num", type: "hash",
 			id: "MyIndex").create
 		@myTraversal = @vertexA.traversal
-		@myUser = @client.user(name: "MyUser")
+		@myUser = @server.user(name: "MyUser")
 		print @myUser.destroy
 		@myUser.create
 		@myTask = @myDatabase.task(id: "mytaskid", name: "MyTaskID",
-			command: "(function(params) { require('@arangodb').print(params); })(params)", params: {"foo" => "bar", "bar" => "foo"}, period: 60)
+			command: "(function(params) { require('@arangodb').print(params); })(params)",
+			params: {"foo" => "bar", "bar" => "foo"}, period: 60)
 	end
 
 	config.after(:all) do

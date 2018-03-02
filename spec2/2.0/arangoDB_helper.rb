@@ -4,7 +4,7 @@ describe Arango::Database do
 
   context "#new" do
     it "create a new instance without global" do
-      myDatabase = @client.database name: "MyDatabase"
+      myDatabase = @server.database name: "MyDatabase"
       expect(myDatabase.name).to eq "MyDatabase"
     end
   end
@@ -29,7 +29,7 @@ describe Arango::Database do
     end
 
     it "list databases" do
-      list = @client.databases
+      list = @server.databases
       expect(list.length).to be >= 1
     end
 
@@ -60,12 +60,15 @@ describe Arango::Database do
 
   context "#delete query" do
     it "stopSlow" do
-      expect(@myDatabase.stop_slow_queries).to be true
+      expect(@myDatabase.stopSlowQueries).to be true
     end
 
     it "kill" do
       @myCollection.create
-      @myCollection.create_document document: [{"num" => 1, "_key" => "FirstKey"}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3}, {"num" => 2}, {"num" => 5}, {"num" => 2}]
+      @myCollection.createDocument document: [{"num" => 1, "_key" => "FirstKey"},
+        {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1},
+        {"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3},
+        {"num" => 2}, {"num" => 5}, {"num" => 2}]
       @myAQL.size = 3
       @myAQL.execute
       expect((@myDatabase.kill_aql query: @myAQL).split(" ")[0]).to eq "cannot"
@@ -83,24 +86,25 @@ describe Arango::Database do
     end
 
     it "change Property Cache" do
-      @myDatabase.change_property_query_cache maxResults: 130
-      expect(@myDatabase.property_query_cache["maxResults"]).to eq 130
+      @myDatabase.changePropertyQueryCache maxResults: 130
+      expect(@myDatabase.propertyQueryCache["maxResults"]).to eq 130
     end
   end
 
   context "#function" do
     it "create Function" do
-      result = @myDatabase.create_aql_function name: "myfunctions::temperature::celsiustofahrenheit", code: "function (celsius) { return celsius * 1.8 + 32; }"
+      result = @myDatabase.createAqlFunction name: "myfunctions::temperature::celsiustofahrenheit",
+      code: "function (celsius) { return celsius * 1.8 + 32; }"
       expect(result.class).to eq Hash
     end
 
     it "list Functions" do
-      result = @myDatabase.aql_functions
+      result = @myDatabase.aqlFunctions
       expect(result[0]["name"]).to eq "myfunctions::temperature::celsiustofahrenheit"
     end
 
     it "delete Function" do
-      result = @myDatabase.delete_aql_function name: "myfunctions::temperature::celsiustofahrenheit"
+      result = @myDatabase.deleteAqlFunction name: "myfunctions::temperature::celsiustofahrenheit"
       expect(result).to be true
     end
   end

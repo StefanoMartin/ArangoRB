@@ -4,11 +4,12 @@ module Arango
   class Database
     include Arango::Helper_Error
     include Arango::Helper_Return
+    include Arango::Return_Server
 
-    def initialize(name:, client:)
-      satisfy_class?(client, [Arango::Client])
+    def initialize(name:, server:)
+      assign_server(server)
       @name = name
-      @client = client
+      @server = server
       @isSystem = nil
       @path = nil
       @id = nil
@@ -16,13 +17,8 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :isSystem, :path, :id
-    attr_accessor: :name
-
-    def client=(client)
-      satisfy_class?(client, [Arango::Client])
-      @client = client
-    end
+    attr_reader :isSystem, :path, :id, :server
+    attr_accessor :name
 
 # === TO HASH ===
 
@@ -33,7 +29,7 @@ module Arango
         "path"     => @path,
         "id"       => @id
       }.delete_if{|k,v| v.nil?}
-      hash["client"] = level > 0 ? @client.to_h(level-1) : @client.base_uri
+      hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
       hash
     end
 
@@ -43,7 +39,7 @@ module Arango
       query: {}, key: nil, return_direct_result: false,
       skip_to_json: false, keepNull: false)
       url = "_db/#{@name}/#{url}"
-      @client.request(action: action, url: url, body: body,
+      @server.request(action: action, url: url, body: body,
         headers: headers, query: query, key: key,
         return_direct_result: return_direct_result,
         skip_to_json: skip_to_json, keepNull: keepNull)
@@ -71,14 +67,14 @@ module Arango
         "name" => name,
         "users" => users
       }
-      result = @client.request(action: "POST", url: "_api/database", body: body)
+      result = @server.request(action: "POST", url: "_api/database", body: body)
       return return_directly?(result) ? result : self
     end
 
 # == DELETE ==
 
     def destroy
-      @client.request(action: "DELETE", url: "_api/database/#{@database}")
+      @server.request(action: "DELETE", url: "_api/database/#{@database}")
     end
 
 # == COLLECTION ==
@@ -191,12 +187,6 @@ module Arango
     request(action: "DELETE", url: "_api/query/#{id}")
   end
 
-# === BATCH ===
-
-  def batch(boundary: "XboundaryX")
-    Arango::Batch.new(database: self, boundary: boundary)
-  end
-
 # === FUNCTION ===
 
     def aqlFunctions(namespace: nil)
@@ -216,83 +206,12 @@ module Arango
       request(action: "DELETE",  url: "_api/aqlfunction/#{name}")
     end
 
-# === ASYNC ===
-
-    def fetchAsync(id:)
-      request(action: "PUT", url: "_api/job/#{id}")
-    end
-
-    def cancelAsync(id:)
-      request(action: "PUT", url: "_api/job/#{id}/cancel")
-    end
-
-    def destroyAsync(id:, stamp: nil)
-      query = {"stamp" => stamp}
-      request(action: "DELETE", url: "_api/job/#{id}", "query" => query)
-    end
-
-    def destroyAsyncByType(type:, stamp: nil)
-      satisfy_category?(type, ["all", "expired"])
-      query = {"stamp" => stamp}
-      request(action: "DELETE", url: "_api/job/#{type}", "query" => query)
-    end
-
-    def destroyAllAsync
-      destroyAsyncByType(type: "all")
-    end
-
-    def destroyExpiredAsync
-      destroyAsyncByType(type: "expired")
-    end
-
-    def retrieveAsync(id:)
-      request(action: "GET", url: "_api/job/#{id}")
-    end
-
-    def retrieveAsyncByType(type:, count: nil)
-      satisfy_category?(type, ["done", "pending"])
-      query = {"count" => count}
-      request(action: "GET", url: "_api/job/#{type}", query: query)
-    end
-
-    def retrieveDoneAsync(count: nil)
-      retrieveAsyncByType(type: "done", count: count)
-    end
-
-    def retrievePendingAsync(count: nil)
-      retrieveAsyncByType(type: "pending", count: count)
-    end
-
     # === REPLICATION ===
 
     def inventory(includeSystem: false)
       query = { "includeSystem": includeSystem }
       request(action: "GET", url: "api/replication/inventory",
         query: query)
-    end
-
-    def createDumpBatch(ttl:, dbserver: nil)
-      query = { "DBserver" => dbserver }
-      body = { "ttl" => ttl }
-      result = request(action: "POST", url: "_api/replication/batch",
-        body: body, query: query)
-      return result if return_directly?(result)
-      return result["id"]
-    end
-
-    def destroyDumpBatch(id:, dbserver: nil)
-      query = {"DBserver" => dbserver}
-      request(action: "DELETE", url: "_api/replication/batch/#{id}",
-        body: body, query: query)
-    end
-
-    def prolongDumpBatch(id:, ttl:, dbserver: nil)
-      query = { "DBserver" => dbserver }
-      body = { "ttl" => ttl }
-      result = request(action: "PUT", url: "_api/replication/batch/#{id}",
-        body: body, query: query)
-      return result if return_directly?(result)
-      return result["id"]
     end
 
     def sync(endpoint:, username: nil, password:, includeSystem: nil,
@@ -476,23 +395,6 @@ module Arango
     def userAccess(user:)
       user = check_user(user)
       user.database_access(database: @name)
-    end
-
-  # == TASKS ==
-
-    def tasks
-      result = request(action: "GET", url: "_api/tasks")
-      return result if return_directly?(result)
-      result["result"].map do |task|
-        Arango::Tasks.new(body: task, database: self)
-      end
-    end
-
-    def task(id: nil, name: nil, type: nil, period: nil, command: nil,
-      params: {}, created: nil)
-      Arango::Tasks.new(id: id, name: name, type: type,
-        period: period, command: command, params: params,
-        created: created, database: self)
     end
   end
 end

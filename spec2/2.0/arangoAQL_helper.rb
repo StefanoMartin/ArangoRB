@@ -57,7 +57,7 @@ describe Arango::AQL do
     end
 
     it "changeProperties" do
-      result = @myDatabase.change_query_properties maxSlowQueries: 65
+      result = @myDatabase.changeQueryProperties maxSlowQueries: 65
       expect(result["maxSlowQueries"]).to eq 65
     end
   end

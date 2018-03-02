@@ -22,15 +22,15 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :database, :client, :type, :body
+    attr_reader :database, :server, :type, :body
     attr_accessor :name, :development, :legacy, :provides,
       :version, :mount, :setup, :teardown
 
     def body=(result)
       if result.is_a?(Hash)
         @body        = result
-        @name        = result["name"]        || @name 
-        @version     = result["version"]     || @version 
+        @name        = result["name"]        || @name
+        @version     = result["version"]     || @version
         @mount       = result["mount"]       || @mount
         @development = result["development"] || @development
         @legacy      = result["legacy"]      || @legacy
@@ -65,7 +65,7 @@ module Arango
     end
 
     def return_foxx(result, val=nil)
-      return result if @client.async != false
+      return result if @server.async != false
       if val == "configuration"
         @configuration = result
       elsif val == "dependencies"
@@ -247,9 +247,9 @@ module Arango
         url: "_api/foxx/swagger",  query: query)
     end
 
-    def download(path:, warning: @client.warning)
+    def download(path:, warning: @server.warning)
       query = {"mount": @mount}
-      @client.download(action: "POST",
+      @server.download(action: "POST",
         url: "/_db/#{@database.name}/_api/foxx/download", path: path, query: query)
       puts "File saved in #{path}" if warning
     end

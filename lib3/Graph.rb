@@ -22,7 +22,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :name, :database, :client, :id, :body, :rev, :isSmart
+    attr_reader :name, :database, :server, :id, :body, :rev, :isSmart
     attr_accessor :numberOfShards, :replicationFactor, :smartGraphAttribute
     alias key name
 
@@ -183,7 +183,7 @@ module Arango
       collection = collection.is_a?(String) ? collection : collection.name
       body = { "collection" => collection }
       result = request(action: "POST", url: "vertex", body: body)
-      return result if @database.client.async != false
+      return result if @database.server.async != false
       @orphanCollections |= [collection]
       return return_directly?(result) ? result : self
     end
@@ -200,7 +200,7 @@ module Arango
 
     def getEdgeDefinitions
       result = request(action: "GET", url: "edge")
-      return result if @database.client.async != false
+      return result if @database.server.async != false
       assign_edgeDefinitions(result["collections"])
       @edgeDefinitions = result["collections"]
       return result if return_directly?(result)

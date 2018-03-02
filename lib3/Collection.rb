@@ -20,12 +20,12 @@ module Arango
       body["isSystem"] ||= isSystem
       body["id"]       ||= nil
       assign_attributes(body)
-      ignore_exception(retrieve) if @client.initialize_retrieve
+      ignore_exception(retrieve) if @server.initialize_retrieve
     end
 
 # === DEFINE ===
 
-    attr_reader :status, :isSystem, :id, :client, :database, :graph, :type,
+    attr_reader :status, :isSystem, :id, :server, :database, :graph, :type,
      :countExport, :hasMoreExport, :idExport
     attr_accessor :name
 
@@ -257,16 +257,16 @@ module Arango
     end
     private :return_id
 
-    def createDocuments(body: [], waitForSync: nil, returnNew: nil,
+    def createDocuments(document: [], waitForSync: nil, returnNew: nil,
       silent: nil)
-      body = [body] unless body.is_a? Array
-      body = body.map{|x| return_body(x)}
+      document = [document] unless document.is_a? Array
+      document = document.map{|x| return_body(x)}
       query = {
         "waitForSync" => waitForSync,
         "returnNew"   => returnNew,
         "silent"      => silent
       }
-      results = @database.request(action: "POST", body: body,
+      results = @database.request(action: "POST", body: document,
         query: query, url: "_api/document/#{@name}" )
       return results if return_directly?(result) || silent
       results.map.with_index do |result, index|
@@ -275,22 +275,22 @@ module Arango
           body2.delete("new")
           body2 = body2.merge(result["new"])
         end
-        real_body = body[index]
+        real_body = document[index]
         real_body = real_body.merge(body2)
         Arango::Document.new(name: result["_key"], collection: self,
           body: real_body)
       end
     end
 
-    def createEdges(body: {}, from:, to:, waitForSync: nil, returnNew: nil)
+    def createEdges(document: {}, from:, to:, waitForSync: nil, returnNew: nil)
       edges = []
       from = [from] unless from.is_a? Array
       to   = [to]   unless to.is_a? Array
-      body = [body] unless body.is_a? Array
-      body = body.map{|x| return_body(x, "Edge")}
+      document = [document] unless document.is_a? Array
+      document = document.map{|x| return_body(x, "Edge")}
       from = from.map{|x| return_id(x)}
       to   = to.map{|x| return_id(x)}
-      body.each do |b|
+      document.each do |b|
         from.each do |f|
           to.each do |t|
             b["_from"] = f
@@ -299,13 +299,13 @@ module Arango
           end
         end
       end
-      create_documents(body: body, waitForSync: waitForSync,
+      create_documents(body: document, waitForSync: waitForSync,
         returnNew: returnNew, silent: silent)
     end
 
-    def replaceDocuments(body: {}, waitForSync: nil, ignoreRevs: nil,
+    def replaceDocuments(document: {}, waitForSync: nil, ignoreRevs: nil,
       returnOld: nil, returnNew: nil)
-      body = body.each do |x|
+      document = document.each do |x|
         x = x.body if x.is_a?(Arango::Document)
       end
       query = {
@@ -314,7 +314,7 @@ module Arango
         "returnOld"   => returnOld,
         "ignoreRevs"  => ignoreRevs
       }
-      result = @database.request(action: "PUT", body: body,
+      result = @database.request(action: "PUT", body: document,
         query: query, url: "_api/document/#{@name}")
       return results if return_directly?(result)
       results.map.with_index do |result, index|
@@ -323,17 +323,17 @@ module Arango
           body2.delete("new")
           body2 = body2.merge(result["new"])
         end
-        real_body = body[index]
+        real_body = document[index]
         real_body = real_body.merge(body2)
         Arango::Document.new(name: result["_key"], collection: self,
           body: real_body)
       end
     end
 
-    def updateDocuments(body: {}, waitForSync: nil, ignoreRevs: nil,
+    def updateDocuments(document: {}, waitForSync: nil, ignoreRevs: nil,
       returnOld: nil, returnNew: nil, keepNull: nil,
       mergeObjects: nil)
-      body = body.each do |x|
+      document = document.each do |x|
         x = x.body if x.is_a?(Arango::Document)
       end
       query = {
@@ -344,7 +344,7 @@ module Arango
         "keepNull"    => keepNull,
         "mergeObject" => mergeObjects
       }
-      result = @database.request(action: "PATCH", body: body,
+      result = @database.request(action: "PATCH", body: document,
         query: query, url: "_api/document/#{@name}", keepNull: keepNull)
       return results if return_directly?(result)
       results.map.with_index do |result, index|
@@ -353,16 +353,16 @@ module Arango
           body2.delete("new")
           body2 = body2.merge(result["new"])
         end
-        real_body = body[index]
+        real_body = document[index]
         real_body = real_body.merge(body2)
         Arango::Document.new(name: result["_key"], collection: self,
           body: real_body)
       end
     end
 
-    def destroyDocuments(body: {}, waitForSync: nil, returnOld: nil,
+    def destroyDocuments(document: {}, waitForSync: nil, returnOld: nil,
       ignoreRevs: nil)
-      body = body.each do |x|
+      document = document.each do |x|
         x = x.body if x.is_a?(Arango::Document)
       end
       query = {
@@ -523,7 +523,7 @@ module Arango
 # === SIMPLE DEPRECATED ===
 
     def range(right:, attribute:, limit: nil, closed: true, skip: nil, left:,
-      warning: @client.warning)
+      warning: @server.warning)
       warning_deprecated(warning, "range")
       body = {
         "right"      => right,
@@ -543,7 +543,7 @@ module Arango
     end
 
     def near(distance: nil, longitude:, latitude:, geo: nil, limit: nil,
-      skip: nil, warning: @client.warning)
+      skip: nil, warning: @server.warning)
       warning_deprecated(warning, "near")
       body = {
         "distance"   => distance,
@@ -563,7 +563,7 @@ module Arango
     end
 
     def within(distance: nil, longitude:, latitude:, radius:, geo: nil,
-      limit: nil, skip: nil, warning: @client.warning)
+      limit: nil, skip: nil, warning: @server.warning)
       warning_deprecated(warning, "within")
       body = {
         "distance"   => distance,
@@ -584,7 +584,7 @@ module Arango
     end
 
     def withinRectangle(longitude1:, latitude1:, longitude2:, latitude2:,
-      geo: nil, limit: nil, skip: nil, warning: @client.warning)
+      geo: nil, limit: nil, skip: nil, warning: @server.warning)
       warning_deprecated(warning, "withinRectangle")
       body = {
         "longitude1" => longitude1,
@@ -606,7 +606,7 @@ module Arango
     end
 
     def fulltext(index:, attribute:, query:, limit: nil, skip: nil,
-      warning: @client.warning)
+      warning: @server.warning)
       warning_deprecated(warning, "fulltext")
       body = {
         "index"     => index,
@@ -687,7 +687,7 @@ module Arango
       }
       result = @database.request(action: "POST", url: "_api/export", body: body,
         query: query)
-      return reuslt if @client.async != false
+      return reuslt if @server.async != false
       @countExport   = result["count"]
       @hasMoreExport = result["hasMore"]
       @idExport      = result["id"]
@@ -707,7 +707,7 @@ module Arango
         query = { "collection" => @name }
         result = @database.request(action: "PUT",
           url: "_api/export/#{@idExport}", query: query)
-        return reuslt if @client.async != false
+        return reuslt if @server.async != false
         @countExport   = result["count"]
         @hasMoreExport = result["hasMore"]
         @idExport      = result["id"]

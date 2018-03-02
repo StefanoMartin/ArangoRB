@@ -2,27 +2,40 @@ module Arango
   class Batch
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Database_Return
+    include Arango::Return_Server
 
-    def initialize(database:, boundary: "XboundaryX")
-      assign_database(database)
+    def initialize(server:, boundary: "XboundaryX", queries: [])
+      @id = 1
+      assign_server(server)
+      assign_queries(queries)
       @headers = {
         "Content-Type" => "multipart/form-data",
         "boundary"     => boundary
       }
       @boundary = boundary
-      @queries = {}
-      @id = 1
     end
 
 # === DEFINE ===
 
-    attr_reader :database, :client, :boundary, :queries
+    attr_reader :server, :boundary, :queries
 
     def boundary=(boundary)
       @boundary = boundary
       @headers["boundary"] = boundary
     end
+
+    def queries=(queries)
+      queries = [queries] unless queries.is_a?(Array)
+      queries.each do |query|
+        satisfy_class?(query, Hash)
+        if query["id"].nil?
+          query["id"] = @id.clone.to_s
+          @id += 1
+        end
+      end
+      @queries = queries
+    end
+    alias assign_queries queries=
 
 # === TO HASH ===
 

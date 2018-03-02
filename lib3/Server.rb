@@ -1,7 +1,7 @@
-# === CLIENT ===
+# === SERVER ===
 
 module Arango
-  class Client
+  class Server
     include Arango::Helper_Error
 
     def initialize(username: "root", password:, server: "localhost",
@@ -155,7 +155,7 @@ module Arango
   #  == DATABASE ==
 
     def [](database)
-      Arango::Database.new(database: database, client: self)
+      Arango::Database.new(database: database, server: self)
     end
     alias database []
 
@@ -168,7 +168,7 @@ module Arango
       end
       return result if return_directly?(result)
       result["result"].map do |db|
-        Arango::Database.new(database: db, client: self)
+        Arango::Database.new(database: db, server: self)
       end
     end
 
@@ -219,7 +219,7 @@ module Arango
         key: "role")
     end
 
-    def server
+    def serverData
       request(action: "GET", url: "_admin/server/id", skip_cluster: true)
     end
 
@@ -243,7 +243,7 @@ module Arango
   # === USER ===
 
     def user(password: "", name:, extra: {}, active: nil)
-      Arango::User.new(client: self, password: password, name: user,
+      Arango::User.new(server: self, password: password, name: user,
         extra: extra, active: active)
     end
 
@@ -252,8 +252,102 @@ module Arango
       return result if return_directly?(result)
       result["result"].map do |user|
         Arango::User.new(name: user["user"], active: user["active"],
-          extra: user["extra"], active: user["active"], client: self)
+          extra: user["extra"], active: user["active"], server: self)
       end
+    end
+
+  # == TASKS ==
+
+    def tasks
+      result = request(action: "GET", url: "_api/tasks")
+      return result if return_directly?(result)
+      result["result"].map do |task|
+        Arango::Tasks.new(body: task, server: self)
+      end
+    end
+
+    def task(id: nil, name: nil, type: nil, period: nil, command: nil,
+      params: {}, created: nil)
+      Arango::Tasks.new(id: id, name: name, type: type,
+        period: period, command: command, params: params,
+        created: created, server: self)
+    end
+
+# === ASYNC ===
+
+    def fetchAsync(id:)
+      request(action: "PUT", url: "_api/job/#{id}")
+    end
+
+    def cancelAsync(id:)
+      request(action: "PUT", url: "_api/job/#{id}/cancel")
+    end
+
+    def destroyAsync(id:, stamp: nil)
+      query = {"stamp" => stamp}
+      request(action: "DELETE", url: "_api/job/#{id}", "query" => query)
+    end
+
+    def destroyAsyncByType(type:, stamp: nil)
+      satisfy_category?(type, ["all", "expired"])
+      query = {"stamp" => stamp}
+      request(action: "DELETE", url: "_api/job/#{type}", "query" => query)
+    end
+
+    def destroyAllAsync
+      destroyAsyncByType(type: "all")
+    end
+
+    def destroyExpiredAsync
+      destroyAsyncByType(type: "expired")
+    end
+
+    def retrieveAsync(id:)
+      request(action: "GET", url: "_api/job/#{id}")
+    end
+
+    def retrieveAsyncByType(type:, count: nil)
+      satisfy_category?(type, ["done", "pending"])
+      query = {"count" => count}
+      request(action: "GET", url: "_api/job/#{type}", query: query)
+    end
+
+    def retrieveDoneAsync(count: nil)
+      retrieveAsyncByType(type: "done", count: count)
+    end
+
+    def retrievePendingAsync(count: nil)
+      retrieveAsyncByType(type: "pending", count: count)
+    end
+
+  # === BATCH ===
+
+    def batch(boundary: "XboundaryX")
+      Arango::Batch.new(server: self, boundary: boundary)
+    end
+
+    def createDumpBatch(ttl:, dbserver: nil)
+      query = { "DBserver" => dbserver }
+      body = { "ttl" => ttl }
+      result = request(action: "POST", url: "_api/replication/batch",
+        body: body, query: query)
+      return result if return_directly?(result)
+      return result["id"]
+    end
+
+    def destroyDumpBatch(id:, dbserver: nil)
+      query = {"DBserver" => dbserver}
+      request(action: "DELETE", url: "_api/replication/batch/#{id}",
+        body: body, query: query)
+    end
+
+    def prolongDumpBatch(id:, ttl:, dbserver: nil)
+      query = { "DBserver" => dbserver }
+      body = { "ttl" => ttl }
+      result = request(action: "PUT", url: "_api/replication/batch/#{id}",
+        body: body, query: query)
+      return result if return_directly?(result)
+      return result["id"]
     end
 
   # === AGENCY ===
@@ -315,8 +409,9 @@ module Arango
     end
 
     def transaction(action:, write: [], read: [], params: nil,
-      maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
-      Arango::Transaction.new(client: self, action: action, write: write,
+      maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil,
+      intermediateCommitCount: nil, intermedateCommitSize: nil)
+      Arango::Transaction.new(server: self, action: action, write: write,
         read: read, params: params, maxTransactionSize: maxTransactionSize,
         lockTimeout: lockTimeout, waitForSync: waitForSync,
         intermediateCommitCount: intermediateCommitCount,

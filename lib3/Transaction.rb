@@ -4,10 +4,11 @@ module Arango
   class Transaction
     include Arango::Helper_Error
     include Arango::Helper_Return
+    include Arango::Return_Server
 
-    def initialize(client:, action:, write: [], read: [], params: nil, maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
-      satisfy_class?(database, [Arango::Client])
-      @client = client
+    def initialize(server:, action:, write: [], read: [], params: nil,
+      maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
+      assign_server(server)
       @action = action
       @write  = return_write_or_read(write)
       @read   = return_write_or_read(read)
@@ -22,15 +23,10 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :read, :write, :result, :client
+    attr_reader :read, :write, :result, :server
     attr_accessor :action, :params, :maxTransactionSize,
       :lockTimeout, :waitForSync, :intermediateCommitCount,
       :intermedateCommitSize
-
-    def client=(client)
-      satisfy_class?(client,[Arango::Client])
-      @client = client
-    end
 
     def write=(write)
       @write = return_write_or_read(write)
@@ -75,7 +71,7 @@ module Arango
         "read"        => @read.map{|x| x.name},
         "write"       => @write.map{|x| x.name}
       }.delete_if{|k,v| v.nil?}
-      hash["client"] = level > 0 ? @client.to_h(level-1) : @client.base_uri
+      hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
     end
 
 # === EXECUTE ===
@@ -88,7 +84,7 @@ module Arango
       body = {
         "collections" => {
           "read"  => @read.map{|x| x.name},
-          "write" =>  @write.map{|x| x.name}
+          "write" => @write.map{|x| x.name}
         },
         "action"      => action,
         "params"      => params,
@@ -98,8 +94,8 @@ module Arango
         "intermediateCommitCount" => intermediateCommitCount,
         "intermedateCommitSize"   => intermedateCommitSize
       }
-      request = @client.request(action: "POST", url: "/_api/transaction", body: body)
-      return result if @client.async != false
+      request = @server.request(action: "POST", url: "/_api/transaction", body: body)
+      return result if @server.async != false
       @result = result["result"]
       return return_directly?(result) ? result : result["result"]
     end

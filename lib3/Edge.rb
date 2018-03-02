@@ -29,7 +29,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :name, :collection, :database, :client, :graph, :id, :rev,
+    attr_reader :name, :collection, :database, :server, :graph, :id, :rev,
       :body, :from, :to
     alias_method :key, :name
 
@@ -67,7 +67,7 @@ module Arango
       }
       result = @graph.request(action: "POST", body: body,
         query: query, url: "edge/#{@collection.name}" )
-      return result if @client.async != false || silent
+      return result if @server.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -86,7 +86,7 @@ module Arango
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
         url: "edge/#{@collection.name}/#{@name}")
-      return result if @client.async != false || silent
+      return result if @server.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -99,7 +99,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
         query: query, headers: headers, url: "edge/#{@collection.name}/#{@name}")
-      return result if @client.async != false || silent
+      return result if @server.async != false || silent
       body2 = result.clone
       body = body.merge(body2)
       body = @body.merge(body)
