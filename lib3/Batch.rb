@@ -2,7 +2,7 @@ module Arango
   class Batch
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Return_Server
+    include Arango::Server_Return
 
     def initialize(server:, boundary: "XboundaryX", queries: [])
       @id = 1

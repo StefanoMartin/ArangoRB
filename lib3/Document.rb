@@ -17,7 +17,7 @@ module Arango
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
-        define_method(:"#{attribute}=") do |attrs|
+        define_singleton_method(:"#{attribute}=") do |attrs|
           temp_attrs = attribute
           temp_attrs = "key" if attribute == "name"
           @body["_#{temp_attrs}"] = attrs

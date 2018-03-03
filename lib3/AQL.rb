@@ -29,14 +29,14 @@ module Arango
       @result   = []
       @options  = {}
       # DEFINE
-      [failOnWarning, profile, maxTransactionSize,
-      skipInaccessibleCollections, maxWarningCount, intermediateCommitCount,
-      satelliteSyncWait, fullCount, intermediateCommitSize,
-      optimizer_rules, maxPlans].each do |val|
-        name = val.object_id.to_s
-        set_option(val, name)
-        define_method("#{name}=") do |value|
-          set_option(value, name)
+      ["failOnWarning", "profile", "maxTransactionSize",
+      "skipInaccessibleCollections", "maxWarningCount", "intermediateCommitCount",
+      "satelliteSyncWait", "fullCount", "intermediateCommitSize",
+      "optimizer_rules", "maxPlans"].each do |param_name|
+        param = eval(param_name)
+        set_option(param, param_name)
+        define_singleton_method("#{param_name}=") do |value|
+          set_option(value, param_name)
         end
       end
     end
@@ -96,9 +96,9 @@ module Arango
       if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
         @result = result["result"]
       else
-        @result = result["result"].map{|x|
+        @result = result["result"].map do |x|
           collection = Arango::Collection.new(name: x["_id"].split("/")[0], database: @database)
-          Arango::Document.new(name: x["_key"], collection: collection, database: @database, body: x)
+          Arango::Document.new(name: x["_key"], collection: collection, body: x)
         end
       end
       return return_directly?(result) ? result : self

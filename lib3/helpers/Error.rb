@@ -4,19 +4,13 @@ module Arango
       if array
         object = [object] unless object.is_a?(Array)
         object.each do |obj|
-          satisfy_class?(obj, name, classes)
+          satisfy_class?(obj, classes, false)
         end
       else
-        unless classes.include?(obj.class)
+        unless classes.include?(object.class)
           name ||= object.object_id.to_s
           raise Arango::Error.new message: "#{name} should be a #{classes.to_s}, not a #{object.class}"
         end
-      end
-    end
-
-    def satisfy_classes?(objects, classes=[String], array=false)
-      objects.each do |object|
-        satisfy_class?(object, classes, nil, array)
       end
     end
 

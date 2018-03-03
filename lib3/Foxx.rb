@@ -257,7 +257,7 @@ module Arango
     def commit(body:, replace: nil)
       query = {"replace": replace}
       @database.request(action: "POST",
-        url: "_api/foxx/commit", body: body query: query)
+        url: "_api/foxx/commit", body: body, query: query)
     end
   end
 end

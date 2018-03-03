@@ -4,7 +4,7 @@ module Arango
   class User
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Return_Server
+    include Arango::Server_Return
 
     def initialize(server:, password: "", name:, extra: {}, active: nil)
       assign_server(server)
@@ -39,6 +39,7 @@ module Arango
         "active" => @active
       }.delete_if{|k,v| v.nil?}
       hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
+    end
 
   # == USER ACTION ==
 
@@ -141,10 +142,10 @@ module Arango
     end
 
     def collectionAccess(database:, collection:)
-    satisfy_class?(database, [Arango::Database, String])
-    satisfy_class?(collection, [Arango::Collection, String])
-    database = database.name     if database.is_a?(Arango::Database)
-    collection = collection.name if collection.is_a?(Arango::Collection)
+      satisfy_class?(database, [Arango::Database, String])
+      satisfy_class?(collection, [Arango::Collection, String])
+      database = database.name     if database.is_a?(Arango::Database)
+      collection = collection.name if collection.is_a?(Arango::Collection)
       result = @server.request(action: "GET", url: "_api/user/#{@name}/database/#{database}/#{collection}",
         body: body)
       return return_directly?(result) ? result : result["result"]

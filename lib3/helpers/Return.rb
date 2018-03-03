@@ -1,14 +1,15 @@
 module Arango
   module Helper_Return
-  def return_directly?(result)
-    return @server.async != false || @server.return_direct_result
-    return result == true
-  end
+    def return_directly?(result)
+      return @server.async != false || @server.return_output
+      return result == true
+    end
 
-  def return_element(result)
-    return result if @server.async != false
-    assign_attributes(result)
-    return return_directly?(result) ? result : self
+    def return_element(result)
+      return result if @server.async != false
+      assign_attributes(result)
+      return return_directly?(result) ? result : self
+    end
   end
 end
 

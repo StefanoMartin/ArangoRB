@@ -4,7 +4,7 @@ module Arango
   class Transaction
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Return_Server
+    include Arango::Server_Return
 
     def initialize(server:, action:, write: [], read: [], params: nil,
       maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)

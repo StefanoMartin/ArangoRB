@@ -11,9 +11,10 @@ module Arango
       @server = server
       @port = port
       @username = username
-      assign_async(async)
+      @password = password
       @options = {:body => {}, :headers => {}, :query => {},
         :basic_auth => {:username => @username, :password => @password }}
+      assign_async(async)
       @verbose = verbose
       @return_output = return_output
       @cluster = cluster
@@ -65,14 +66,14 @@ module Arango
 
     def to_h(level=0)
       {
-        "base_uri" => @base_uri
+        "base_uri" => @base_uri,
         "server"   => @server,
         "port"     => @port,
         "username" => @username,
         "async"    => @async,
         "verbose"  => @verbose,
         "return_output" => @return_output,
-        "cluster"       => @cluster
+        "cluster"       => @cluster,
         "warning"       => @warning
       }.delete_if{|k,v| v.nil?}
     end
@@ -101,24 +102,30 @@ module Arango
     end
 
     def request(action:, url:, body: {}, headers: {}, query: {},
-      key: nil, return_direct_result: false, skip_to_json: false,
+      key: nil, return_direct_result: @return_output, skip_to_json: false,
       skip_cluster: false, keepNull: false)
       send_url = "#{@base_uri}/"
       if !@cluster.nil? && !skip_cluster
         send_url += "_admin/#{@cluster}/"
       end
       send_url += url
-      puts "\n#{action} #{send_url}\n" if @verbose
 
-      unless skip_to_json
-        body.delete_if{|k,v| v.nil?} unless keepNull
-        body = body.to_json
-      end
+      body.delete_if{|k,v| v.nil?} unless keepNull
       query.delete_if{|k,v| v.nil?}
       headers.delete_if{|k,v| v.nil?}
 
       options = @options.merge({:body => body, :query => query,
         :headers => headers})
+
+      if @verbose
+        puts "\n===REQUEST==="
+        puts "#{action} #{send_url}\n"
+        puts JSON.pretty_generate(options)
+        puts "==============="
+      end
+
+      options[:body] = options[:body].to_json unless skip_to_json
+
       response = case action
       when "GET"
         HTTParty.get(send_url, options)
@@ -140,24 +147,34 @@ module Arango
         return true
       end
       result = response.parsed_response
-      puts result if @verbose
-      if !result.is_a?(Hash) && !result.nil?
-        raise Arango::Error.new message: "ArangoRB didn't return a valid hash",
-          data: result
+
+      if @verbose
+        puts "\n===RESPONSE==="
+        puts "#{result}\n"
+        puts "==============="
+      end
+
+      if ![Hash, NilClass, Array].include?(result.class)
+        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: result
       elsif result.is_a?(Hash) && result["error"]
         raise Arango::Error.new message: result["errorMessage"],
-          code: result["code"], data: result
+          code: result["code"], data: result, errorNum: result["errorNum"]
       end
-      return result if return_direct_result || @return_output
+      if return_direct_result || @return_output || !result.is_a?(Hash)
+        return result
+      end
       return key.nil? ? result.delete_if{|k,v| k == "error" || k == "code"} : result[key]
     end
 
   #  == DATABASE ==
 
     def [](database)
-      Arango::Database.new(database: database, server: self)
+      Arango::Database.new(name: database, server: self)
     end
-    alias database []
+
+    def database(name:)
+      Arango::Database.new(name: name, server: self)
+    end
 
     def databases(user: nil)
       if user.nil?
@@ -168,7 +185,7 @@ module Arango
       end
       return result if return_directly?(result)
       result["result"].map do |db|
-        Arango::Database.new(database: db, server: self)
+        Arango::Database.new(name: db, server: self)
       end
     end
 
@@ -252,7 +269,7 @@ module Arango
       return result if return_directly?(result)
       result["result"].map do |user|
         Arango::User.new(name: user["user"], active: user["active"],
-          extra: user["extra"], active: user["active"], server: self)
+          extra: user["extra"], server: self)
       end
     end
 

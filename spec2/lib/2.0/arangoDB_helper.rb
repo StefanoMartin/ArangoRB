@@ -3,7 +3,7 @@ require_relative './../../spec_helper'
 describe Arango::Database do
 
   context "#new" do
-    it "create a new instance without global" do
+    it "create a new instance" do
       myDatabase = @server.database name: "MyDatabase"
       expect(myDatabase.name).to eq "MyDatabase"
     end

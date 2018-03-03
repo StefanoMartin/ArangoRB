@@ -18,7 +18,7 @@ module Arango
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
-        define_method(:"=#{attribute}") do |attrs|
+        define_singleton_method(:"=#{attribute}") do |attrs|
           temp_attrs = attribute
           temp_attrs = "key" if attribute == "name"
           body["_#{temp_attrs}"] = attrs
@@ -67,7 +67,7 @@ module Arango
       }
       result = @graph.request(action: "POST", body: body,
         query: query, url: "edge/#{@collection.name}" )
-      return result if @server.async != false || silent
+      return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -86,7 +86,7 @@ module Arango
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
         url: "edge/#{@collection.name}/#{@name}")
-      return result if @server.async != false || silent
+      return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -99,7 +99,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
         query: query, headers: headers, url: "edge/#{@collection.name}/#{@name}")
-      return result if @server.async != false || silent
+      return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
       body = @body.merge(body)

@@ -4,7 +4,7 @@ module Arango
   class Database
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Return_Server
+    include Arango::Server_Return
 
     def initialize(name:, server:)
       assign_server(server)
@@ -57,8 +57,8 @@ module Arango
       end
       return return_directly?(result) ? result : self
     end
-    alias retrieve current
-    alias retrieve info
+    alias current retrieve
+    alias info retrieve
 
 # === POST ===
 
@@ -74,7 +74,7 @@ module Arango
 # == DELETE ==
 
     def destroy
-      @server.request(action: "DELETE", url: "_api/database/#{@database}")
+      @server.request(action: "DELETE", url: "_api/database/#{@name}")
     end
 
 # == COLLECTION ==
@@ -108,9 +108,9 @@ module Arango
       end
     end
 
-    def graph(key:, edgeDefinitions: [], orphanCollections: [],
+    def graph(name:, edgeDefinitions: [], orphanCollections: [],
       body: {})
-      Arango::Graph.new(name: key, database: database,
+      Arango::Graph.new(name: name, database: self,
         edgeDefinitions: edgeDefinitions,
         orphanCollections: orphanCollections, body: body)
     end
@@ -376,7 +376,7 @@ module Arango
 
 # === USER ACCESS ===
 
-    def checkUser(user)
+    def check_user(user)
       user = Arango::User.new(user: user) if user.is_a?(String)
       return user
     end

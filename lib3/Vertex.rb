@@ -15,7 +15,7 @@ module Arango
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "key"].each do |attribute|
-        define_method(:"=#{attribute}") do |attrs|
+        define_singleton_method(:"=#{attribute}") do |attrs|
           temp_attrs = attribute
           temp_attrs = "key" if attribute == "name"
           body["_#{temp_attrs}"] = attrs
@@ -27,7 +27,7 @@ module Arango
 # === DEFINE ===
 
     attr_reader :name, :collection, :database, :server, :id, :rev
-    alias key, name
+    alias key name
 
     def to_h(level=0)
       hash = super(level)
@@ -52,7 +52,7 @@ module Arango
       query = {"waitForSync" => waitForSync}
       result = @graph.request(action: "POST", body: body,
         query: query, url: "vertex/#{@collection.name}" )
-      return result if @server.async != false || silent
+      return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -71,7 +71,7 @@ module Arango
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
         url: "vertex/#{@collection.name}/#{@key}")
-      return result if @server.async != false || silent
+      return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
       assign_attributes(body)
@@ -84,7 +84,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
         query: query, headers: headers, url: "vertex/#{@collection.name}/#{@key}")
-      return result if @server.async != false || silent
+      return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
       body = @body.merge(body)

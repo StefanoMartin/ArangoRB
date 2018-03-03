@@ -30,8 +30,11 @@ module Arango
       @body = result
       assign_edgeDefinitions(result["edgeDefinitions"] || @edgeDefinitions)
       assign_orphanCollections(result["orphanCollections"] || @orphanCollections)
-      @name    = result["name"]    || @name
+      @name    = result["_key"]    || @name
       @id      = result["_id"]     || @id
+      if @id.nil? && !@name.nil?
+        @id = "_graphs/#{@name}"
+      end
       @rev     = result["_rev"]    || @rev
       @isSmart = result["isSmart"] || @isSmart
       @numberOfShards = result["numberOfShards"] || @numberOfShards
@@ -90,7 +93,7 @@ module Arango
       orphanCollections ||= []
       @orphanCollections = orphanCollections.map{|oc| return_collection(oc)}
     end
-    alias assign_orphanCollections edgeDefinitions=
+    alias assign_orphanCollections orphanCollections=
 
     def orphanCollectionsRaw
       @orphanCollections ||= []
@@ -211,6 +214,8 @@ module Arango
       satisfy_class?(collection, [String, Arango::Collection])
       satisfy_class?(from, [String, Arango::Collection], true)
       satisfy_class?(to, [String, Arango::Collection], true)
+      from = [from] unless from.is_a?(Array)
+      to = [to] unless to.is_a?(Array)
       body = {}
       body["collection"] = collection.is_a?(String) ? collection : collection.name
       body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }
@@ -223,6 +228,8 @@ module Arango
       satisfy_class?(collection, [String, Arango::Collection])
       satisfy_class?(from, [String, Arango::Collection], true)
       satisfy_class?(to, [String, Arango::Collection], true)
+      from = [from] unless from.is_a?(Array)
+      to = [to] unless to.is_a?(Array)
       body = {}
       body["collection"] = collection.is_a?(String) ? collection : collection.name
       body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }

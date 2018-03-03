@@ -3,24 +3,20 @@
 module Arango
   class Collection
     include Arango::Helper_Error
+    include Arango::Helper_Return
     include Arango::Database_Return
 
     def initialize(name:, database:, graph: nil, body: {}, type: "Document",
       isSystem: nil)
-      satisfy_class?(graph, [Arango::Graph, Arango::NilClass])
       @name = name
       assign_database(database)
-      if !graph.nil? && @graph.database.name != @database.name
-        raise Arango::Error.new message: "Database of graph is not the same as the class"
-      end
-      @graph = graph
+      assign_graph(graph)
       assign_type(type)
       body["type"]     ||= type == "Document" ? 2 : 3
       body["status"]   ||= nil
       body["isSystem"] ||= isSystem
       body["id"]       ||= nil
       assign_attributes(body)
-      ignore_exception(retrieve) if @server.initialize_retrieve
     end
 
 # === DEFINE ===
@@ -30,12 +26,13 @@ module Arango
     attr_accessor :name
 
     def graph=(graph)
-      satisfy_class?(graph, [Arango::Graph, Arango::NilClass])
-      if !graph.nil? && @graph.database.name != @database.name
+      satisfy_class?(graph, [Arango::Graph, NilClass])
+      if !graph.nil? && graph.database.name != @database.name
         raise Arango::Error.new message: "Database of graph is not the same as the class"
       end
       @graph = graph
     end
+    alias assign_graph graph=
 
     def body=(result)
       @body     = result
@@ -49,9 +46,9 @@ module Arango
 
     def type=(type)
       type ||= @type
-      satisfy_category?(type, ["Document", "Edge", 2, 3])
-      type = case result["type"]
-      when 2, "Document"
+      satisfy_category?(type, ["Document", "Edge", 2, 3, nil])
+      type = case type
+      when 2, "Document", nil
         "Document"
       when 3, "Edge"
         "Edge"
@@ -135,7 +132,6 @@ module Arango
         "offsetKeyGenerator" => offsetKeyGenerator
       }.delete_if{|k,v| v.nil?}
       keyOptions = nil if keyOptions.empty?
-      satisfy_class?()
       type = case type
       when 2, "Document", nil
         2
@@ -235,7 +231,7 @@ module Arango
       end
     end
 
-    def return_body(x, type=="Document")
+    def return_body(x, type="Document")
       satisfy_class?(x, [Hash, Arango::Document, Arango::Edge, Arango::Vertex])
       body = case x.class
       when Hash
@@ -268,7 +264,7 @@ module Arango
       }
       results = @database.request(action: "POST", body: document,
         query: query, url: "_api/document/#{@name}" )
-      return results if return_directly?(result) || silent
+      return results if return_directly?(results) || silent
       results.map.with_index do |result, index|
         body2 = result.clone
         if returnNew
