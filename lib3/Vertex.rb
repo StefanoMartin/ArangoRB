@@ -27,7 +27,8 @@ module Arango
     def collection=(collection)
       satisfy_class?(collection, [Arango::Collection])
       if collection.graph.nil?
-        raise Arango::Error.new message: "Collection #{collection.name} does not have a graph"
+        raise Arango::Error.new err: :collection_does_not_have_a_graph, data:
+          {"name_collection" => collection.name, "graph" => nil}
       end
       @collection = collection
       @graph = @collection.graph

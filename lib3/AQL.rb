@@ -127,7 +127,7 @@ module Arango
         result = @database.request(action: "PUT", url: "_api/cursor/#{@id}")
         return_aql(result)
       else
-        raise Arango::Error.new message: "No other results"
+        raise Arango::Error.new err: :no_other_aql_next, data: {"hasMore" => false}
       end
     end
 

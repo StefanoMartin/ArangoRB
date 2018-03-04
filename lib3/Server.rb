@@ -167,10 +167,11 @@ module Arango
       end
 
       if ![Hash, NilClass, Array].include?(result.class)
-        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: result, url: "#{action} #{send_url}", request: JSON.pretty_generate(options)
+        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: {"response" => response, "action" => action, "url" => send_url, "request" => JSON.pretty_generate(options)}
       elsif result.is_a?(Hash) && result["error"]
-        raise Arango::Error.new message: result["errorMessage"],
-          code: result["code"], data: result, errorNum: result["errorNum"], url: "#{action} #{send_url}", request: JSON.pretty_generate(options)
+        raise Arango::ErrorDB.new message: result["errorMessage"],
+          code: result["code"], data: result, errorNum: result["errorNum"],
+          action: action, url: send_url, request: JSON.pretty_generate(options)
       end
       if return_direct_result || @return_output || !result.is_a?(Hash)
         return result

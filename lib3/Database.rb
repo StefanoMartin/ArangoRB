@@ -185,7 +185,7 @@ module Arango
   def killAql(query:)
     satisfy_class?(query, [Arango::AQL, String])
     if query.is_a?(Arango::AQL) && query&.id.nil?
-      raise Arango::Error.new message: "AQL does not have id. It could have already been killed"
+      raise Arango::Error.new err: :no_aql_id_available, data: {"query_id" => nil}
     end
     id = query.is_a?(String) ? id : query.id
     request(action: "DELETE", url: "_api/query/#{id}")

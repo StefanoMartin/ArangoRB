@@ -78,7 +78,12 @@ describe Arango::Database do
   INSERT { name: CONCAT("test", i) } IN MyCollection'
       myAQL.size = 3
       myAQL.execute
-      binding.pry
+      error = ""
+      begin
+        @myDatabase.killAql query: myAQL
+      rescue Arango::Error => e
+        error = e.message
+      end
       expect((@myDatabase.killAql query: myAQL).split(" ")[0]).to eq "cannot"
     end
 

@@ -5,14 +5,11 @@ module Arango
     def initialize(name: nil, collection:, body: {}, rev: nil, from: nil,
       to: nil)
       assign_collection(collection)
-      if @graph.nil?
-        raise Arango::Error.new message: "Collection #{collection.name} does not have a graph"
-      end
-      body["_key"] ||= name
-      body["_rev"] ||= rev
+      body["_key"]  ||= name
+      body["_rev"]  ||= rev
       body["_from"] ||= from
-      body["_to"] ||= to
-      body["_id"] ||= "#{@collection.name}/#{name}" unless name.nil?
+      body["_to"]   ||= to
+      body["_id"]   ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
@@ -34,7 +31,8 @@ module Arango
     def collection=(collection)
       satisfy_class?(collection, [Arango::Collection])
       if collection.graph.nil?
-        raise Arango::Error.new message: "Collection #{collection.name} does not have a graph"
+        raise Arango::Error.new err: :collection_does_not_have_a_graph, data:
+          {"name_collection" => collection.name, "graph" => nil}
       end
       @collection = collection
       @graph = @collection.graph

@@ -21,9 +21,13 @@ describe Arango::Collection do
     end
 
     it "create a duplicate Collection" do
-      binding.pry
-      myCollection = @myCollection.create
-      expect(myCollection).to eq "duplicate name"
+      error = nil
+      begin
+        @myCollection.create
+      rescue Arango::ErrorDB => e
+        error = e.errorNum
+      end
+      expect(error.class).to eq Fixnum
     end
 
     it "create a new Edge Collection" do
@@ -46,7 +50,7 @@ describe Arango::Collection do
     it "create a new Edge in the Collection" do
       myDoc = @myCollection.createDocuments document: [{"A" => "B", "num" => 1}, {"C" => "D", "num" => 3}]
       myEdge = @myEdgeCollection.createEdges from: myDoc[0].id, to: myDoc[1].id
-      expect(myEdge.body["_from"]).to eq myDoc[0].id
+      expect(myEdge[0].body["_from"]).to eq myDoc[0].id
     end
   end
 
@@ -100,7 +104,7 @@ describe Arango::Collection do
     it "remove Document by key match" do
       docs = @myCollection.createDocuments document: [{"_key" => "ThisIsATest3", "test" => "fantastic"}, {"_key" => "ThisIsATest4"}]
       result = @myCollection.removeByKeys keys: ["ThisIsATest3", docs[1]]
-      expect(result).to eq 2
+      expect(result["removed"]).to eq 2
     end
 
     it "remove Document by match" do
@@ -144,7 +148,7 @@ describe Arango::Collection do
     end
 
     it "rename" do
-      myCollection = @myCollection.rename "MyCollection2"
+      myCollection = @myCollection.rename newName: "MyCollection2"
       expect(myCollection.name).to eq "MyCollection2"
     end
   end

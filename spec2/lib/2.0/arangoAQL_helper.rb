@@ -53,7 +53,13 @@ describe Arango::AQL do
     end
 
     it "kill" do
-      expect(@myAQL.kill.class).to be String
+      error = nil
+      begin
+        @myAQL.kill
+      rescue Arango::ErrorDB => e
+        error = e.errorNum
+      end
+      expect(error.class).to be Fixnum
     end
 
     it "changeProperties" do

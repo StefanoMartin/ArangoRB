@@ -66,7 +66,7 @@ module Arango
         instance = nil
       elsif var.is_a?(String)
         if !var.is_a?(String) || !var.include?("/")
-          raise Arango::Error.new message: "#{attrs} #{var} is not a valid document id or an Arango::Document"
+          raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" => attrs, "wrong_value" => var}
         end
         collection_name, document_name = var.split("/")
         collection = Arango::Collection.new name: collection_name,
@@ -80,7 +80,7 @@ module Arango
       elsif var.is_a?(Arango::Document)
         instance = var
       else
-        raise Arango::Error.new message: "#{attrs} is not a valid document id or an Arango::Document"
+        raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" => attrs, "wrong_value" => var}
       end
       instance_variable_set("@#{attrs}", instance)
       @body["_#{attrs}"] = instance&.id

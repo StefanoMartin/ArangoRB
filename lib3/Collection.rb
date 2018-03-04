@@ -22,13 +22,15 @@ module Arango
 # === DEFINE ===
 
     attr_reader :status, :isSystem, :id, :server, :database, :graph, :type,
-     :countExport, :hasMoreExport, :idExport, :hasMoreSimple, :idSimple
+     :countExport, :hasMoreExport, :idExport, :hasMoreSimple, :idSimple, :body
     attr_accessor :name
 
     def graph=(graph)
       satisfy_class?(graph, [Arango::Graph, NilClass])
       if !graph.nil? && graph.database.name != @database.name
-        raise Arango::Error.new message: "Database of graph is not the same as the class"
+        raise Arango::Error.new err: :database_graph_no_same_as_collection_database,
+        data: {"graph_database_name" => graph.database.name,
+          "collection_database_name" =>  @database.name}
       end
       @graph = graph
     end
@@ -161,7 +163,8 @@ module Arango
 # === DELETE ===
 
     def destroy
-      @database.request(action: "DELETE", url: "_api/collection/#{@name}")
+      result = @database.request(action: "DELETE", url: "_api/collection/#{@name}")
+      return return_delete(result)
     end
 
     def truncate
@@ -191,7 +194,8 @@ module Arango
         "journalSize" => journalSize,
         "waitForSync" => waitForSync
       }
-      result = @database.request(action: "PUT", url: "_api/collection/#{@name}/properties")
+      result = @database.request(action: "PUT", url: "_api/collection/#{@name}/properties",
+        body: body)
       return_element(result)
     end
 
@@ -252,7 +256,7 @@ module Arango
           end
         end
       else
-        raise Arango::Error.new message: "No other results"
+        raise Arango::Error.new err: :no_other_simple_next, data: {"hasMoreSimple" => @hasMoreSimple}
       end
     end
 
@@ -266,13 +270,17 @@ module Arango
            (type == "Document" && x.type == "Edge") ||
            (type == "Edge" && x.type == "Document") ||
            (type == "Edge" && x.type == "Vertex")
-          raise Arango::Error.new message: "#{x.name} is not a #{type}"
+          raise Arango::Error.new err: :wrong_type_instead_of_expected_one, data: {
+            "expected_value" => type, "received_value" => x.type, "wrong_object" => x
+          }
         end
         x.body
       when Arango::Edge, Arango::Vertex
         if (x.is_a?(Arango::Edge) && type == "Vertex") ||
            (x.is_a?(Arango::Vertex) && type == "Edge")
-          raise Arango::Error.new message: "#{x.name} is not a #{type}"
+           raise Arango::Error.new err: :wrong_type_instead_of_expected_one, data: {
+             "expected_value" => type, "received_value" => x.type, "wrong_object" => x
+           }
         end
         x.body
       end
@@ -311,7 +319,7 @@ module Arango
       end
     end
 
-    def createEdges(document: {}, from:, to:, waitForSync: nil, returnNew: nil)
+    def createEdges(document: {}, from:, to:, waitForSync: nil, returnNew: nil, silent: nil)
       edges = []
       from = [from] unless from.is_a? Array
       to   = [to]   unless to.is_a? Array
@@ -328,7 +336,7 @@ module Arango
           end
         end
       end
-      create_documents(body: document, waitForSync: waitForSync,
+      createDocuments(document: edges, waitForSync: waitForSync,
         returnNew: returnNew, silent: silent)
     end
 
@@ -458,7 +466,7 @@ module Arango
         x.is_a?(Arango::Document) ? x.name : x
       end
       body = { "collection" => @name, "keys" => keys }
-      @database.request(action: "PUT", url: "_api/simple/lookup-by-keys",
+      result = @database.request(action: "PUT", url: "_api/simple/lookup-by-keys",
         body: body)
       return result if return_directly?(result)
       result["documents"].map do |x|
@@ -735,7 +743,7 @@ module Arango
 
     def exportNext
       unless @hasMoreExport
-        raise Arango::Error.new message: "No other results"
+        raise Arango::Error.new err: :no_other_export_next, data: {"hasMoreExport" => @hasMoreExport}
       else
         query = { "collection" => @name }
         result = @database.request(action: "PUT",
@@ -823,7 +831,7 @@ module Arango
 
     def vertex(name: nil, body: {}, rev: nil, from: nil, to: nil)
       if @type == "Edge"
-        raise Arango::Error.new message: "This class is an Edge class"
+        raise Arango::Error.new err: :is_a_edge_collection, data: {"type" => @type}
       end
       if @graph.nil?
         Arango::Document.new(name: name, body: body, rev: rev, collection: self)
@@ -834,7 +842,7 @@ module Arango
 
     def edge(name: nil, body: {}, rev: nil, from: nil, to: nil)
       if @type == "Document"
-        raise Arango::Error.new message: "This class is a Document/Vertex class"
+        raise Arango::Error.new err: :is_a_document_collection, data: {"type" => @type}
       end
       if @graph.nil?
         Arango::Document.new(name: name, body: body, rev: rev, collection: self)

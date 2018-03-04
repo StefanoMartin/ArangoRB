@@ -9,28 +9,22 @@ module Arango
       else
         unless classes.include?(object.class)
           name ||= object.object_id.to_s
-          raise Arango::Error.new message: "#{name} should be a #{classes.to_s}, not a #{object.class}"
+          raise Arango::Error.new err: :wrong_class, data: {"wrong_value" => name,
+            "wrong_class" => object.class.to_s, "expected_class" => classes.to_s}
         end
       end
     end
 
     def satisfy_category?(object, list)
       unless list.include?(object)
-        raise Arango::Error.new message "#{name.object_id.to_s} should be part of the list #{list}"
-      end
-    end
-
-    def ignore_exception
-      begin
-        yield
-      rescue Exception
+        name = name.object_id.to_s
+        raise Arango::Error.new err: :wrong_element, data: {"wrong_attribute" => name,
+          "wrong_value" => object, "list" => list}
       end
     end
 
     def warning_deprecated(warning, name)
-      if warning
-        puts "ARANGORB WARNING: #{name} function is deprecated"
-      end
+      puts "ARANGORB WARNING: #{name} function is deprecated" if warning
     end
   end
 end

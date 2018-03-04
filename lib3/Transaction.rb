@@ -37,7 +37,7 @@ module Arango
     end
 
     def return_write_or_read(value)
-      case value.class
+      case value
       when Array
         return value.map{|x| return_collection(x)}
       when String, Arango::Collection
@@ -45,7 +45,7 @@ module Arango
       when NilClass
         return []
       else
-        raise Arango::Error.new message: "read or write should be an array of name classes or Arango::Collections"
+        raise Arango::Error.new err: :read_or_write_should_be_string_or_collections, data: {"wrong_value" => value, "wrong_class" => value.class}
       end
     end
     private :return_write_or_read
