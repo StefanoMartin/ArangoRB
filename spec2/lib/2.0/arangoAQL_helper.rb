@@ -35,21 +35,21 @@ describe Arango::AQL do
     end
 
     it "properties" do
-      expect(@myAQL.properties["enabled"]).to be true
+      expect(@myDatabase.queryProperties["enabled"]).to be true
     end
 
     it "current" do
-      expect(@myAQL.current).to eq []
+      expect(@myDatabase.currentQuery).to eq []
     end
 
     it "slow" do
-      expect(@myAQL.slow).to eq []
+      expect(@myDatabase.slowQueries).to eq []
     end
   end
 
   context "#delete" do
     it "stopSlow" do
-      expect(@myAQL.stopSlow).to be true
+      expect(@myDatabase.stopSlowQueries).to be true
     end
 
     it "kill" do

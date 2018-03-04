@@ -2,14 +2,12 @@
 
 module Arango
   class Edge < Arango::Document
-    def initialize(name: nil, collection:, graph:, body: {}, rev: nil, from: nil,
+    def initialize(name: nil, collection:, body: {}, rev: nil, from: nil,
       to: nil)
       assign_collection(collection)
-      satisfy_class?(graph, [Arango::Graph])
-      if @database.name != graph.database.name
-        raise Arango::Error.new message: "Database of the collection is not the same as the one of the graph"
+      if @graph.nil?
+        raise Arango::Error.new message: "Collection #{collection.name} does not have a graph"
       end
-      @graph = graph
       body["_key"] ||= name
       body["_rev"] ||= rev
       body["_from"] ||= from
@@ -33,10 +31,17 @@ module Arango
       :body, :from, :to
     alias_method :key, :name
 
-    def graph=(graph)
-      satisfy_class?(graph, [Arango::Graph])
-      @graph = graph
+    def collection=(collection)
+      satisfy_class?(collection, [Arango::Collection])
+      if collection.graph.nil?
+        raise Arango::Error.new message: "Collection #{collection.name} does not have a graph"
+      end
+      @collection = collection
+      @graph = @collection.graph
+      @database = @collection.database
+      @server = @database.server
     end
+    alias assign_collection collection=
 
 # === TO HASH ===
 
@@ -52,7 +57,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_none_match
       result = @graph.request(action: "GET", headers: headers,
-        url: "edge/#{@collection.name}/#{@name}")
+        url: "edge/#{@collection.name}/#{@name}", key: "edge")
       return_element(result)
     end
 
@@ -62,11 +67,11 @@ module Arango
       body = @body.merge(body)
       query = {
         "waitForSync" => waitForSync,
-        "_from"       => @from.name,
-        "_to"         => @to.name
+        "_from"       => @from.id,
+        "_to"         => @to.id
       }
       result = @graph.request(action: "POST", body: body,
-        query: query, url: "edge/#{@collection.name}" )
+        query: query, url: "edge/#{@collection.name}", key: "edge")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -85,7 +90,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
-        url: "edge/#{@collection.name}/#{@name}")
+        url: "edge/#{@collection.name}/#{@name}", key: "edge")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -98,7 +103,8 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "edge/#{@collection.name}/#{@name}")
+        query: query, headers: headers, url: "edge/#{@collection.name}/#{@name}",
+        key: "edge")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)

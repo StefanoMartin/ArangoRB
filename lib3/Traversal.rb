@@ -59,8 +59,8 @@ module Arango
       @uniqueness  = body["uniqueness"] || @uniqueness
       @order       = body["order"] || @order
       @expander    = body["expander"] || @expander
-      return_collection(body["edgeCollection"] || @edgeCollection, "Edge")
       return_graph(body["graphName"] || @graph || @graphName)
+      return_edgeCollection(body["edgeCollection"] || @edgeCollection)
     end
     alias assign_body body=
 
@@ -85,7 +85,9 @@ module Arango
     end
 
     def startVertex=(vertex)
-      if vertex.is_a?(Arango::Vertex) || vertex.is_a?(Arango::Document)
+      if vertex.is_a?(Arango::Edge)
+        raise Arango::Error.new message: "#{vertex} should be an Arango::Vertex, an Arango::Document (not Edge) or a valid vertex id"
+      elsif vertex.is_a?(Arango::Document)
         @startVertex = vertex
       elsif vertex.is_a?(String) && vertex.include?("/")
         val = vertex.split("/")
@@ -104,14 +106,14 @@ module Arango
         @edgeCollection = collection
       elsif collection.is_a?(String)
         collection_instance = Arango::Collection.new(name: edgedef["collection"],
-          database: @database, type: "Edge")
+          database: @database, type: "Edge", graph: @graph)
         @edgeCollection = collection_instance
       else
         raise Arango::Error.new message: "#{collection} should be an Arango::Collection or
         a name of a class"
       end
     end
-    alias return_collection edgeCollection=
+    alias return_edgeCollection edgeCollection=
 
     def graph=(graph)
       if graph.is_a?(Arango::Graph)

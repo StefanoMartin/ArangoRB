@@ -110,12 +110,18 @@ module Arango
       end
       send_url += url
 
-      body.delete_if{|k,v| v.nil?} unless keepNull
+      if body.is_a?(Hash)
+        body.delete_if{|k,v| v.nil?} unless keepNull
+      end
       query.delete_if{|k,v| v.nil?}
       headers.delete_if{|k,v| v.nil?}
 
       options = @options.merge({:body => body, :query => query,
         :headers => headers})
+
+      if ["GET", "HEAD", "DELETE"].include?(action)
+        options.delete(:body)
+      end
 
       if @verbose
         puts "\n===REQUEST==="
@@ -124,7 +130,9 @@ module Arango
         puts "==============="
       end
 
-      options[:body] = options[:body].to_json unless skip_to_json
+      if !skip_to_json && !options[:body].nil?
+        options[:body] = options[:body].to_json
+      end
 
       response = case action
       when "GET"
@@ -150,15 +158,19 @@ module Arango
 
       if @verbose
         puts "\n===RESPONSE==="
-        puts "#{result}\n"
+        if result.is_a?(Hash) || result.is_a?(Array)
+          puts JSON.pretty_generate(result)
+        else
+          puts "#{result}\n"
+        end
         puts "==============="
       end
 
       if ![Hash, NilClass, Array].include?(result.class)
-        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: result
+        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: result, url: "#{action} #{send_url}", request: JSON.pretty_generate(options)
       elsif result.is_a?(Hash) && result["error"]
         raise Arango::Error.new message: result["errorMessage"],
-          code: result["code"], data: result, errorNum: result["errorNum"]
+          code: result["code"], data: result, errorNum: result["errorNum"], url: "#{action} #{send_url}", request: JSON.pretty_generate(options)
       end
       if return_direct_result || @return_output || !result.is_a?(Hash)
         return result
@@ -178,13 +190,13 @@ module Arango
 
     def databases(user: nil)
       if user.nil?
-        result = request(action: "GET", url: "_api/database")
+        result = request(action: "GET", url: "_api/database", key: "result")
       else
         user = user.name if user.is_a?(Arango::User)
-        result = request(action: "GET", url: "_api/database/#{user}")
+        result = request(action: "GET", url: "_api/database/#{user}", key: "result")
       end
       return result if return_directly?(result)
-      result["result"].map do |db|
+      result.map do |db|
         Arango::Database.new(name: db, server: self)
       end
     end
@@ -260,7 +272,7 @@ module Arango
   # === USER ===
 
     def user(password: "", name:, extra: {}, active: nil)
-      Arango::User.new(server: self, password: password, name: user,
+      Arango::User.new(server: self, password: password, name: name,
         extra: extra, active: active)
     end
 
@@ -279,13 +291,13 @@ module Arango
       result = request(action: "GET", url: "_api/tasks")
       return result if return_directly?(result)
       result["result"].map do |task|
-        Arango::Tasks.new(body: task, server: self)
+        Arango::Task.new(body: task, server: self)
       end
     end
 
     def task(id: nil, name: nil, type: nil, period: nil, command: nil,
       params: {}, created: nil)
-      Arango::Tasks.new(id: id, name: name, type: type,
+      Arango::Task.new(id: id, name: name, type: type,
         period: period, command: command, params: params,
         created: created, server: self)
     end

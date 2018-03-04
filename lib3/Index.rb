@@ -9,7 +9,7 @@ module Arango
     def initialize(collection:, body: {}, id: nil, type: "hash", unique: nil,
       fields:, sparse: nil, geoJson: nil, minLength: nil, deduplicate: nil)
       assign_collection(collection)
-      satisfy_category?(type, "type", ["hash", "skiplist", "persistent",
+      satisfy_category?(type, ["hash", "skiplist", "persistent",
         "geo", "fulltext"])
       body["type"]        ||= type
       body["id"]          ||= id
@@ -30,7 +30,7 @@ module Arango
     attr_reader :type, :database, :collection, :server
 
     def type=(type)
-      satisfy_category?(type, "type", ["hash", "skiplist", "persistent", "geo", "fulltext"])
+      satisfy_category?(type, ["hash", "skiplist", "persistent", "geo", "fulltext"])
       @type = type
     end
     alias assign_type type=

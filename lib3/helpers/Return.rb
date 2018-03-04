@@ -10,6 +10,11 @@ module Arango
       assign_attributes(result)
       return return_directly?(result) ? result : self
     end
+
+    def return_delete(result)
+      return result if @server.async != false
+      return return_directly?(result) ? result : true
+    end
   end
 end
 
@@ -17,7 +22,7 @@ module Arango
   module Server_Return
     def server=(server)
       satisfy_class?(server, [Arango::Server])
-      @server = @server
+      @server = server
     end
     alias assign_server server=
   end

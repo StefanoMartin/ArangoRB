@@ -7,8 +7,9 @@ RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
 		@server = Arango::Server.new username: "root", password: "root",
-			server: "localhost", port: "8529", verbose: true
-		@myDatabase    = @server.database(name: "MyDatabase").create
+			server: "localhost", port: "8529"#, verbose: true
+		@myDatabase    = @server.database(name: "MyDatabase")
+		@myDatabase.create
 		@myGraph       = @myDatabase.graph(name: "MyGraph").create
 		@myCollection  = @myDatabase.collection(name: "MyCollection").create
 		@myCollectionB = @myDatabase.collection(name: "MyCollectionB").create
@@ -34,16 +35,23 @@ RSpec.configure do |config|
 			id: "MyIndex").create
 		@myTraversal = @vertexA.traversal
 		@myUser = @server.user(name: "MyUser")
-		print @myUser.destroy
+		begin
+			@myUser.destroy
+		rescue Arango::Error => e
+		end
 		@myUser.create
-		@myTask = @myDatabase.task(id: "mytaskid", name: "MyTaskID",
+		@myTask = @server.task(id: "mytaskid", name: "MyTaskID",
 			command: "(function(params) { require('@arangodb').print(params); })(params)",
 			params: {"foo" => "bar", "bar" => "foo"}, period: 60)
 	end
 
 	config.after(:all) do
-		@myDatabase.destroy
-		@myUser.destroy  unless @myUser.nil?
-		@myIndex.destroy unless @myIndex.nil?
+		begin
+			@myDatabase.destroy
+			@myUser.destroy  unless @myUser.nil?
+			@myIndex.destroy unless @myIndex.nil?
+		rescue Arango::Error => e
+			puts e.message
+		end
 	end
 end

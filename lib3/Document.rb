@@ -55,8 +55,8 @@ module Arango
         "body" => @body
       }
       hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
-      hash["from"] = level > 0 ? @from&.to_h(level-1) : @from&.name
-      hash["to"] = level > 0 ? @to&.to_h(level-1) : @to&.name
+      hash["from"] = level > 0 ? @from&.to_h(level-1) : @from&.id
+      hash["to"] = level > 0 ? @to&.to_h(level-1) : @to&.id
       hash.delete_if{|k,v| v.nil?}
       hash
     end
@@ -69,16 +69,21 @@ module Arango
           raise Arango::Error.new message: "#{attrs} #{var} is not a valid document id or an Arango::Document"
         end
         collection_name, document_name = var.split("/")
-        collection = Arango::Collection name: collection_name,
+        collection = Arango::Collection.new name: collection_name,
           database: @database
-        instance = Arango::Document name: document_name
+        if @graph.nil?
+          instance = Arango::Document.new name: document_name, collection: collection
+        else
+          collection.graph = @graph
+          instance = Arango::Vertex.new name: document_name, collection: collection
+        end
       elsif var.is_a?(Arango::Document)
         instance = var
       else
         raise Arango::Error.new message: "#{attrs} is not a valid document id or an Arango::Document"
       end
       instance_variable_set("@#{attrs}", instance)
-      @body["_#{attrs}"] = instance&.name
+      @body["_#{attrs}"] = instance&.id
     end
     private :set_up_from_or_to
 

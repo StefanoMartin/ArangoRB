@@ -17,15 +17,20 @@ describe Arango::Database do
     end
 
     it "create a duplicate Database" do
-      myDatabase = @myDatabase.create
-      expect(myDatabase).to eq "duplicate name"
+      error = nil
+      begin
+        myDatabase = @myDatabase.create
+      rescue Arango::Error => e
+        error = e.message
+      end
+      expect(error).to eq "duplicate name"
     end
   end
 
   context "#info" do
     it "obtain general info" do
-      info = @myDatabase.info
-      expect(info["name"]).to eq "MyDatabase"
+      @myDatabase.retrieve
+      expect(@myDatabase.name).to eq "MyDatabase"
     end
 
     it "list databases" do
@@ -46,7 +51,7 @@ describe Arango::Database do
 
   context "#query" do
     it "properties" do
-      expect(@myDatabase.propertiesQuery["enabled"]).to be true
+      expect(@myDatabase.queryProperties["enabled"]).to be true
     end
 
     it "current" do
@@ -54,7 +59,7 @@ describe Arango::Database do
     end
 
     it "slow" do
-      expect(@myDatabase.slowQuery).to eq []
+      expect(@myDatabase.slowQueries).to eq []
     end
   end
 
@@ -65,29 +70,32 @@ describe Arango::Database do
 
     it "kill" do
       @myCollection.create
-      @myCollection.createDocument document: [{"num" => 1, "_key" => "FirstKey"},
+      @myCollection.createDocuments document: [{"num" => 1, "_key" => "FirstKey"},
         {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1},
         {"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3},
         {"num" => 2}, {"num" => 5}, {"num" => 2}]
-      @myAQL.size = 3
-      @myAQL.execute
-      expect((@myDatabase.kill_aql query: @myAQL).split(" ")[0]).to eq "cannot"
+      myAQL = @myDatabase.aql query: 'FOR i IN 1..1000000
+  INSERT { name: CONCAT("test", i) } IN MyCollection'
+      myAQL.size = 3
+      myAQL.execute
+      binding.pry
+      expect((@myDatabase.killAql query: myAQL).split(" ")[0]).to eq "cannot"
     end
 
     it "changeProperties" do
-      result = @myDatabase.changePropertiesQuery maxSlowQueries: 65
+      result = @myDatabase.changeQueryProperties maxSlowQueries: 65
       expect(result["maxSlowQueries"]).to eq 65
     end
   end
 
   context "#cache" do
     it "clear" do
-      expect(@myDatabase.clearCache).to be true
+      expect(@myDatabase.clearQueryCache).to be true
     end
 
     it "change Property Cache" do
-      @myDatabase.changePropertyQueryCache maxResults: 130
-      expect(@myDatabase.propertyQueryCache["maxResults"]).to eq 130
+      @myDatabase.changeQueryProperties maxSlowQueries: 130
+      expect(@myDatabase.queryProperties["maxSlowQueries"]).to eq 130
     end
   end
 

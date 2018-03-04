@@ -48,7 +48,7 @@ module Arango
 # === GET ===
 
     def retrieve
-      result = request(action: "GET", url: "_api/database/current")
+      result = request(action: "GET", url: "_api/database/current", key: "result")
       if result.is_a?(Hash)
         @name = result["name"]
         @isSystem = result["isSystem"]
@@ -58,7 +58,6 @@ module Arango
       return return_directly?(result) ? result : self
     end
     alias current retrieve
-    alias info retrieve
 
 # === POST ===
 
@@ -67,14 +66,14 @@ module Arango
         "name" => name,
         "users" => users
       }
-      result = @server.request(action: "POST", url: "_api/database", body: body)
+      result = @server.request(action: "POST", url: "_api/database", body: body, key: "result")
       return return_directly?(result) ? result : self
     end
 
 # == DELETE ==
 
     def destroy
-      @server.request(action: "DELETE", url: "_api/database/#{@name}")
+      @server.request(action: "DELETE", url: "_api/database/#{@name}", key: "result")
     end
 
 # == COLLECTION ==
@@ -143,11 +142,13 @@ module Arango
     end
 
     def stopSlowQueries
-      request(action: "DELETE", url: "_api/query/slow")
+      result = request(action: "DELETE", url: "_api/query/slow")
+      return return_delete(result)
     end
 
     def clearQueryCache
-      request(action: "DELETE", url: "_api/query-cache")
+      result = request(action: "DELETE", url: "_api/query-cache")
+      return return_delete(result)
     end
 
     def propertyQueryCache
@@ -183,6 +184,9 @@ module Arango
 
   def killAql(query:)
     satisfy_class?(query, [Arango::AQL, String])
+    if query.is_a?(Arango::AQL) && query&.id.nil?
+      raise Arango::Error.new message: "AQL does not have id. It could have already been killed"
+    end
     id = query.is_a?(String) ? id : query.id
     request(action: "DELETE", url: "_api/query/#{id}")
   end
@@ -203,7 +207,8 @@ module Arango
     end
 
     def deleteAqlFunction(name:)
-      request(action: "DELETE",  url: "_api/aqlfunction/#{name}")
+      result = request(action: "DELETE",  url: "_api/aqlfunction/#{name}")
+      return return_delete(result)
     end
 
     # === REPLICATION ===

@@ -22,7 +22,7 @@ module Arango
 # === DEFINE ===
 
     attr_reader :status, :isSystem, :id, :server, :database, :graph, :type,
-     :countExport, :hasMoreExport, :idExport
+     :countExport, :hasMoreExport, :idExport, :hasMoreSimple, :idSimple
     attr_accessor :name
 
     def graph=(graph)
@@ -218,25 +218,58 @@ module Arango
         from: from, to: to)
     end
 
-    def documents(type: nil) # "path", "id", "key"
-      val = type.nil?
-      type ||= "key"
-      satisfy_category?(type, ["path", "id", "key", nil])
-      body = { "type" => type }
+    def documents(type: "document") # "path", "id", "key"
+      @returnDocument = false
+      if type == "document"
+        @returnDocument = true
+        type = "key"
+      end
+      satisfy_category?(type, ["path", "id", "key", "document"])
+      body = { "type" => type, "collection" => @name }
       result = @database.request(action: "PUT", body: body,
-        url: "_api/collection/#{@name}/simple/all-keys")
-      return result if return_directly?(result) || !val
-      result["result"].map do |key|
-        Arango::Document.new(name: key, collection: self)
+        url: "_api/simple/all-keys")
+      @hasMoreSimple = result["hasMore"]
+      @idSimple = result["id"]
+      return result if return_directly?(result)
+      return result["result"] unless @returnDocument
+      if @returnDocument
+        result["result"].map do |key|
+          Arango::Document.new(name: key, collection: self)
+        end
+      end
+    end
+
+    def next
+      if @hasMoreSimple
+        result = @database.request(action: "PUT", url: "_api/cursor/#{@idSimple}")
+        @hasMoreSimple = result["hasMore"]
+        @idSimple = result["id"]
+        return result if return_directly?(result)
+        return result["result"] unless @returnDocument
+        if @returnDocument
+          result["result"].map do |key|
+            Arango::Document.new(name: key, collection: self)
+          end
+        end
+      else
+        raise Arango::Error.new message: "No other results"
       end
     end
 
     def return_body(x, type="Document")
       satisfy_class?(x, [Hash, Arango::Document, Arango::Edge, Arango::Vertex])
-      body = case x.class
+      body = case x
       when Hash
         x
-      when Arango::Document, Arango::Edge, Arango::Vertex
+      when Arango::Document
+        if (type == "Vertex"  && x.type == "Edge")  ||
+           (type == "Document" && x.type == "Edge") ||
+           (type == "Edge" && x.type == "Document") ||
+           (type == "Edge" && x.type == "Vertex")
+          raise Arango::Error.new message: "#{x.name} is not a #{type}"
+        end
+        x.body
+      when Arango::Edge, Arango::Vertex
         if (x.is_a?(Arango::Edge) && type == "Vertex") ||
            (x.is_a?(Arango::Vertex) && type == "Edge")
           raise Arango::Error.new message: "#{x.name} is not a #{type}"
@@ -374,7 +407,11 @@ module Arango
 
     def generic_document_search(url, body, single=false)
       result = @database.request(action: "PUT", url: url, body: body)
+      @returnDocument = true
+      @hasMoreSimple = result["hasMore"]
+      @idSimple = result["id"]
       return result if return_directly?(result)
+
       if single
         Arango::Document.new(name: result["document"]["_key"], collection: self,
           body:  result["document"])
@@ -785,25 +822,26 @@ module Arango
 # === GRAPH ===
 
     def vertex(name: nil, body: {}, rev: nil, from: nil, to: nil)
-      if @graph.nil?
-        raise Arango::Error.new message: "This class does not have any Graph assigned"
-      end
       if @type == "Edge"
         raise Arango::Error.new message: "This class is an Edge class"
       end
-      Arango::Vertex.new(name: name, body: body, rev: rev, collection: self,
-        graph: @graph)
+      if @graph.nil?
+        Arango::Document.new(name: name, body: body, rev: rev, collection: self)
+      else
+        Arango::Vertex.new(name: name, body: body, rev: rev, collection: self)
+      end
     end
 
     def edge(name: nil, body: {}, rev: nil, from: nil, to: nil)
-      if @graph.nil?
-        raise Arango::Error.new message: "This class does not have any Graph assigned"
-      end
       if @type == "Document"
         raise Arango::Error.new message: "This class is a Document/Vertex class"
       end
-      Arango::Edge.new(name: name, body: body, rev: rev, from: from, to: to,
-        collection: self, graph: @graph)
+      if @graph.nil?
+        Arango::Document.new(name: name, body: body, rev: rev, collection: self)
+      else
+        Arango::Edge.new(name: name, body: body, rev: rev, from: from, to: to,
+          collection: self)
+      end
     end
   end
 end

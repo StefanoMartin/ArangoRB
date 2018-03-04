@@ -2,13 +2,8 @@
 
 module Arango
   class Vertex < Arango::Document
-    def initialize(name: nil, collection:, graph:, body: {}, rev: nil)
+    def initialize(name: nil, collection:, body: {}, rev: nil)
       assign_collection(collection)
-      satisfy_class?(graph, [Arango::Graph])
-      if @database.name != graph.database.name
-        raise Arango::Error.new message: "Database of the collection is not the same as the one of the graph"
-      end
-      @graph = graph
       body["_key"] ||= name
       body["_rev"] ||= rev
       body["_id"]  ||= "#{@collection.name}/#{name}" unless name.nil?
@@ -29,6 +24,20 @@ module Arango
     attr_reader :name, :collection, :database, :server, :id, :rev
     alias key name
 
+    def collection=(collection)
+      satisfy_class?(collection, [Arango::Collection])
+      if collection.graph.nil?
+        raise Arango::Error.new message: "Collection #{collection.name} does not have a graph"
+      end
+      @collection = collection
+      @graph = @collection.graph
+      @database = @collection.database
+      @server = @database.server
+    end
+    alias assign_collection collection=
+
+# === TO HASH ===
+
     def to_h(level=0)
       hash = super(level)
       hash["graph"] = level > 0 ? @graph.to_h(level-1) : @graph.name
@@ -41,7 +50,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_none_match
       result = @graph.request(action: "GET", headers: headers,
-        url: "vertex/#{@collection.name}/#{@name}")
+        url: "vertex/#{@collection.name}/#{@name}", key: "vertex")
       return_element(result)
     end
 
@@ -51,7 +60,7 @@ module Arango
       body = @body.merge(body)
       query = {"waitForSync" => waitForSync}
       result = @graph.request(action: "POST", body: body,
-        query: query, url: "vertex/#{@collection.name}" )
+        query: query, url: "vertex/#{@collection.name}", key: "vertex")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -70,7 +79,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
-        url: "vertex/#{@collection.name}/#{@key}")
+        url: "vertex/#{@collection.name}/#{@key}", key: "vertex")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -83,7 +92,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "vertex/#{@collection.name}/#{@key}")
+        query: query, headers: headers, url: "vertex/#{@collection.name}/#{@key}", key: "vertex")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
