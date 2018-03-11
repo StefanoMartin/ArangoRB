@@ -84,7 +84,7 @@ describe Arango::Database do
       rescue Arango::Error => e
         error = e.message
       end
-      expect((@myDatabase.killAql query: myAQL).split(" ")[0]).to eq "cannot"
+      expect(error.include?("It could have already been killed")).to eq true
     end
 
     it "changeProperties" do

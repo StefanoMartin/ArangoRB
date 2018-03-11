@@ -8,8 +8,8 @@ describe Arango::Document do
     end
 
     it "create a new Edge instance" do
-      a = @myCollection.document(key: "myA", body: {"Hello" => "World"}).create
-      b = @myCollection.document(key: "myB", body: {"Hello" => "World"}).create
+      a = @myCollection.document(name: "myA", body: {"Hello" => "World"}).create
+      b = @myCollection.document(name: "myB", body: {"Hello" => "World"}).create
       myEdgeDocument = @myEdgeCollection.document(from: a, to: b)
       expect(myEdgeDocument.body["_from"]).to eq a.id
     end
@@ -18,13 +18,19 @@ describe Arango::Document do
   context "#create" do
     it "create a new Document" do
       @myDocument.destroy
+      @myDocument.body = {"Hello" => "World"}
       myDocument = @myDocument.create
       expect(myDocument.body["Hello"]).to eq "World"
     end
 
     it "create a duplicate Document" do
-      myDocument = @myDocument.create
-      expect(myDocument).to eq "unique constraint violated - in index 0 of type primary over [\"_key\"]"
+      error = ""
+      begin
+        myDocument = @myDocument.create
+      rescue Arango::ErrorDB => e
+        error = e.errorNum
+      end
+      expect(error).to eq 1210
     end
 
     it "create a new Edge" do
@@ -44,7 +50,7 @@ describe Arango::Document do
     it "retrieve Edges" do
       @myEdgeCollection.createEdges from: ["MyCollection/myA", "MyCollection/myB"],
         to: @myDocument
-      myEdges = @myDocument.edges(collection: @myEdgeCollection)
+      myEdges = @myDocument.edges(@myEdgeCollection)
       expect(myEdges.length).to eq 2
     end
 

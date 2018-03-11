@@ -44,10 +44,13 @@ module Arango
       },
       wrong_element: {
         code: 10014, message: "Element is not part of the list"
+      },
+      orphan_collection_used_by_edge_definition: {
+        code: 10015, message: "Orphan collection is already used by an edge definition"
       }
     }
 
-    def initialize(err:, data: nil, arangodb: nil, skip_assignment: false)
+    def initialize(err:, data: nil, skip_assignment: false)
       unless skip_assignment
         @message = @@list_arango_rb_errors[err][:message]
         @code = @@list_arango_rb_errors[err][:code]

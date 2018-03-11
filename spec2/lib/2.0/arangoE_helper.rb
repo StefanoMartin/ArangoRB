@@ -1,10 +1,10 @@
 require_relative './../../spec_helper'
 
-describe ArangoEdge do
+describe Arango::Edge do
   context "#new" do
     it "create a new Edge instance" do
       a = @myCollection.vertex(name: "myA", body: {"Hello" => "World"}).create
-      b = @myCollection.vertex(key: "myB", body: {"Hello" => "World"}).create
+      b = @myCollection.vertex(name: "myB", body: {"Hello" => "World"}).create
       myEdgeDocument = @myEdgeCollection.edge(from: a, to: b)
       expect(myEdgeDocument.body["_from"]).to eq a.id
     end

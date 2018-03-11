@@ -32,9 +32,7 @@ module Arango
       assign_orphanCollections(result["orphanCollections"] || @orphanCollections)
       @name    = result["_key"]    || @name
       @id      = result["_id"]     || @id
-      if @id.nil? && !@name.nil?
-        @id = "_graphs/#{@name}"
-      end
+      @id      = "_graphs/#{@name}" if @id.nil? && !@name.nil?
       @rev     = result["_rev"]    || @rev
       @isSmart = result["isSmart"] || @isSmart
       @numberOfShards = result["numberOfShards"] || @numberOfShards
@@ -78,12 +76,15 @@ module Arango
     def edgeDefinitions=(edgeDefinitions)
       @edgeDefinitions = []
       edgeDefinitions ||= []
+      edgeDefinitions = [edgeDefinitions] unless edgeDefinitions.is_a?(Array)
       edgeDefinitions.each do |edgeDefinition|
+        hash = {}
         hash["collection"] = return_collection(edgeDefinition["collection"], "Edge")
         edgeDefinition["from"] ||= []
         edgeDefinition["to"]   ||= []
         hash["from"] = edgeDefinition["from"].map{|t| return_collection(t)}
         hash["to"]   = edgeDefinition["to"].map{|t| return_collection(t)}
+        setup_orphaCollection_after_adding_edge_definitions(hash)
         @edgeDefinitions << hash
       end
     end
@@ -91,7 +92,8 @@ module Arango
 
     def orphanCollections=(orphanCollections)
       orphanCollections ||= []
-      @orphanCollections = orphanCollections.map{|oc| return_collection(oc)}
+      orphanCollections = [orphanCollections] unless orphanCollections.is_a?(Array)
+      @orphanCollections = orphanCollections.map{|oc| add_orphan_collection(oc)}
     end
     alias assign_orphanCollections orphanCollections=
 
@@ -105,6 +107,54 @@ module Arango
       return orphanCollectionsRaw if raw
       return @orphanCollections
     end
+
+# === HANDLE ORPHAN COLLECTION ===
+
+    def add_orphan_collection(orphanCollection)
+      orphanCollection = return_collection(orphanCollection)
+      if @edgeDefinitions.any? do |ed|
+          names = []
+          names |= ed["from"].map{|f| f&.name}
+          names |= ed["to"].map{|t| t&.name}
+          names.include?(orphanCollection.name)
+        end
+        raise Arango::Error.new err: :orphan_collection_used_by_edge_definition, data: {"collection" => orphanCollection.name}
+      end
+      return orphanCollection
+    end
+    private :add_orphan_collection
+
+    def setup_orphaCollection_after_adding_edge_definitions(edgeDefinition)
+      collection = []
+      collection |= edgeDefinition["from"]
+      collection |= edgeDefinition["to"]
+      @orphanCollections.delete_if{|c| collection.include?(c.name)}
+    end
+    private :setup_orphaCollection_after_adding_edge_definitions
+
+    def setup_orphaCollection_after_removing_edge_definitions(edgeDefinition)
+      edgeCollection = edgeDefinition["collection"].name
+      collections |= []
+      collections |= edgeDefinition["from"]
+      collections |= edgeDefinition["to"]
+      collections.each do |collection|
+        unless @edgeDefinitions.any? do |ed|
+            if ed["collection"].name != edgeCollection
+              names = []
+              names |= ed["from"].map{|f| f&.name}
+              names |= ed["to"].map{|t| t&.name}
+              names.include?(collection.name)
+            else
+              false
+            end
+          end
+          unless @orphanCollections.map{|oc| oc.name}.include?(collection.name)
+            @orphanCollections << collection
+          end
+        end
+      end
+    end
+    private :setup_orphaCollection_after_removing_edge_definitions
 
 # === REQUEST ===
 
@@ -136,7 +186,7 @@ module Arango
 # === GET ===
 
     def retrieve
-      result = @database.request(action: "GET", url: "_api/gharial/#{@name}")
+      result = @database.request(action: "GET", url: "_api/gharial/#{@name}", key: "graph")
       return_element(result)
     end
 
@@ -154,10 +204,10 @@ module Arango
           "numberOfShards"      => numberOfShards
         }
       }
-      body["options"].delete_if{|key, val| val.nil?}
+      body["options"].delete_if{|key, val| val.nil? || val == ""}
       body.delete("options") if body["options"].empty?
       result = @database.request(action: "POST", url: "_api/gharial",
-        body: body)
+        body: body, key: "graph")
       return_element(result)
     end
 
@@ -166,16 +216,16 @@ module Arango
     def destroy(dropCollections: nil)
       query = { "dropCollections" => dropCollections }
       result = @database.request(action: "DELETE", url: "_api/gharial/#{@name}",
-        query: query)
-      return_element(result)
+        query: query, key: "removed")
+      return_delete(result)
     end
 
 # === VERTEX COLLECTION  ===
 
     def getVertexCollections
-      result = request(action: "GET", url: "vertex")
+      result = request(action: "GET", url: "vertex", key: "collections")
       return result if return_directly?(result)
-      result["collections"].map do |x|
+      result.map do |x|
         Arango::Collection.new(name: x, database: @database, graph: self)
       end
     end
@@ -185,29 +235,25 @@ module Arango
       satisfy_class?(collection, [String, Arango::Collection])
       collection = collection.is_a?(String) ? collection : collection.name
       body = { "collection" => collection }
-      result = request(action: "POST", url: "vertex", body: body)
-      return result if @database.server.async != false
-      @orphanCollections |= [collection]
-      return return_directly?(result) ? result : self
+      result = request(action: "POST", url: "vertex", body: body, key: "graph")
+      return_element(result)
     end
 
     def removeVertexCollection(collection:, dropCollection: nil)
       query = {"dropCollection" => dropCollection}
       satisfy_class?(collection, [String, Arango::Collection])
       collection = collection.is_a?(String) ? collection : collection.name
-      result = request(action: "DELETE", url: "vertex/#{collection}", query: query)
+      result = request(action: "DELETE", url: "vertex/#{collection}", query: query, key: "graph")
       return_element(result)
     end
 
   # === EDGE COLLECTION ===
 
-    def getEdgeDefinitions
-      result = request(action: "GET", url: "edge")
+    def getEdgeCollections
+      result = request(action: "GET", url: "edge", key: "collections")
       return result if @database.server.async != false
-      assign_edgeDefinitions(result["collections"])
-      @edgeDefinitions = result["collections"]
       return result if return_directly?(result)
-      @edgeDefinitions
+      result.map{|r| Arango::Collection.new(database: @database, name: r, type: "Edge")}
     end
 
     def addEdgeDefinition(collection:, from:, to:)
@@ -220,11 +266,11 @@ module Arango
       body["collection"] = collection.is_a?(String) ? collection : collection.name
       body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }
       body["to"] = to.map{|t| t.is_a?(String) ? t : t.name }
-      result = request(action: "POST", url: "edge", body: body)
+      result = request(action: "POST", url: "edge", body: body, key: "graph")
       return_element(result)
     end
 
-    def replaceEdgeCollection(collection:, from:, to:)
+    def replaceEdgeDefinition(collection:, from:, to:)
       satisfy_class?(collection, [String, Arango::Collection])
       satisfy_class?(from, [String, Arango::Collection], true)
       satisfy_class?(to, [String, Arango::Collection], true)
@@ -234,16 +280,15 @@ module Arango
       body["collection"] = collection.is_a?(String) ? collection : collection.name
       body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }
       body["to"] = to.map{|t| t.is_a?(String) ? t : t.name }
-      result = request(action: "PUT", url: "edge", body: body)
+      result = request(action: "PUT", url: "edge/#{body["collection"]}", body: body, key: "graph")
       return_element(result)
     end
 
-    def removeEdgeCollection(collection:, dropCollection: nil)
+    def removeEdgeDefinition(collection:, dropCollection: nil)
       satisfy_class?(collection, [String, Arango::Collection])
       query = {"dropCollection" => dropCollection}
-      collection = collection.is_a?(String) ? collection : collection.collection
-      result = request(action: "DELETE", url: "edge/#{collection}", query: query)
-      return result.headers["x-arango-async-id"] if @@async == "store"
+      collection = collection.is_a?(String) ? collection : collection.name
+      result = request(action: "DELETE", url: "edge/#{collection}", query: query, key: "graph")
       return_element(result)
     end
   end

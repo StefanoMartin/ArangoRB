@@ -53,7 +53,7 @@ module Arango
 
     def retrieve(if_match: false)
       headers = {}
-      headers["If-Match"] = @rev if if_none_match
+      headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "GET", headers: headers,
         url: "edge/#{@collection.name}/#{@name}", key: "edge")
       return_element(result)
@@ -120,7 +120,7 @@ module Arango
       result = @graph.request(action: "DELETE",
         url: "edge/#{@collection.name}/#{@name}",
         query: query, headers: headers)
-      return_element(result)
+      return_delete(result)
     end
   end
 end

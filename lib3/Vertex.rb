@@ -49,7 +49,7 @@ module Arango
 
     def retrieve(if_match: false)
       headers = {}
-      headers["If-Match"] = @rev if if_none_match
+      headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "GET", headers: headers,
         url: "vertex/#{@collection.name}/#{@name}", key: "vertex")
       return_element(result)
@@ -71,7 +71,7 @@ module Arango
 
 # == PUT ==
 
-    def replace(body: {}, waitForSync: nil, if_match: false)
+    def replace(body: {}, waitForSync: nil, keepNull: nil, if_match: false)
       query = {
         "waitForSync" => waitForSync,
         "keepNull" => keepNull
@@ -80,7 +80,7 @@ module Arango
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PUT",
         body: body, query: query, headers: headers,
-        url: "vertex/#{@collection.name}/#{@key}", key: "vertex")
+        url: "vertex/#{@collection.name}/#{@name}", key: "vertex")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -93,7 +93,7 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "vertex/#{@collection.name}/#{@key}", key: "vertex")
+        query: query, headers: headers, url: "vertex/#{@collection.name}/#{@name}", key: "vertex")
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -109,9 +109,9 @@ module Arango
       headers = {}
       headers["If-Match"] = @rev if if_match
       result = @graph.request(action: "DELETE",
-        url: "vertex/#{@collection.name}/#{@key}",
+        url: "vertex/#{@collection.name}/#{@name}",
         query: query, headers: headers)
-      return_element(result)
+      return_delete(result)
     end
 
 # === TRAVERSAL ===

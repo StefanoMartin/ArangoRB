@@ -2,14 +2,9 @@ require_relative './../../spec_helper'
 
 describe Arango::Vertex do
   context "#new" do
-    it "create a new Document instance without global" do
+    it "create a new Document instance" do
       myVertex = @myCollection.vertex
       expect(myVertex.collection.name).to eq "MyCollection"
-    end
-
-    it "create a new instance with global" do
-      myVertex = ArangoVertex.new key: "myKey", body: {"Hello" => "World"}
-      expect(myVertex.key).to eq "myKey"
     end
   end
 
@@ -21,8 +16,13 @@ describe Arango::Vertex do
     end
 
     it "create a duplicate Document" do
-      myVertex = @myVertex.create
-      expect(myVertex).to eq "unique constraint violated - in index 0 of type primary over [\"_key\"]"
+      error = ""
+      begin
+        myVertex = @myVertex.create
+      rescue Arango::ErrorDB => e
+        error = e.errorNum
+      end
+      expect(error).to eq 1210
     end
   end
 
@@ -34,7 +34,7 @@ describe Arango::Vertex do
 
     it "retrieve Edges" do
       @myEdgeCollection.createEdges from: ["MyCollection/myA", "MyCollection/myB"], to: @myVertex
-      myEdges = @myVertex.retrieveEdges(collection: @myEdgeCollection)
+      myEdges = @myVertex.edges(@myEdgeCollection)
       expect(myEdges.length).to eq 2
     end
 

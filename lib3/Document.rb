@@ -33,15 +33,23 @@ module Arango
     alias_method :key, :name
 
     def body=(result)
-      @body = result.delete_if{|k,v| v.nil?}
-      @name = result["_key"] || @name
-      @id   = result["_id"]  || @id
+      result.delete_if{|k,v| v.nil?}
+      hash = {
+        "_key"  => @name,
+        "_id"   => @id,
+        "_rev"  => @rev,
+        "_from" => @from,
+        "_to"   => @to
+      }
+      @body = hash.merge(result)
+      @name = result["_key"]
+      @id   = result["_id"]
       if @id.nil? && !@name.nil?
         @id = "#{@collection.name}/#{@name}"
       end
-      @rev  = result["_rev"] || @rev
-      set_up_from_or_to("from", result["_from"] || @from)
-      set_up_from_or_to("to", result["_to"] || @to)
+      @rev  = result["_rev"]
+      set_up_from_or_to("from", result["_from"])
+      set_up_from_or_to("to", result["_to"])
     end
     alias assign_attributes body=
 
@@ -83,7 +91,7 @@ module Arango
         raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" => attrs, "wrong_value" => var}
       end
       instance_variable_set("@#{attrs}", instance)
-      @body["_#{attrs}"] = instance&.id
+      @body["_#{attrs}"] = instance&.id unless instance&.id.nil?
     end
     private :set_up_from_or_to
 
@@ -92,7 +100,7 @@ module Arango
     def retrieve(if_none_match: false, if_match: false)
       headers = {}
       headers["If-None-Match"] = @rev if if_none_match
-      headers["If-Match"]      = @rev if if_none_match
+      headers["If-Match"]      = @rev if if_match
       result = @database.request(action: "GET", headers: headers,
         url: "_api/document/#{@id}")
       return_element(result)
@@ -103,7 +111,7 @@ module Arango
     def head(if_none_match: false, if_match: false)
       headers = {}
       headers["If-None-Match"] = @rev if if_none_match
-      headers["If-Match"]      = @rev if if_none_match
+      headers["If-Match"]      = @rev if if_match
       @database.request(action: "HEAD", headers: headers,
         url: "_api/document/#{@id}")
     end
@@ -191,7 +199,7 @@ module Arango
 
   # === DELETE ===
 
-    def destroy(body: nil, waitForSync: nil, silent: nil, returnOld: nil,
+    def destroy(waitForSync: nil, silent: nil, returnOld: nil,
       if_match: false)
       query = {
         "waitForSync" => waitForSync,
@@ -200,37 +208,46 @@ module Arango
       }
       headers = {}
       headers["If-Match"] = @rev if if_match
-      result = @document.request(action: "DELETE",
+      result = @database.request(action: "DELETE",
         url: "_api/document/#{@id}", query: query, headers: headers)
-      return_element(result)
+      return result if @server.async != false || silent
+      body2 = result.clone
+      if returnOld
+        body2.delete("old")
+        body2 = body2.merge(result["old"])
+      else
+        body2 = body2.merge(@body)
+      end
+      return_element(body2)
+      return true
     end
 
   # === EDGE ===
 
-    def edges(direction: nil, collection:)
+    def edges(collection, direction=nil)
       satisfy_class?(collection, [Arango::Collection, String])
       collection = collection.is_a?(Arango::Collection) ? collection.name : collection
       query = {
-        "vertex"    => @name,
+        "vertex"    => @id,
         "direction" => direction
       }
-      result = @document.request(action: "GET",
+      result = @database.request(action: "GET",
         url: "_api/edges/#{collection}", query: query)
       return result if return_directly?(result)
       result["edges"].map do |edge|
         collection_name, key = edge["_id"].split("/")
         collection = Arango::Collection.new(name: collection_name,
           database: @database, type: "Edge")
-        Arango::Document.new(name: key, body: body, collection: collection)
+        Arango::Document.new(name: key, body: edge, collection: collection)
       end
     end
 
     def out(collection)
-      edges(direction: "out", collection: collection)
+      edges(collection, "out")
     end
 
     def in(collection)
-      edges(direction: "in", collection: collection)
+      edges(collection, "in")
     end
 
 # === TRAVERSAL ===
