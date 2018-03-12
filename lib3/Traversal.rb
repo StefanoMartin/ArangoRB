@@ -165,7 +165,6 @@ module Arango
         "direction"   => @direction,
         "maxDepth"    => @maxDepth,
         "minDepth"    => @minDepth,
-        "startVertex" => @startVertex,
         "visitor"     => @visitor,
         "itemOrder"   => @itemOrder,
         "strategy"    => @strategy,
@@ -184,6 +183,7 @@ module Arango
         end,
         "idCache" => @idCache
       }
+      hash["startVertex"] = level > 0 ? @startVertex&.to_h(level-1) : @startVertex&.id
       hash["graph"] = level > 0 ? @graph&.to_h(level-1) : @graph&.name
       hash["edgeCollection"] = level > 0 ? @edgeCollection&.to_h(level-1) : @edgeCollection&.name
       hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
@@ -199,7 +199,7 @@ module Arango
         "direction"   => @direction,
         "maxDepth"    => @maxDepth,
         "minDepth"    => @minDepth,
-        "startVertex" => @startVertex&.name,
+        "startVertex" => @startVertex&.id,
         "visitor"     => @visitor,
         "itemOrder"   => @itemOrder,
         "strategy"    => @strategy,

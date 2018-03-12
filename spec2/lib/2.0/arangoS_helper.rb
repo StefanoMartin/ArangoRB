@@ -5,7 +5,7 @@ describe Arango::Server do
     it "try verbose" do
       @server.verbose = true
       result = @myDatabase.collection(name: "Test").create
-      expect(result.class).to be Hash
+      expect(result.class).to be Arango::Collection
     end
 
     it "print verbose" do
