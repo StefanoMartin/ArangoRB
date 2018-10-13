@@ -4,16 +4,16 @@ module Arango
   class Vertex < Arango::Document
     def initialize(name: nil, collection:, body: {}, rev: nil)
       assign_collection(collection)
-      body["_key"] ||= name
-      body["_rev"] ||= rev
-      body["_id"]  ||= "#{@collection.name}/#{name}" unless name.nil?
+      body[:_key] ||= name
+      body[:_rev] ||= rev
+      body[:_id]  ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "key"].each do |attribute|
         define_singleton_method(:"=#{attribute}") do |attrs|
           temp_attrs = attribute
           temp_attrs = "key" if attribute == "name"
-          body["_#{temp_attrs}"] = attrs
+          body[:"_#{temp_attrs}"] = attrs
           assign_attributes(body)
         end
       end
@@ -28,7 +28,7 @@ module Arango
       satisfy_class?(collection, [Arango::Collection])
       if collection.graph.nil?
         raise Arango::Error.new err: :collection_does_not_have_a_graph, data:
-          {"name_collection" => collection.name, "graph" => nil}
+          {"name_collection": collection.name, "graph": nil}
       end
       @collection = collection
       @graph = @collection.graph
@@ -41,7 +41,7 @@ module Arango
 
     def to_h(level=0)
       hash = super(level)
-      hash["graph"] = level > 0 ? @graph.to_h(level-1) : @graph.name
+      hash[:graph] = level > 0 ? @graph.to_h(level-1) : @graph.name
       hash
     end
 
@@ -49,9 +49,9 @@ module Arango
 
     def retrieve(if_match: false)
       headers = {}
-      headers["If-Match"] = @rev if if_match
-      result = @graph.request(action: "GET", headers: headers,
-        url: "vertex/#{@collection.name}/#{@name}", key: "vertex")
+      headers[:"If-Match"] = @rev if if_match
+      result = @graph.request("GET", "vertex/#{@collection.name}/#{@name}",
+        headers: headers, key: :vertex)
       return_element(result)
     end
 
@@ -59,9 +59,9 @@ module Arango
 
     def create(body: {}, waitForSync: nil)
       body = @body.merge(body)
-      query = {"waitForSync" => waitForSync}
-      result = @graph.request(action: "POST", body: body,
-        query: query, url: "vertex/#{@collection.name}", key: "vertex")
+      query = {"waitForSync": waitForSync}
+      result = @graph.request("POST", "vertex/#{@collection.name}", body: body,
+        query: query, key: :vertex)
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -73,14 +73,13 @@ module Arango
 
     def replace(body: {}, waitForSync: nil, keepNull: nil, if_match: false)
       query = {
-        "waitForSync" => waitForSync,
-        "keepNull" => keepNull
+        "waitForSync": waitForSync,
+        "keepNull": keepNull
       }
       headers = {}
-      headers["If-Match"] = @rev if if_match
-      result = @graph.request(action: "PUT",
-        body: body, query: query, headers: headers,
-        url: "vertex/#{@collection.name}/#{@name}", key: "vertex")
+      headers[:"If-Match"] = @rev if if_match
+      result = @graph.request("PUT", "vertex/#{@collection.name}/#{@name}",
+        body: body, query: query, headers: headers, key: :vertex)
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -89,11 +88,11 @@ module Arango
     end
 
     def update(body: {}, waitForSync: nil, if_match: false, keepNull: nil)
-      query = {"waitForSync" => waitForSync, "keepNull" => keepNull}
+      query = {"waitForSync": waitForSync, "keepNull": keepNull}
       headers = {}
-      headers["If-Match"] = @rev if if_match
-      result = @graph.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "vertex/#{@collection.name}/#{@name}", key: "vertex")
+      headers[:"If-Match"] = @rev if if_match
+      result = @graph.request("PATCH", "vertex/#{@collection.name}/#{@name}", body: body,
+        query: query, headers: headers, key: :vertex)
       return result if @server.async != false
       body2 = result.clone
       body = body.merge(body2)
@@ -105,11 +104,10 @@ module Arango
 # === DELETE ===
 
     def destroy(waitForSync: nil, if_match: false)
-      query = {"waitForSync" => waitForSync}
+      query = {"waitForSync": waitForSync}
       headers = {}
-      headers["If-Match"] = @rev if if_match
-      result = @graph.request(action: "DELETE",
-        url: "vertex/#{@collection.name}/#{@name}",
+      headers[:"If-Match"] = @rev if if_match
+      result = @graph.request("DELETE", "vertex/#{@collection.name}/#{@name}",
         query: query, headers: headers)
       return_delete(result)
     end

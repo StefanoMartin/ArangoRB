@@ -9,18 +9,18 @@ module Arango
     def initialize(name: nil, collection:, body: {}, rev: nil, from: nil,
       to: nil)
       assign_collection(collection)
-      body["_key"]  ||= name
-      body["_rev"]  ||= rev
-      body["_to"]   ||= to
-      body["_from"] ||= from
-      body["_id"]   ||= "#{@collection.name}/#{name}" unless name.nil?
+      body[:_key]  ||= name
+      body[:_rev]  ||= rev
+      body[:_to]   ||= to
+      body[:_from] ||= from
+      body[:_id]   ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
         define_singleton_method(:"#{attribute}=") do |attrs|
           temp_attrs = attribute
           temp_attrs = "key" if attribute == "name"
-          @body["_#{temp_attrs}"] = attrs
+          @body[:"_#{temp_attrs}"] = attrs
           assign_attributes(@body)
         end
       end
@@ -33,23 +33,23 @@ module Arango
     alias_method :key, :name
 
     def body=(result)
-      result.delete_if{|k,v| v.nil?}
+      result.compact!
       hash = {
-        "_key"  => @name,
-        "_id"   => @id,
-        "_rev"  => @rev,
-        "_from" => @from,
-        "_to"   => @to
+        "_key":  @name,
+        "_id":   @id,
+        "_rev":  @rev,
+        "_from": @from,
+        "_to":   @to
       }
       @body = hash.merge(result)
-      @name = result["_key"]
-      @id   = result["_id"]
+      @name = result[:_key]
+      @id   = result[:_id]
       if @id.nil? && !@name.nil?
         @id = "#{@collection.name}/#{@name}"
       end
-      @rev  = result["_rev"]
-      set_up_from_or_to("from", result["_from"])
-      set_up_from_or_to("to", result["_to"])
+      @rev  = result[:_rev]
+      set_up_from_or_to("from", result[:_from])
+      set_up_from_or_to("to", result[:_to])
     end
     alias assign_attributes body=
 
@@ -57,15 +57,15 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "name" => @name,
-        "id"   => @id,
-        "rev"  => @rev,
-        "body" => @body
+        "name": @name,
+        "id":   @id,
+        "rev":  @rev,
+        "body": @body
       }
-      hash["collection"] = level > 0 ? @collection.to_h(level-1) : @collection.name
-      hash["from"] = level > 0 ? @from&.to_h(level-1) : @from&.id
-      hash["to"] = level > 0 ? @to&.to_h(level-1) : @to&.id
-      hash.delete_if{|k,v| v.nil?}
+      hash[:collection] = level > 0 ? @collection.to_h(level-1) : @collection.name
+      hash[:from] = level > 0 ? @from&.to_h(level-1) : @from&.id
+      hash[:to] = level > 0 ? @to&.to_h(level-1) : @to&.id
+      hash.compact!
       hash
     end
 
@@ -74,7 +74,7 @@ module Arango
         instance = nil
       elsif var.is_a?(String)
         if !var.is_a?(String) || !var.include?("/")
-          raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" => attrs, "wrong_value" => var}
+          raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" attrs, "wrong_value" var}
         end
         collection_name, document_name = var.split("/")
         collection = Arango::Collection.new name: collection_name,
@@ -88,10 +88,10 @@ module Arango
       elsif var.is_a?(Arango::Document)
         instance = var
       else
-        raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" => attrs, "wrong_value" => var}
+        raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" attrs, "wrong_value" var}
       end
       instance_variable_set("@#{attrs}", instance)
-      @body["_#{attrs}"] = instance&.id unless instance&.id.nil?
+      @body[:"_#{attrs}"] = instance&.id unless instance&.id.nil?
     end
     private :set_up_from_or_to
 
@@ -99,10 +99,9 @@ module Arango
 
     def retrieve(if_none_match: false, if_match: false)
       headers = {}
-      headers["If-None-Match"] = @rev if if_none_match
-      headers["If-Match"]      = @rev if if_match
-      result = @database.request(action: "GET", headers: headers,
-        url: "_api/document/#{@id}")
+      headers[:"If-None-Match"] = @rev if if_none_match
+      headers[:"If-Match"]      = @rev if if_match
+      result = @database.request("GET",  "_api/document/#{@id}", headers: headers)
       return_element(result)
     end
 
@@ -110,10 +109,9 @@ module Arango
 
     def head(if_none_match: false, if_match: false)
       headers = {}
-      headers["If-None-Match"] = @rev if if_none_match
-      headers["If-Match"]      = @rev if if_match
-      @database.request(action: "HEAD", headers: headers,
-        url: "_api/document/#{@id}")
+      headers[:"If-None-Match"] = @rev if if_none_match
+      headers[:"If-Match"]      = @rev if if_match
+      @database.request("HEAD", "_api/document/#{@id}", headers: headers)
     end
 
 # == POST ==
@@ -121,17 +119,17 @@ module Arango
     def create(body: {}, waitForSync: nil, returnNew: nil, silent: nil)
       body = @body.merge(body)
       query = {
-        "waitForSync" => waitForSync,
-        "returnNew"   => returnNew,
-        "silent"      => silent
+        "waitForSync": waitForSync,
+        "returnNew":   returnNew,
+        "silent":      silent
       }
-      result = @database.request(action: "POST", body: body,
-        query: query, url: "_api/document/#{@collection.name}" )
+      result = @database.request("POST", "_api/document/#{@collection.name}", body: body,
+        query: query)
       return result if @server.async != false || silent
       body2 = result.clone
       if returnNew
-        body2.delete("new")
-        body2 = body2.merge(result["new"])
+        body2.delete(:new)
+        body2 = body2.merge(result[:new])
       end
       body = body.merge(body2)
       assign_attributes(body)
@@ -143,21 +141,21 @@ module Arango
     def replace(body: {}, waitForSync: nil, ignoreRevs: nil, returnOld: nil,
       returnNew: nil, silent: nil, if_match: false)
       query = {
-        "waitForSync" => waitForSync,
-        "returnNew"   => returnNew,
-        "returnOld"   => returnOld,
-        "ignoreRevs"  => ignoreRevs,
-        "silent"      => silent
+        "waitForSync": waitForSync,
+        "returnNew":   returnNew,
+        "returnOld":   returnOld,
+        "ignoreRevs":  ignoreRevs,
+        "silent":      silent
       }
       headers = {}
-      headers["If-Match"] = @rev if if_match
-      result = @database.request(action: "PUT", body: body,
-        query: query, headers: headers, url: "_api/document/#{@id}")
+      headers[:"If-Match"] = @rev if if_match
+      result = @database.request("PUT", "_api/document/#{@id}", body: body,
+        query: query, headers: headers)
       return result if @server.async != false || silent
       body2 = result.clone
       if returnNew
-        body2.delete("new")
-        body2 = body2.merge(result["new"])
+        body2.delete(:new)
+        body2 = body2.merge(result[:new])
       end
       body = body.merge(body2)
       assign_attributes(body)
@@ -168,24 +166,23 @@ module Arango
       returnOld: nil, returnNew: nil, keepNull: nil,
       mergeObjects: nil, silent: nil, if_match: false)
       query = {
-        "waitForSync" => waitForSync,
-        "returnNew"   => returnNew,
-        "returnOld"   => returnOld,
-        "ignoreRevs"  => ignoreRevs,
-        "keepNull"    => keepNull,
-        "mergeObjects" => mergeObjects,
-        "silent"      => silent
+        "waitForSync":  waitForSync,
+        "returnNew":    returnNew,
+        "returnOld":    returnOld,
+        "ignoreRevs":   ignoreRevs,
+        "keepNull":     keepNull,
+        "mergeObjects": mergeObjects,
+        "silent":       silent
       }
       headers = {}
-      headers["If-Match"] = @rev if if_match
-      result = @database.request(action: "PATCH", body: body,
-        query: query, headers: headers, url: "_api/document/#{@id}",
-        keepNull: keepNull)
+      headers[:"If-Match"] = @rev if if_match
+      result = @database.request("PATCH", "_api/document/#{@id}", body: body,
+        query: query, headers: headers, keepNull: keepNull)
       return result if @server.async != false || silent
       body2 = result.clone
       if returnNew
-        body2.delete("new")
-        body2 = body2.merge(result["new"])
+        body2.delete(:new)
+        body2 = body2.merge(result[:new])
       end
       body = body.merge(body2)
       if mergeObjects
@@ -199,22 +196,21 @@ module Arango
 
   # === DELETE ===
 
-    def destroy(waitForSync: nil, silent: nil, returnOld: nil,
-      if_match: false)
+    def destroy(waitForSync: nil, silent: nil, returnOld: nil, if_match: false)
       query = {
-        "waitForSync" => waitForSync,
-        "returnOld"   => returnOld,
-        "silent"      => silent
+        "waitForSync": waitForSync,
+        "returnOld":   returnOld,
+        "silent":      silent
       }
       headers = {}
-      headers["If-Match"] = @rev if if_match
-      result = @database.request(action: "DELETE",
-        url: "_api/document/#{@id}", query: query, headers: headers)
+      headers[:"If-Match"] = @rev if if_match
+      result = @database.request("DELETE", "_api/document/#{@id}", query: query,
+        headers: headers)
       return result if @server.async != false || silent
       body2 = result.clone
       if returnOld
-        body2.delete("old")
-        body2 = body2.merge(result["old"])
+        body2.delete(:old)
+        body2 = body2.merge(result[:old])
       else
         body2 = body2.merge(@body)
       end
@@ -228,16 +224,16 @@ module Arango
       satisfy_class?(collection, [Arango::Collection, String])
       collection = collection.is_a?(Arango::Collection) ? collection.name : collection
       query = {
-        "vertex"    => @id,
-        "direction" => direction
+        "vertex":    @id,
+        "direction": direction
       }
-      result = @database.request(action: "GET",
+      result = @database.request("GET",
         url: "_api/edges/#{collection}", query: query)
       return result if return_directly?(result)
-      result["edges"].map do |edge|
-        collection_name, key = edge["_id"].split("/")
+      result[:edges].map do |edge|
+        collection_name, key = edge[:_id].split("/")
         collection = Arango::Collection.new(name: collection_name,
-          database: @database, type: "Edge")
+          database: @database, type: :edge)
         Arango::Document.new(name: key, body: edge, collection: collection)
       end
     end

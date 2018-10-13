@@ -9,14 +9,14 @@ module Arango
     def initialize(name:, database:, edgeDefinitions: [],
       orphanCollections: [], body: {}, numberOfShards: nil, isSmart: nil, smartGraphAtttribute: nil, replicationFactor: nil)
       assign_database(database)
-      body["_key"]    ||= name
-      body["_id"]     ||= "_graphs/#{name}"
-      body["isSmart"] ||= isSmart
-      body["edgeDefinitions"]     ||= edgeDefinitions
-      body["orphanCollections"]   ||= orphanCollections
-      body["numberOfShards"]      ||= numberOfShards
-      body["replicationFactor"]   ||= replicationFactor
-      body["smartGraphAttribute"] ||= smartGraphAttribute
+      body[:_key]    ||= name
+      body[:_id]     ||= "_graphs/#{name}"
+      body[:isSmart] ||= isSmart
+      body[:edgeDefinitions]     ||= edgeDefinitions
+      body[:orphanCollections]   ||= orphanCollections
+      body[:numberOfShards]      ||= numberOfShards
+      body[:replicationFactor]   ||= replicationFactor
+      body[:smartGraphAttribute] ||= smartGraphAttribute
       assign_attributes(body)
     end
 
@@ -28,16 +28,16 @@ module Arango
 
     def body=(result)
       @body = result
-      assign_edgeDefinitions(result["edgeDefinitions"] || @edgeDefinitions)
-      assign_orphanCollections(result["orphanCollections"] || @orphanCollections)
-      @name    = result["_key"]    || @name
-      @id      = result["_id"]     || @id
+      assign_edgeDefinitions(result[:edgeDefinitions] || @edgeDefinitions)
+      assign_orphanCollections(result[:orphanCollections] || @orphanCollections)
+      @name    = result[:_key]    || @name
+      @id      = result[:_id]     || @id
       @id      = "_graphs/#{@name}" if @id.nil? && !@name.nil?
-      @rev     = result["_rev"]    || @rev
-      @isSmart = result["isSmart"] || @isSmart
-      @numberOfShards = result["numberOfShards"] || @numberOfShards
-      @replicationFactor = result["replicationFactor"] || @replicationFactor
-      @smartGraphAttribute = result["smartGraphAttribute"] || @smartGraphAttribute
+      @rev     = result[:_rev]    || @rev
+      @isSmart = result[:isSmart] || @isSmart
+      @numberOfShards = result[:numberOfShards] || @numberOfShards
+      @replicationFactor = result[:replicationFactor] || @replicationFactor
+      @smartGraphAttribute = result[:smartGraphAttribute] || @smartGraphAttribute
     end
     alias assign_attributes body=
 
@@ -60,9 +60,9 @@ module Arango
       @edgeDefinitions ||= []
       @edgeDefinitions.map do |edgedef|
         {
-          "collection" => edgedef["collection"].name,
-          "from"       => edgedef["from"].map{|t| t.name},
-          "to"         => edgedef["to"].map{|t| t.name}
+          "collection": edgedef["collection"].name,
+          "from": edgedef["from"].map{|t| t.name},
+          "to": edgedef["to"].map{|t| t.name}
         }
       end
     end
@@ -118,7 +118,7 @@ module Arango
           names |= ed["to"].map{|t| t&.name}
           names.include?(orphanCollection.name)
         end
-        raise Arango::Error.new err: :orphan_collection_used_by_edge_definition, data: {"collection" => orphanCollection.name}
+        raise Arango::Error.new err: :orphan_collection_used_by_edge_definition, data: {"collection": orphanCollection.name}
       end
       return orphanCollection
     end
@@ -160,7 +160,7 @@ module Arango
 
     def request(action:, url:, body: {}, headers: {}, query: {}, key: nil, return_direct_result: false, skip_to_json: false)
       url = "_api/gharial/#{@name}/#{url}"
-      @database.request(action: action, url: url, body: body, headers: headers,
+      @database.request(action, url, body: body, headers: headers,
         query: query, key: key, return_direct_result: return_direct_result,
         skip_to_json: skip_to_json)
     end
@@ -169,15 +169,15 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "name"    => @name,
-        "id"      => @id,
-        "rev"     => @rev,
-        "isSmart" => @isSmart,
-        "numberOfShards"      => @numberOfShards,
-        "replicationFactor"   => @replicationFactor,
-        "smartGraphAttribute" => @smartGraphAttribute,
-        "edgeDefinitions"     => edgeDefinitionsRaw,
-        "orphanCollections"   => orphanCollectionsRaw
+        "name": @name,
+        "id": @id,
+        "rev": @rev,
+        "isSmart": @isSmart,
+        "numberOfShards": @numberOfShards,
+        "replicationFactor": @replicationFactor,
+        "smartGraphAttribute": @smartGraphAttribute,
+        "edgeDefinitions": edgeDefinitionsRaw,
+        "orphanCollections": orphanCollectionsRaw
       }.delete_if{|k,v| v.nil?}
       hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
@@ -186,7 +186,7 @@ module Arango
 # === GET ===
 
     def retrieve
-      result = @database.request(action: "GET", url: "_api/gharial/#{@name}", key: "graph")
+      result = @database.request("GET", "_api/gharial/#{@name}", key: :graph)
       return_element(result)
     end
 
@@ -195,35 +195,34 @@ module Arango
     def create(isSmart: @isSmart, smartGraphAttribute: @smartGraphAttribute,
       numberOfShards: @numberOfShards)
       body = {
-        "name" => @name,
-        "edgeDefinitions"   => edgeDefinitionsRaw,
-        "orphanCollections" => orphanCollectionsRaw,
-        "isSmart"           => isSmart,
-        "options" => {
-          "smartGraphAttribute" => smartGraphAttribute,
-          "numberOfShards"      => numberOfShards
+        "name": @name,
+        "edgeDefinitions":   edgeDefinitionsRaw,
+        "orphanCollections": orphanCollectionsRaw,
+        "isSmart": isSmart,
+        "options": {
+          "smartGraphAttribute": smartGraphAttribute,
+          "numberOfShards": numberOfShards
         }
       }
-      body["options"].delete_if{|key, val| val.nil? || val == ""}
-      body.delete("options") if body["options"].empty?
-      result = @database.request(action: "POST", url: "_api/gharial",
-        body: body, key: "graph")
+      body[:options].compact!
+      body.delete(:options) if body[:options].empty?
+      result = @database.request("POST", "_api/gharial", body: body, key: :graph)
       return_element(result)
     end
 
 # === DELETE ===
 
     def destroy(dropCollections: nil)
-      query = { "dropCollections" => dropCollections }
-      result = @database.request(action: "DELETE", url: "_api/gharial/#{@name}",
-        query: query, key: "removed")
+      query = { "dropCollections": dropCollections }
+      result = @database.request("DELETE", "_api/gharial/#{@name}", query: query,
+        key: :removed)
       return_delete(result)
     end
 
 # === VERTEX COLLECTION  ===
 
     def getVertexCollections
-      result = request(action: "GET", url: "vertex", key: "collections")
+      result = request("GET", "vertex", key: :collections)
       return result if return_directly?(result)
       result.map do |x|
         Arango::Collection.new(name: x, database: @database, graph: self)
@@ -234,23 +233,23 @@ module Arango
     def addVertexCollection(collection:)
       satisfy_class?(collection, [String, Arango::Collection])
       collection = collection.is_a?(String) ? collection : collection.name
-      body = { "collection" => collection }
-      result = request(action: "POST", url: "vertex", body: body, key: "graph")
+      body = { "collection": collection }
+      result = request("POST", "vertex", body: body, key: :graph)
       return_element(result)
     end
 
     def removeVertexCollection(collection:, dropCollection: nil)
-      query = {"dropCollection" => dropCollection}
+      query = {"dropCollection": dropCollection}
       satisfy_class?(collection, [String, Arango::Collection])
       collection = collection.is_a?(String) ? collection : collection.name
-      result = request(action: "DELETE", url: "vertex/#{collection}", query: query, key: "graph")
+      result = request("DELETE", "vertex/#{collection}", query: query, key: :graph)
       return_element(result)
     end
 
   # === EDGE COLLECTION ===
 
     def getEdgeCollections
-      result = request(action: "GET", url: "edge", key: "collections")
+      result = request("GET", "edge", key: :collections)
       return result if @database.server.async != false
       return result if return_directly?(result)
       result.map{|r| Arango::Collection.new(database: @database, name: r, type: "Edge")}
@@ -263,10 +262,10 @@ module Arango
       from = [from] unless from.is_a?(Array)
       to = [to] unless to.is_a?(Array)
       body = {}
-      body["collection"] = collection.is_a?(String) ? collection : collection.name
-      body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }
-      body["to"] = to.map{|t| t.is_a?(String) ? t : t.name }
-      result = request(action: "POST", url: "edge", body: body, key: "graph")
+      body[:collection] = collection.is_a?(String) ? collection : collection.name
+      body[:from] = from.map{|f| f.is_a?(String) ? f : f.name }
+      body[:to] = to.map{|t| t.is_a?(String) ? t : t.name }
+      result = request("POST", "edge", body: body, key: :graph)
       return_element(result)
     end
 
@@ -277,18 +276,18 @@ module Arango
       from = [from] unless from.is_a?(Array)
       to = [to] unless to.is_a?(Array)
       body = {}
-      body["collection"] = collection.is_a?(String) ? collection : collection.name
-      body["from"] = from.map{|f| f.is_a?(String) ? f : f.name }
-      body["to"] = to.map{|t| t.is_a?(String) ? t : t.name }
-      result = request(action: "PUT", url: "edge/#{body["collection"]}", body: body, key: "graph")
+      body[:collection] = collection.is_a?(String) ? collection : collection.name
+      body[:from] = from.map{|f| f.is_a?(String) ? f : f.name }
+      body[:to] = to.map{|t| t.is_a?(String) ? t : t.name }
+      result = request("PUT", "edge/#{body[:collection]}", body: body, key: :graph)
       return_element(result)
     end
 
     def removeEdgeDefinition(collection:, dropCollection: nil)
       satisfy_class?(collection, [String, Arango::Collection])
-      query = {"dropCollection" => dropCollection}
+      query = {"dropCollection": dropCollection}
       collection = collection.is_a?(String) ? collection : collection.name
-      result = request(action: "DELETE", url: "edge/#{collection}", query: query, key: "graph")
+      result = request("DELETE", "edge/#{collection}", query: query, key: :graph)
       return_element(result)
     end
   end

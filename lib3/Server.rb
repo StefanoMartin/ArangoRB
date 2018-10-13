@@ -12,8 +12,8 @@ module Arango
       @port = port
       @username = username
       @password = password
-      @options = {:body => {}, :headers => {}, :query => {},
-        :basic_auth => {:username => @username, :password => @password }}
+      @options = {:body: {}, :headers: {}, :query: {},
+:basic_auth: {:username: @username, :password: @password }}
       assign_async(async)
       @verbose = verbose
       @return_output = return_output
@@ -66,16 +66,16 @@ module Arango
 
     def to_h(level=0)
       {
-        "base_uri" => @base_uri,
-        "server"   => @server,
-        "port"     => @port,
-        "username" => @username,
-        "async"    => @async,
-        "verbose"  => @verbose,
-        "return_output" => @return_output,
-        "cluster"       => @cluster,
-        "warning"       => @warning
-      }.delete_if{|k,v| v.nil?}
+        "base_uri": @base_uri,
+        "server":   @server,
+        "port":     @port,
+        "username": @username,
+        "async":    @async,
+        "verbose":  @verbose,
+        "return_output": @return_output,
+        "cluster": @cluster,
+        "warning": @warning
+      }.compact
     end
 
 # === REQUESTS ===
@@ -86,12 +86,11 @@ module Arango
         send_url += "_admin/#{@cluster}/"
       end
       send_url += url
-      body.delete_if{|k,v| v.nil?}
-      query.delete_if{|k,v| v.nil?}
-      headers.delete_if{|k,v| v.nil?}
-      body = body.to_json
-      options = @options.merge({:body => body, :query => query,
-        :headers => headers, :stream_body => true})
+      body.compact!
+      query.compact!
+      headers.compact!
+      body = Oj.dump(body)
+      options = @options.merge({body: body, query: query, headers: headers, stream_body: true})
       puts "\n#{action} #{send_url}\n" if @verbose
       File.open(path, "w") do |file|
         file.binmode
@@ -101,7 +100,7 @@ module Arango
       end
     end
 
-    def request(action:, url:, body: {}, headers: {}, query: {},
+    def request(action, url, body: {}, headers: {}, query: {},
       key: nil, return_direct_result: @return_output, skip_to_json: false,
       skip_cluster: false, keepNull: false)
       send_url = "#{@base_uri}/"
@@ -111,13 +110,12 @@ module Arango
       send_url += url
 
       if body.is_a?(Hash)
-        body.delete_if{|k,v| v.nil?} unless keepNull
+        body.compact! unless keepNull
       end
-      query.delete_if{|k,v| v.nil?}
-      headers.delete_if{|k,v| v.nil?}
+      query.compact!
+      headers.compact!
 
-      options = @options.merge({:body => body, :query => query,
-        :headers => headers})
+      options = @options.merge({body: body, query: query, headers: headers})
 
       if ["GET", "HEAD", "DELETE"].include?(action)
         options.delete(:body)
@@ -150,11 +148,17 @@ module Arango
       end
 
       if @async == "store"
-        return result.headers["x-arango-async-id"]
+        return response.headers["x-arango-async-id"]
       elsif @async == true
         return true
       end
-      result = response.parsed_response
+      begin
+        result = Oj.load(response.parsed_response, mode: :json, symbol_keys: true)
+      rescue
+        raise Arango::Error.new err: :impossible_to_parse_arangodb_response,
+          data: {"response": response.parsed_response, "action": action, "url": send_url,
+            "request": JSON.pretty_generate(options)}
+      end
 
       if @verbose
         puts "\n===RESPONSE==="
@@ -167,16 +171,16 @@ module Arango
       end
 
       if ![Hash, NilClass, Array].include?(result.class)
-        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: {"response" => response, "action" => action, "url" => send_url, "request" => JSON.pretty_generate(options)}
-      elsif result.is_a?(Hash) && result["error"]
-        raise Arango::ErrorDB.new message: result["errorMessage"],
-          code: result["code"], data: result, errorNum: result["errorNum"],
-          action: action, url: send_url, request: JSON.pretty_generate(options)
+        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: {"response": response, "action": action, "url": send_url, "request": JSON.pretty_generate(options)}
+      elsif result.is_a?(Hash) && result[:error]
+        raise Arango::ErrorDB.new message: result[:errorMessage],
+          code: result[:code], data: result, errorNum: result[:errorNum],
+          action: action, send_url, request: JSON.pretty_generate(options)
       end
       if return_direct_result || @return_output || !result.is_a?(Hash)
         return result
       end
-      return key.nil? ? result.delete_if{|k,v| k == "error" || k == "code"} : result[key]
+      return key.nil? ? result.delete_if{|k,v| k == :error || k == :code}: result[key]
     end
 
   #  == DATABASE ==
@@ -191,22 +195,19 @@ module Arango
 
     def databases(user: nil)
       if user.nil?
-        result = request(action: "GET", url: "_api/database", key: "result")
+        result = request("GET", "_api/database", key: :result)
       else
         user = user.name if user.is_a?(Arango::User)
-        result = request(action: "GET", url: "_api/database/#{user}", key: "result")
+        result = request("GET", "_api/database/#{user}", key: :result)
       end
       return result if return_directly?(result)
-      result.map do |db|
-        Arango::Database.new(name: db, server: self)
-      end
+      result.map{|db| Arango::Database.new(name: db, server: self)}
     end
 
   # == CLUSTER ==
 
     def checkPort(port: @port)
-      query = {"port": port.to_s}
-      request(action: "GET", url: "_admin/clusterCheckPort", query: query)
+      request("GET", "_admin/clusterCheckPort", query: {port: port.to_s})
     end
 
   # === MONITORING ===
@@ -215,113 +216,106 @@ module Arango
       satisfy_category?(upto, [nil, "fatal", 0, "error", 1, "warning", 2, "info", 3, "debug", 4])
       satisfy_category?(sort, [nil, "asc", "desc"])
       query = {
-        "upto": upto, "level": level, "start": start, "size": size,
-        "offset": offset, "search": search, "sort": sort
+        upto: upto, level: level, start: start, size: size,
+        offset: offset, search: search, sort: sort
       }
-      request(action: "GET", url: "_admin/log", query: query,
-        skip_cluster: true)
+      request("GET", "_admin/log", query: query, skip_cluster: true)
     end
 
     def loglevel
-      request(action: "GET", url: "_admin/log/level", skip_cluster: true)
+      request("GET", "_admin/log/level", skip_cluster: true)
     end
 
     def updateLoglevel(body:)
-      request(action: "PUT", url: "_admin/log/level", skip_cluster: true,
-        body: body)
+      request("PUT", "_admin/log/level", skip_cluster: true, body: body)
     end
 
     def reload
-      request(action: "POST", url: "_admin/routing/reload", skip_cluster: true)
+      request("POST", "_admin/routing/reload", skip_cluster: true)
+      return true
     end
 
     def statistics
-      request(action: "GET", url: "_admin/statistics", skip_cluster: true)
+      request("GET", "_admin/statistics", skip_cluster: true)
     end
 
     def statisticsDescription
-      request(action: "GET", url: "_admin/statistics-description",
-        skip_cluster: true)
+      request("GET", "_admin/statistics-description", skip_cluster: true)
     end
 
     def role
-      request(action: "GET", url: "_admin/server/role", skip_cluster: true,
-        key: "role")
+      request("GET", "_admin/server/role", skip_cluster: true, key: "role")
     end
 
     def serverData
-      request(action: "GET", url: "_admin/server/id", skip_cluster: true)
+      request("GET", "_admin/server/id", skip_cluster: true)
     end
 
     def clusterStatistics dbserver:
-      query = {"DBserver": dbserver}
-      request(action: "GET", url: "_admin/clusterStatistics",
-        query: query, skip_cluster: true)
+      query = {DBserver: dbserver}
+      request("GET", "_admin/clusterStatistics", query: query, skip_cluster: true)
     end
 
   # === ENDPOINT ===
 
     def endpoints
-      request(action: "GET", url: "_api/cluster/endpoint")
+      request("GET", "_api/cluster/endpoints")
     end
 
     def allEndpoints(warning: @warning)
       warning_deprecated(warning, "allEndpoints")
-      request(action: "GET", url: "_api/endpoint")
+      request("GET", "_api/endpoint")
     end
 
   # === USER ===
 
     def user(password: "", name:, extra: {}, active: nil)
-      Arango::User.new(server: self, password: password, name: name,
-        extra: extra, active: active)
+      Arango::User.new(server: self, password: password, name: name, extra: extra,
+        active: active)
     end
 
     def users
-      result = request(action: "GET", url: "_api/user", key: "result")
+      result = request("GET", "_api/user", key: "result")
       return result if return_directly?(result)
-      result["result"].map do |user|
-        Arango::User.new(name: user["user"], active: user["active"],
-          extra: user["extra"], server: self)
+      result.map do |user|
+        Arango::User.new(name: user[:user], active: user[:active],
+          extra: user[:extra], server: self)
       end
     end
 
   # == TASKS ==
 
     def tasks
-      result = request(action: "GET", url: "_api/tasks")
+      result = request("GET", "_api/tasks")
       return result if return_directly?(result)
-      result["result"].map do |task|
-        Arango::Task.new(body: task, server: self)
-      end
+      result[:result].map{|task| Arango::Task.new(body: task, server: self)}
     end
 
-    def task(id: nil, name: nil, type: nil, period: nil, command: nil,
-      params: {}, created: nil)
-      Arango::Task.new(id: id, name: name, type: type,
-        period: period, command: command, params: params,
-        created: created, server: self)
+    def task(id: nil, name: nil, type: nil, period: nil, command: nil, params: {},
+      created: nil)
+      Arango::Task.new(id: id, name: name, type: type, period: period,
+        command: command, params: params, created: created, server: self)
     end
 
 # === ASYNC ===
 
     def fetchAsync(id:)
-      request(action: "PUT", url: "_api/job/#{id}")
+      request("PUT", "_api/job/#{id}")
     end
 
     def cancelAsync(id:)
-      request(action: "PUT", url: "_api/job/#{id}/cancel")
+      request("PUT", "_api/job/#{id}/cancel")
     end
 
     def destroyAsync(id:, stamp: nil)
-      query = {"stamp" => stamp}
-      request(action: "DELETE", url: "_api/job/#{id}", "query" => query)
+      query = {"stamp": stamp}
+      request("DELETE", "_api/job/#{id}", query: query)
     end
 
     def destroyAsyncByType(type:, stamp: nil)
       satisfy_category?(type, ["all", "expired"])
-      query = {"stamp" => stamp}
-      request(action: "DELETE", url: "_api/job/#{type}", "query" => query)
+      query = {"stamp": stamp}
+      request("DELETE", "_api/job/#{type}", query: query)
     end
 
     def destroyAllAsync
@@ -333,13 +327,12 @@ module Arango
     end
 
     def retrieveAsync(id:)
-      request(action: "GET", url: "_api/job/#{id}")
+      request("GET", "_api/job/#{id}")
     end
 
     def retrieveAsyncByType(type:, count: nil)
       satisfy_category?(type, ["done", "pending"])
-      query = {"count" => count}
-      request(action: "GET", url: "_api/job/#{type}", query: query)
+      request("GET", "_api/job/#{type}", query: {count: count})
     end
 
     def retrieveDoneAsync(count: nil)
@@ -357,46 +350,46 @@ module Arango
     end
 
     def createDumpBatch(ttl:, dbserver: nil)
-      query = { "DBserver" => dbserver }
-      body = { "ttl" => ttl }
-      result = request(action: "POST", url: "_api/replication/batch",
+      query = { DBserver: dbserver }
+      body = { ttl: ttl }
+      result = request("POST", "_api/replication/batch",
         body: body, query: query)
       return result if return_directly?(result)
-      return result["id"]
+      return result[:id]
     end
 
     def destroyDumpBatch(id:, dbserver: nil)
-      query = {"DBserver" => dbserver}
-      request(action: "DELETE", url: "_api/replication/batch/#{id}",
+      query = {DBserver: dbserver}
+      request("DELETE", "_api/replication/batch/#{id}",
         body: body, query: query)
     end
 
     def prolongDumpBatch(id:, ttl:, dbserver: nil)
-      query = { "DBserver" => dbserver }
-      body = { "ttl" => ttl }
-      result = request(action: "PUT", url: "_api/replication/batch/#{id}",
+      query = { DBserver: dbserver }
+      body  = { ttl: ttl }
+      result = request("PUT", "_api/replication/batch/#{id}",
         body: body, query: query)
       return result if return_directly?(result)
-      return result["id"]
+      return result[:id]
     end
 
   # === AGENCY ===
 
     def agencyConfig
-      request(action: "GET", url: "_api/agency/config")
+      request("GET", "_api/agency/config")
     end
 
     def agencyWrite(body:, agency_mode: nil)
       satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
-      headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
-      request(action: "POST", url: "_api/agency/write", headers: headers,
+      headers = {"X-ArangoDB-Agency-Mode": agency_mode}
+      request("POST", "_api/agency/write", headers: headers,
         body: body)
     end
 
     def agencyRead(body:, agency_mode: nil)
       satisfy_category?(agency_mode, ["waitForCommmitted", "waitForSequenced", "noWait", nil])
-      headers = {"X-ArangoDB-Agency-Mode" => agency_mode}
-      request(action: "POST", url: "_api/agency/read", headers: headers,
+      headers = {"X-ArangoDB-Agency-Mode": agency_mode}
+      request("POST", "_api/agency/read", headers: headers,
         body: body)
     end
 
@@ -404,38 +397,38 @@ module Arango
 
     def version(details: nil)
       query = {"details": details}
-      request(action: "GET", url: "_api/version", query: query)
+      request("GET", "_api/version", query: query)
     end
 
     def engine
-      request(action: "GET", url: "_api/engine")
+      request("GET", "_api/engine")
     end
 
     def flushWAL(waitForSync: nil, waitForCollector: nil)
       body = {
-        "waitForSync" => waitForSync,
-        "waitForCollector" => waitForCollector
+        "waitForSync": waitForSync,
+        "waitForCollector": waitForCollector
       }
-      result = request(action: "PUT", url: "_admin/wal/flush", body: body)
-      return return_directly?(result) ? result : true
+      result = request("PUT", "_admin/wal/flush", body: body)
+      return return_directly?(result) ? result: true
     end
 
     def propertyWAL
-      request(action: "GET", url: "_admin/wal/properties")
+      request("GET", "_admin/wal/properties")
     end
 
     def changePropertyWAL(allowOversizeEntries: nil, logfileSize: nil,
       historicLogfiles: nil, reserveLogfiles: nil, throttleWait: nil,
       throttleWhenPending: nil)
       body = {
-        "allowOversizeEntries" => allowOversizeEntries,
-        "logfileSize"         => allowOversizeEntries,
-        "historicLogfiles"    => historicLogfiles,
-        "reserveLogfiles"     => reserveLogfiles,
-        "throttleWait"        => throttleWait,
-        "throttleWhenPending" => throttleWhenPending
+        "allowOversizeEntries": allowOversizeEntries,
+        "logfileSize": allowOversizeEntries,
+        "historicLogfiles": historicLogfiles,
+        "reserveLogfiles": reserveLogfiles,
+        "throttleWait": throttleWait,
+        "throttleWhenPending": throttleWhenPending
       }
-      request(action: "PUT", url: "_admin/wal/properties", body: body)
+      request("PUT", "_admin/wal/properties", body: body)
     end
 
     def transaction(action:, write: [], read: [], params: nil,
@@ -449,36 +442,36 @@ module Arango
     end
 
     def transactions
-      request(action: "GET", url: "_admin/wal/transactions")
+      request("GET", "_admin/wal/transactions")
     end
 
     def time
-      request(action: "GET", url: "_admin/time")
+      request("GET", "_admin/time")
     end
 
     def echo
-      request(action: "GET", url: "_admin/echo")
+      request("GET", "_admin/echo")
     end
 
     def echo
-      request(action: "GET", url: "_admin/long_echo")
+      request("GET", "_admin/long_echo")
     end
 
     def target_version
-      request(action: "GET", url: "_admin/database/target-version")
+      request("GET", "_admin/database/target-version")
     end
 
     def shutdown
-      result = request(action: "DELETE", url: "_admin/shutdown")
-      return return_directly?(result) ? result : true
+      result = request("DELETE", "_admin/shutdown")
+      return return_directly?(result) ? result: true
     end
 
     def test(body:)
-      request(action: "POST", url: "_admin/test", body: body)
+      request("POST", "_admin/test", body: body)
     end
 
     def execute(body:)
-      request(action: "POST", url: "_admin/execute", body: body)
+      request("POST", "_admin/execute", body: body)
     end
 
     def return_directly?(result)

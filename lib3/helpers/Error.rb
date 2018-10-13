@@ -9,8 +9,8 @@ module Arango
       else
         unless classes.include?(object.class)
           name ||= object.object_id.to_s
-          raise Arango::Error.new err: :wrong_class, data: {"wrong_value" => name,
-            "wrong_class" => object.class.to_s, "expected_class" => classes.to_s}
+          raise Arango::Error.new err: :wrong_class, data: {"wrong_value": name,
+            "wrong_class": object.class.to_s, "expected_class": classes.to_s}
         end
       end
     end
@@ -18,8 +18,8 @@ module Arango
     def satisfy_category?(object, list)
       unless list.include?(object)
         name = name.object_id.to_s
-        raise Arango::Error.new err: :wrong_element, data: {"wrong_attribute" => name,
-          "wrong_value" => object, "list" => list}
+        raise Arango::Error.new err: :wrong_element, data: {"wrong_attribute": name,
+          "wrong_value": object, "list": list}
       end
     end
 

@@ -1,4 +1,5 @@
 require "httparty"
+require "oj"
 require_relative "helpers/Error"
 require_relative "helpers/Return"
 require_relative "AQL"

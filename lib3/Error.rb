@@ -47,6 +47,9 @@ module Arango
       },
       orphan_collection_used_by_edge_definition: {
         code: 10015, message: "Orphan collection is already used by an edge definition"
+      },
+      impossible_to_parse_arangodb_response: {
+        code: 10016, message: "Impossible to parse ArangoDB response"
       }
     }
 
@@ -66,13 +69,13 @@ end
 module Arango
   class ErrorDB < Arango::Error
     def initialize(message:, code:, data:, errorNum:, action:, url:, request:)
-      @message = message
-      @code = code
-      @data = data
+      @message  = message
+      @code     = code
+      @data     = data
       @errorNum = errorNum
-      @action = action
-      @url = url
-      @request = request
+      @action   = action
+      @url      = url
+      @request  = request
       super(err: nil, skip_assignment: true)
     end
     attr_reader :message, :code, :data, :errorNum, :action, :url, :request

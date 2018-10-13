@@ -13,7 +13,7 @@ module Arango
       satelliteSyncWait: nil, fullCount: nil, intermediateCommitSize: nil,
       optimizer_rules: nil, maxPlans: nil)
       satisfy_class?(query, [Arango::AQL, String])
-      @query = query.is_a?(String) ? query : query.query
+      @query = query.is_a?(String) ? query: query.query
       assign_database(database)
 
       @count       = count
@@ -46,8 +46,8 @@ module Arango
     attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars, :quantity
     attr_reader :hasMore, :id, :result, :idCache, :failOnWarning, :profile,
       :maxTransactionSize, :skipInaccessibleCollections, :maxWarningCount,
-      :intermediateCommitCount, :satelliteSyncWait, :fullCount,
-      :intermediateCommitSize, :optimizer_rules, :maxPlans, :database, :server, :cached, :extra
+      :intermediateCommitCount, :satelliteSyncWait, :fullCount, :server, :cached, :extra
+      :intermediateCommitSize, :optimizer_rules, :maxPlans, :database,
     alias size batchSize
     alias size= batchSize=
 
@@ -58,7 +58,7 @@ module Arango
         name = "optimizer.rules" if name == "optimizer_rules"
         @options[name] = attrs
       end
-      @options.delete_if{|k,v| v.nil?}
+      @options.compact!
       @options = nil if @options.empty?
     end
     private :set_option
@@ -67,20 +67,20 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "query"       => @query,
-        "database"    => @database,
-        "result"      => @result,
-        "count"       => @count,
-        "quantity"    => @quantity,
-        "ttl"         => @ttl,
-        "cache"       => @cache,
-        "batchSize"   => @batchSize,
-        "bindVars"    => @bindVars,
-        "options"     => @options,
-        "idCache"     => @idCache,
-        "memoryLimit" => @memoryLimit
-      }.delete_if{|k,v| v.nil?}
-      hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
+        "query":       @query,
+        "database":    @database,
+        "result":      @result,
+        "count":       @count,
+        "quantity":    @quantity,
+        "ttl" :        @ttl,
+        "cache":       @cache,
+        "batchSize":   @batchSize,
+        "bindVars":    @bindVars,
+        "options":     @options,
+        "idCache":     @idCache,
+        "memoryLimit": @memoryLimit
+      }.compact
+      hash[:database] = level > 0 ? @database.to_h(level-1): @database.name
       hash
     end
 
@@ -88,20 +88,20 @@ module Arango
 
     def return_aql(result)
       return result if @server.async != false
-      @extra    = result["extra"]
-      @cached   = result["cached"]
-      @quantity = result["count"]
-      @hasMore  = result["hasMore"]
-      @id       = result["id"]
-      if(result["result"][0].nil? || !result["result"][0].is_a?(Hash) || !result["result"][0].key?("_key"))
-        @result = result["result"]
+      @extra    = result[:extra]
+      @cached   = result[:cached]
+      @quantity = result[:count]
+      @hasMore  = result[:hasMore]
+      @id       = result[:id]
+      if(result[:result][0].nil? || !result[:result][0].is_a?(Hash) || !result[:result][0].key?(:_key))
+        @result = result[:result]
       else
-        @result = result["result"].map do |x|
-          collection = Arango::Collection.new(name: x["_id"].split("/")[0], database: @database)
-          Arango::Document.new(name: x["_key"], collection: collection, body: x)
+        @result = result[:result].map do |x|
+          collection = Arango::Collection.new(name: x[:_id].split("/")[0], database: @database)
+          Arango::Document.new(name: x[:_key], collection: collection, body: x)
         end
       end
-      return return_directly?(result) ? result : self
+      return return_directly?(result) ? result: self
     end
     private :return_aql
 
@@ -109,50 +109,49 @@ module Arango
 
     def execute
       body = {
-        "query"       => @query,
-        "count"       => @count,
-        "batchSize"   => @batchSize,
-        "ttl"         => @ttl,
-        "cache"       => @cache,
-        "options"     => @options,
-        "bindVars"    => @bindVars,
-        "memoryLimit" => @memoryLimit
+        "query":       @query,
+        "count":       @count,
+        "batchSize":   @batchSize,
+        "ttl" :        @ttl,
+        "cache":       @cache,
+        "options":     @options,
+        "bindVars":    @bindVars,
+        "memoryLimit": @memoryLimit
       }
-      result = @database.request(action: "POST", url: "_api/cursor", body: body)
+      result = @database.request("POST", "_api/cursor", body: body)
       return_aql(result)
     end
 
     def next
       if @hasMore
-        result = @database.request(action: "PUT", url: "_api/cursor/#{@id}")
+        result = @database.request("PUT", "_api/cursor/#{@id}")
         return_aql(result)
       else
-        raise Arango::Error.new err: :no_other_aql_next, data: {"hasMore" => false}
+        raise Arango::Error.new err::no_other_aql_next, data: {"hasMore": false}
       end
     end
 
     def destroy
-      @database.request(action: "DELETE", url: "_api/cursor/#{@id}")
+      @database.request("DELETE", "_api/cursor/#{@id}")
     end
 
 # === PROPERTY QUERY ===
 
     def explain
       body = {
-        "query"    => @query,
-        "options"  => @options,
-        "bindVars" => @bindVars
+        "query":    @query,
+        "options":  @options,
+        "bindVars": @bindVars
       }
-      @database.request(action: "POST", url: "_api/explain", body: body)
+      @database.request("POST", "_api/explain", body: body)
     end
 
     def parse
-      body = { "query" => @query }
-      @database.request(action: "POST", url: "_api/query", body: body)
+      @database.request("POST", "_api/query", body: {"query": @query})
     end
 
     def kill(id: @id)
-      @database.request(action: "DELETE", url: "_api/query/#{id}")
+      @database.request("DELETE", "_api/query/#{id}")
     end
   end
 end

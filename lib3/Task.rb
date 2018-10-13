@@ -10,13 +10,13 @@ module Arango
       params: {}, created: nil, server:, body: {})
       assign_server(server)
       body2 = {
-        "id"      => id,
-        "name"    => name,
-        "type"    => type,
-        "period"  => period,
-        "command" => command,
-        "params"  => params,
-        "created" => created
+        "id": id,
+        "name": name,
+        "type": type,
+        "period": period,
+        "command": command,
+        "params": params,
+        "created": created
       }
       body.merge!(body2)
       assign_attributes(body)
@@ -30,14 +30,14 @@ module Arango
 
     def body=(result)
       @body    = result
-      @id      = result["id"]      || @id
-      @name    = result["name"]    || @name
-      @type    = result["type"]    || @type
-      @period  = result["period"]  || @period
-      @command = result["command"] || @command
-      @params  = result["params"]  || @params
-      @offset  = result["offset"]  || @offset
-      @created = result["created"] || @created
+      @id      = result[:id]      || @id
+      @name    = result[:name]    || @name
+      @type    = result[:type]    || @type
+      @period  = result[:period]  || @period
+      @command = result[:command] || @command
+      @params  = result[:params]  || @params
+      @offset  = result[:offset]  || @offset
+      @created = result[:created] || @created
     end
     alias assign_attributes body=
 
@@ -45,53 +45,52 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "id"      => @id,
-        "name"    => @name,
-        "type"    => @type,
-        "period"  => @period,
-        "command" => @command,
-        "params"  => @params,
-        "created" => @created
-      }.delete_if{|k,v| v.nil?}
-      hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
+        "id": @id,
+        "name": @name,
+        "type": @type,
+        "period": @period,
+        "command": @command,
+        "params": @params,
+        "created": @created
+      }.compact
+      hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
       hash
     end
 
 # == RETRIEVE
 
     def retrieve
-      result = @database.request(action: "GET", url: "/_api/tasks/#{@id}")
+      result = @database.request("GET", "/_api/tasks/#{@id}")
       return return_element(result)
     end
 
-    def create(command: @command, period: @period, offset: @offset,
-      params: @params)
+    def create(command: @command, period: @period, offset: @offset, params: @params)
       body = {
-        "name"    => @name,
-        "command" => command,
-        "period"  => period,
-        "offset"  => offset,
-        "params"  => params
+        "name": @name,
+        "command": command,
+        "period": period,
+        "offset": offset,
+        "params": params
       }
-      result = @database.request(action: "POST", url: "/_api/tasks")
+      result = @database.request("POST", "/_api/tasks", body: body)
       return return_element(result)
     end
 
     def update(command: @command, period: @period, offset: @offset,
       params: @params)
       body = {
-        "name"    => @name,
-        "command" => command,
-        "period"  => period,
-        "offset"  => offset,
-        "params"  => params
+        "name": @name,
+        "command": command,
+        "period": period,
+        "offset": offset,
+        "params": params
       }
-      result = @database.request(action: "PUT", url: "/_api/task/#{@id}")
+      result = @database.request("PUT", "/_api/task/#{@id}", body: body)
       return return_element(result)
     end
 
     def destroy
-      result = @database.request(action: "DELETE", url: "/_api/task/#{@id}")
+      result = @database.request("DELETE", "/_api/task/#{@id}")
       return return_directly?(result) ? result : true
     end
   end
