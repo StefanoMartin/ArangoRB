@@ -78,12 +78,12 @@ module Arango
 
     def create
       body = {
-        "fields": @fields,
-        "unique": @unique,
-        "type": @type,
-        "id": @id,
-        "geoJson": @geoJson,
-        "minLength": @minLength,
+        "fields":      @fields,
+        "unique":      @unique,
+        "type":        @type,
+        "id":          @id,
+        "geoJson":     @geoJson,
+        "minLength":   @minLength,
         "deduplicate": @deduplicate
       }
       query = { "collection": @collection.name }
@@ -92,7 +92,7 @@ module Arango
     end
 
     def destroy
-      @database.request("DELETE", "/_api/index/#{id}")
+      @database.request("DELETE", "/_api/index/#{@id}")
     end
   end
 end

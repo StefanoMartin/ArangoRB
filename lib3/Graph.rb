@@ -60,9 +60,9 @@ module Arango
       @edgeDefinitions ||= []
       @edgeDefinitions.map do |edgedef|
         {
-          "collection": edgedef["collection"].name,
-          "from": edgedef["from"].map{|t| t.name},
-          "to": edgedef["to"].map{|t| t.name}
+          "collection": edgedef[:collection].name,
+          "from": edgedef[:from].map{|t| t.name},
+          "to": edgedef[:to].map{|t| t.name}
         }
       end
     end
@@ -79,11 +79,11 @@ module Arango
       edgeDefinitions = [edgeDefinitions] unless edgeDefinitions.is_a?(Array)
       edgeDefinitions.each do |edgeDefinition|
         hash = {}
-        hash["collection"] = return_collection(edgeDefinition["collection"], "Edge")
-        edgeDefinition["from"] ||= []
-        edgeDefinition["to"]   ||= []
-        hash["from"] = edgeDefinition["from"].map{|t| return_collection(t)}
-        hash["to"]   = edgeDefinition["to"].map{|t| return_collection(t)}
+        hash[:collection] = return_collection(edgeDefinition[:collection], :edge)
+        edgeDefinition[:from] ||= []
+        edgeDefinition[:to]   ||= []
+        hash[:from] = edgeDefinition[:from].map{|t| return_collection(t)}
+        hash[:to]   = edgeDefinition[:to].map{|t| return_collection(t)}
         setup_orphaCollection_after_adding_edge_definitions(hash)
         @edgeDefinitions << hash
       end
@@ -114,8 +114,8 @@ module Arango
       orphanCollection = return_collection(orphanCollection)
       if @edgeDefinitions.any? do |ed|
           names = []
-          names |= ed["from"].map{|f| f&.name}
-          names |= ed["to"].map{|t| t&.name}
+          names |= ed[:from].map{|f| f&.name}
+          names |= ed[:to].map{|t| t&.name}
           names.include?(orphanCollection.name)
         end
         raise Arango::Error.new err: :orphan_collection_used_by_edge_definition, data: {"collection": orphanCollection.name}
@@ -126,23 +126,23 @@ module Arango
 
     def setup_orphaCollection_after_adding_edge_definitions(edgeDefinition)
       collection = []
-      collection |= edgeDefinition["from"]
-      collection |= edgeDefinition["to"]
+      collection |= edgeDefinition[:from]
+      collection |= edgeDefinition[:to]
       @orphanCollections.delete_if{|c| collection.include?(c.name)}
     end
     private :setup_orphaCollection_after_adding_edge_definitions
 
     def setup_orphaCollection_after_removing_edge_definitions(edgeDefinition)
-      edgeCollection = edgeDefinition["collection"].name
+      edgeCollection = edgeDefinition[:collection].name
       collections |= []
-      collections |= edgeDefinition["from"]
-      collections |= edgeDefinition["to"]
+      collections |= edgeDefinition[:from]
+      collections |= edgeDefinition[:to]
       collections.each do |collection|
         unless @edgeDefinitions.any? do |ed|
-            if ed["collection"].name != edgeCollection
+            if ed[:collection].name != edgeCollection
               names = []
-              names |= ed["from"].map{|f| f&.name}
-              names |= ed["to"].map{|t| t&.name}
+              names |= ed[:from].map{|f| f&.name}
+              names |= ed[:to].map{|t| t&.name}
               names.include?(collection.name)
             else
               false
@@ -178,8 +178,8 @@ module Arango
         "smartGraphAttribute": @smartGraphAttribute,
         "edgeDefinitions": edgeDefinitionsRaw,
         "orphanCollections": orphanCollectionsRaw
-      }.delete_if{|k,v| v.nil?}
-      hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
+      }.compact
+      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
     end
 
@@ -252,7 +252,7 @@ module Arango
       result = request("GET", "edge", key: :collections)
       return result if @database.server.async != false
       return result if return_directly?(result)
-      result.map{|r| Arango::Collection.new(database: @database, name: r, type: "Edge")}
+      result.map{|r| Arango::Collection.new(database: @database, name: r, type: :edge)}
     end
 
     def addEdgeDefinition(collection:, from:, to:)

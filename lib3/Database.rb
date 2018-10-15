@@ -149,6 +149,10 @@ module Arango
       return return_delete(result)
     end
 
+    def retrieveQueryCache
+      request("GET", "_api/query-cache/entries")
+    end
+
     def propertyQueryCache
       request("GET", "_api/query-cache/properties")
     end
@@ -348,6 +352,27 @@ module Arango
       request("GET", "_api/replication/server-id", key: :serverId)
     end
 
+    def range
+      request("GET", "_api/wal/range")
+    end
+
+    def lastTick
+      request("GET", "_api/wal/lastTick")
+    end
+
+    def tail(from: nil, to: nil, global: nil, chunkSize: nil,
+      serverID: nil, barrierID: nil)
+      query = {
+        from: from,
+        to: to,
+        global: global,
+        chunkSize: chunkSize,
+        serverID: serverID,
+        barrierID: barrierID
+      }
+      request("GET", "_api/wal/tail", query: query)
+    end
+
 # === FOXX ===
 
     def foxx(body: {}, mount:, development: nil, legacy: nil, provides: nil,
@@ -388,6 +413,16 @@ module Arango
     def userAccess(user:)
       user = check_user(user)
       user.database_access(database: @name)
+    end
+
+# === VIEW ===
+
+    def views
+      result = request("GET", "_api/view", key: :result)
+      return result if return_directly?(result)
+      result.map do |view|
+        Arango::View.new(database: self, id: view[:id], name: view[:name], type: view[:type])
+      end
     end
   end
 end

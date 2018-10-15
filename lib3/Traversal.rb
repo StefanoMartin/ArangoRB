@@ -116,14 +116,15 @@ module Arango
     alias return_edgeCollection edgeCollection=
 
     def graph=(graph)
-      if graph.is_a?(Arango::Graph)
+      case graph
+      when Arango::Graph
         if graph.database.name != @database.name
           raise Arango::Error.new message: "#{graph} should have the same database of the chosen database"
         end
         @graph = graph
-      elsif graph.nil?
+      when NilClass
         @graph = nil
-      elsif graph.is_a?(String)
+      when String
         @graph = Arango::Graph.new(name: graph, database: @database)
       else
         raise Arango::Error.new message: "#{graph} should be an Arango::Graph or a name of a graph"

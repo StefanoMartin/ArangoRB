@@ -93,7 +93,7 @@ module Arango
       satisfy_class?(database, [Arango::Database, String])
       database = database.name if database.is_a?(Arango::Database)
       body = {"grant": grant}
-      result = @server.request("POST", "_api/user/#{@name}/database/#{database}",
+      result = @server.request("PUT", "_api/user/#{@name}/database/#{database}",
         body: body)
       return return_directly?(result) ? result : result[database.to_sym]
     end
@@ -105,7 +105,7 @@ module Arango
       database = database.name     if database.is_a?(Arango::Database)
       collection = collection.name if collection.is_a?(Arango::Collection)
       body = {"grant": grant}
-      result = @server.request("POST", "_api/user/#{@name}/database/#{database}/#{collection}",
+      result = @server.request("PUT", "_api/user/#{@name}/database/#{database}/#{collection}",
         body: body)
       return return_directly?(result) ? result : result[:"#{database}/#{collection}"]
     end

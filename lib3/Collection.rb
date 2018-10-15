@@ -6,13 +6,13 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
-    def initialize(name:, database:, graph: nil, body: {}, type: "Document",
+    def initialize(name:, database:, graph: nil, body: {}, type: :document,
       isSystem: nil)
       @name = name
       assign_database(database)
       assign_graph(graph)
       assign_type(type)
-      body[:type]     ||= type == "Document" ? 2 : 3
+      body[:type]     ||= type == :document ? 2 : 3
       body[:status]   ||= nil
       body[:isSystem] ||= isSystem
       body[:id]       ||= nil
@@ -120,14 +120,15 @@ module Arango
       allowUserKeys: nil, typeKeyGenerator: nil, incrementKeyGenerator: nil,
       offsetKeyGenerator: nil, waitForSync: nil, doCompact: nil,
       isVolatile: nil, shardKeys: nil, numberOfShards: nil,
-      isSystem: @isSystem, type: @type, indexBuckets: nil, distributeShardsLike: nil)
+      isSystem: @isSystem, type: @type, indexBuckets: nil, distributeShardsLike: nil, shardingStrategy: nil)
       satisfy_category?(typeKeyGenerator, [nil, "traditional", "autoincrement"])
       satisfy_category?(type, ["Edge", "Document", 2, 3, nil, :edge, :document])
+      satisfy_category?(shardingStrategy, [nil, "community-compat", "enterprise-compat", "enterprise-smart-edge-compat", "hash", "enterprise-hash-smart-edge"])
       keyOptions = {
         "allowUserKeys":      allowUserKeys,
         "type":               typeKeyGenerator,
         "increment":          incrementKeyGenerator,
-        "offsetKeyGenerator": offsetKeyGenerator
+        "offset":             offsetKeyGenerator
       }.compact
       keyOptions = nil if keyOptions.empty?
       type = case type
@@ -149,7 +150,8 @@ module Arango
         "numberOfShards":    numberOfShards,
         "isSystem":          isSystem,
         "indexBuckets":      indexBuckets,
-        "distributeShardsLike": distributeShardsLike
+        "distributeShardsLike": distributeShardsLike,
+        "shardingStrategy":  shardingStrategy
       }
       body = @body.merge(body)
       result = @database.request("POST", "_api/collection", body: body)
@@ -385,8 +387,7 @@ module Arango
         "returnOld":   returnOld,
         "ignoreRevs":  ignoreRevs
       }
-      @database.request("DELETE",
-        url: "_api/document/#{@id}", query: query)
+      @database.request("DELETE", "_api/document/#{@id}", query: query, body: document)
     end
 
 # == SIMPLE ==

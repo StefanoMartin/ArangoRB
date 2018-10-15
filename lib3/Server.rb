@@ -193,12 +193,11 @@ module Arango
       Arango::Database.new(name: name, server: self)
     end
 
-    def databases(user: nil)
-      if user.nil?
-        result = request("GET", "_api/database", key: :result)
+    def databases(user: false)
+      if user
+        result = request("GET", "_api/database/user", key: :result)
       else
-        user = user.name if user.is_a?(Arango::User)
-        result = request("GET", "_api/database/#{user}", key: :result)
+        result = request("GET", "_api/database", key: :result)
       end
       return result if return_directly?(result)
       result.map{|db| Arango::Database.new(name: db, server: self)}
@@ -231,8 +230,12 @@ module Arango
     end
 
     def reload
-      request("POST", "_admin/routing/reload", skip_cluster: true)
+      request("GET", "_admin/server/availability", skip_cluster: true)
       return true
+    end
+
+    def available?
+      request("POST", "_admin/routing/reload", body: {}, skip_cluster: true)
     end
 
     def statistics
@@ -243,12 +246,30 @@ module Arango
       request("GET", "_admin/statistics-description", skip_cluster: true)
     end
 
+    def status
+      request("GET", "_admin/status", skip_cluster: true)
+    end
+
     def role
       request("GET", "_admin/server/role", skip_cluster: true, key: "role")
     end
 
     def serverData
       request("GET", "_admin/server/id", skip_cluster: true)
+    end
+
+    def mode
+      request("GET", "_admin/server/mode", skip_cluster: true)
+    end
+
+    def updateMode(mode:)
+      satisfy_category?(mode, ["default", "readonly"])
+      body = {mode: mode}
+      request("PUT", "_admin/server/mode", body: mode, skip_cluster: true)
+    end
+
+    def clusterHealth
+      request("GET", "_admin/health", skip_cluster: true)
     end
 
     def clusterStatistics dbserver:
@@ -275,7 +296,7 @@ module Arango
     end
 
     def users
-      result = request("GET", "_api/user", key: "result")
+      result = request("GET", "_api/user", key: :result)
       return result if return_directly?(result)
       result.map do |user|
         Arango::User.new(name: user[:user], active: user[:active],
@@ -450,12 +471,12 @@ module Arango
     end
 
     def echo
-      request("GET", "_admin/echo")
+      request("POST", "_admin/echo", body: {})
     end
 
-    def echo
-      request("GET", "_admin/long_echo")
-    end
+    # def echo
+    #   request("GET", "_admin/long_echo")
+    # end
 
     def target_version
       request("GET", "_admin/database/target-version")
