@@ -16,20 +16,20 @@ describe Arango::Collection do
       attributes = ["value", "num", "name"]
       values = [["uno",1,"ONE"],["due",2,"TWO"],["tre",3,"THREE"]]
       result = @myCollection.import attributes: attributes, values: values
-      expect(result["created"]).to eq 3
+      expect(result[:created]).to eq 3
     end
 
     it "import single" do
       attributes = ["value", "num", "name"]
       values = ["uno",1,"ONE"]
       result = @myCollection.import attributes: attributes, values: values
-      expect(result["created"]).to eq 1
+      expect(result[:created]).to eq 1
     end
 
     it "importJSON" do
       body = [{"value": "uno", "num": 1, "name": "ONE"}, {"value": "due", "num": 2, "name": "DUE"}]
       result = @myCollection.importJSON body: body
-      expect(result["created"]).to eq 2
+      expect(result[:created]).to eq 2
     end
   end
 
@@ -48,7 +48,7 @@ describe Arango::Collection do
 
   context "#indexes" do
     it "indexes" do
-      expect(@myCollection.indexes["indexes"][0].class).to be Arango::Index
+      expect(@myCollection.indexes[:indexes][0].class).to be Arango::Index
     end
 
     it "create" do

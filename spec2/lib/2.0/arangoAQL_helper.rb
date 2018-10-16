@@ -27,15 +27,15 @@ describe Arango::AQL do
 
   context "#info" do
     it "explain" do
-      expect(@myAQL.explain["cacheable"]).to be true
+      expect(@myAQL.explain[:cacheable]).to be true
     end
 
     it "parse" do
-      expect(@myAQL.parse["parsed"]).to be true
+      expect(@myAQL.parse[:parsed]).to be true
     end
 
     it "properties" do
-      expect(@myDatabase.queryProperties["enabled"]).to be true
+      expect(@myDatabase.queryProperties[:enabled]).to be true
     end
 
     it "current" do
@@ -64,7 +64,7 @@ describe Arango::AQL do
 
     it "changeProperties" do
       result = @myDatabase.changeQueryProperties maxSlowQueries: 65
-      expect(result["maxSlowQueries"]).to eq 65
+      expect(result[:maxSlowQueries]).to eq 65
     end
   end
 end

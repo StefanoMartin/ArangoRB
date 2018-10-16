@@ -12,8 +12,8 @@ module Arango
       @port = port
       @username = username
       @password = password
-      @options = {:body: {}, :headers: {}, :query: {},
-:basic_auth: {:username: @username, :password: @password }}
+      @options = {body: {}, headers: {}, query: {},
+        basic_auth: {username: @username, password: @password }, format: :plain}
       assign_async(async)
       @verbose = verbose
       @return_output = return_output
@@ -65,7 +65,7 @@ module Arango
 # === TO HASH ===
 
     def to_h(level=0)
-      {
+      hash = {
         "base_uri": @base_uri,
         "server":   @server,
         "port":     @port,
@@ -75,7 +75,9 @@ module Arango
         "return_output": @return_output,
         "cluster": @cluster,
         "warning": @warning
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
+      hash
     end
 
 # === REQUESTS ===
@@ -86,10 +88,10 @@ module Arango
         send_url += "_admin/#{@cluster}/"
       end
       send_url += url
-      body.compact!
-      query.compact!
-      headers.compact!
-      body = Oj.dump(body)
+      body.delete_if{|k,v| v.nil?}
+      query.delete_if{|k,v| v.nil?}
+      headers.delete_if{|k,v| v.nil?}
+      body = Oj.dump(body, mode: :json)
       options = @options.merge({body: body, query: query, headers: headers, stream_body: true})
       puts "\n#{action} #{send_url}\n" if @verbose
       File.open(path, "w") do |file|
@@ -110,10 +112,10 @@ module Arango
       send_url += url
 
       if body.is_a?(Hash)
-        body.compact! unless keepNull
+        body.delete_if{|k,v| v.nil?} unless keepNull
       end
-      query.compact!
-      headers.compact!
+      query.delete_if{|k,v| v.nil?}
+      headers.delete_if{|k,v| v.nil?}
 
       options = @options.merge({body: body, query: query, headers: headers})
 
@@ -129,7 +131,7 @@ module Arango
       end
 
       if !skip_to_json && !options[:body].nil?
-        options[:body] = options[:body].to_json
+        options[:body] = Oj.dump(options[:body], mode: :json)
       end
 
       response = case action
@@ -147,14 +149,16 @@ module Arango
         HTTParty.delete(send_url, options)
       end
 
-      if @async == "store"
+      case @async
+      when "store"
         return response.headers["x-arango-async-id"]
-      elsif @async == true
+      when true
         return true
       end
+
       begin
         result = Oj.load(response.parsed_response, mode: :json, symbol_keys: true)
-      rescue
+      rescue Exception => e
         raise Arango::Error.new err: :impossible_to_parse_arangodb_response,
           data: {"response": response.parsed_response, "action": action, "url": send_url,
             "request": JSON.pretty_generate(options)}
@@ -175,7 +179,7 @@ module Arango
       elsif result.is_a?(Hash) && result[:error]
         raise Arango::ErrorDB.new message: result[:errorMessage],
           code: result[:code], data: result, errorNum: result[:errorNum],
-          action: action, send_url, request: JSON.pretty_generate(options)
+          action: action, url: send_url, request: options
       end
       if return_direct_result || @return_output || !result.is_a?(Hash)
         return result

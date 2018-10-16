@@ -33,7 +33,7 @@ module Arango
     alias_method :key, :name
 
     def body=(result)
-      result.compact!
+      result.delete_if{|k,v| v.nil?}
       hash = {
         "_key":  @name,
         "_id":   @id,
@@ -65,7 +65,7 @@ module Arango
       hash[:collection] = level > 0 ? @collection.to_h(level-1) : @collection.name
       hash[:from] = level > 0 ? @from&.to_h(level-1) : @from&.id
       hash[:to] = level > 0 ? @to&.to_h(level-1) : @to&.id
-      hash.compact!
+      hash.delete_if{|k,v| v.nil?}
       hash
     end
 
@@ -74,7 +74,7 @@ module Arango
         instance = nil
       elsif var.is_a?(String)
         if !var.is_a?(String) || !var.include?("/")
-          raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" attrs, "wrong_value" var}
+          raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute": attrs, "wrong_value": var}
         end
         collection_name, document_name = var.split("/")
         collection = Arango::Collection.new name: collection_name,
@@ -88,7 +88,7 @@ module Arango
       elsif var.is_a?(Arango::Document)
         instance = var
       else
-        raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute" attrs, "wrong_value" var}
+        raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute": attrs, "wrong_value": var}
       end
       instance_variable_set("@#{attrs}", instance)
       @body[:"_#{attrs}"] = instance&.id unless instance&.id.nil?
@@ -227,8 +227,7 @@ module Arango
         "vertex":    @id,
         "direction": direction
       }
-      result = @database.request("GET",
-        url: "_api/edges/#{collection}", query: query)
+      result = @database.request("GET", "_api/edges/#{collection}", query: query)
       return result if return_directly?(result)
       result[:edges].map do |edge|
         collection_name, key = edge[:_id].split("/")

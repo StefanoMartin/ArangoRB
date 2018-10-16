@@ -4,14 +4,14 @@ describe Arango::Traversal do
   context "#new" do
     it "creates new connections" do
       myDoc = @myCollection.createDocuments document: [
-        {"B" => 1}, {"B" => 2}, {"B" => 3}, {"B" => 4}, {"B" => 5},
-        {"B" => 6}, {"B" => 7}, {"B" => 8}, {"B" => 9}, {"B" => 10}]
-      @myEdgeCollection.createEdges document: [{"ED" => 1}, {"ED" => 2}],
+        {"B": 1}, {"B": 2}, {"B": 3}, {"B": 4}, {"B": 5},
+        {"B": 6}, {"B": 7}, {"B": 8}, {"B": 9}, {"B": 10}]
+      @myEdgeCollection.createEdges document: [{"ED": 1}, {"ED": 2}],
       from: [myDoc[0], myDoc[1], myDoc[2]], to: [myDoc[3], myDoc[4], myDoc[5]]
-      @myEdgeCollection.createEdges document: [{"ED" => 3}, {"ED" => 4}],
+      @myEdgeCollection.createEdges document: [{"ED": 3}, {"ED": 4}],
       from: [myDoc[3], myDoc[4], myDoc[5]], to: [myDoc[6], myDoc[7]]
-      val = @myEdgeCollection.createEdges document: [{"ED" => 0}], from:  @myDoc[0], to: myDoc[0]
-      expect(val[0].collection.type).to eq "Edge"
+      val = @myEdgeCollection.createEdges document: [{"ED": 0}], from:  @myDoc[0], to: myDoc[0]
+      expect(val[0].collection.type).to eq :edge
     end
 
     it "create a new Traversal instance" do

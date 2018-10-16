@@ -158,7 +158,7 @@ module Arango
 
 # === REQUEST ===
 
-    def request(action:, url:, body: {}, headers: {}, query: {}, key: nil, return_direct_result: false, skip_to_json: false)
+    def request(action, url, body: {}, headers: {}, query: {}, key: nil, return_direct_result: false, skip_to_json: false)
       url = "_api/gharial/#{@name}/#{url}"
       @database.request(action, url, body: body, headers: headers,
         query: query, key: key, return_direct_result: return_direct_result,
@@ -178,7 +178,8 @@ module Arango
         "smartGraphAttribute": @smartGraphAttribute,
         "edgeDefinitions": edgeDefinitionsRaw,
         "orphanCollections": orphanCollectionsRaw
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
     end
@@ -204,7 +205,7 @@ module Arango
           "numberOfShards": numberOfShards
         }
       }
-      body[:options].compact!
+      body[:options].delete_if{|k,v| v.nil?}
       body.delete(:options) if body[:options].empty?
       result = @database.request("POST", "_api/gharial", body: body, key: :graph)
       return_element(result)

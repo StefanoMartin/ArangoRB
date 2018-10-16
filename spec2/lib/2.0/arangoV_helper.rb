@@ -12,7 +12,7 @@ describe Arango::Vertex do
     it "create a new Document" do
       @myVertex.destroy
       myVertex = @myVertex.create
-      expect(myVertex.body["Hello"]).to eq "World"
+      expect(myVertex.body[:Hello]).to eq "World"
     end
 
     it "create a duplicate Document" do
@@ -22,14 +22,14 @@ describe Arango::Vertex do
       rescue Arango::ErrorDB => e
         error = e.errorNum
       end
-      expect(error).to eq 1210
+      expect(error).to eq 1202
     end
   end
 
   context "#info" do
     it "retrieve Document" do
       myVertex = @myVertex.retrieve
-      expect(myVertex.body["Hello"]).to eq "World"
+      expect(myVertex.body[:Hello]).to eq "World"
     end
 
     it "retrieve Edges" do
@@ -46,13 +46,13 @@ describe Arango::Vertex do
 
   context "#modify" do
     it "replace" do
-      myVertex = @myVertex.replace body: {"value" => 3}
-      expect(myVertex.body["value"]).to eq 3
+      myVertex = @myVertex.replace body: {"value": 3}
+      expect(myVertex.body[:value]).to eq 3
     end
 
     it "update" do
-      myVertex = @myVertex.update body: {"time" => 13}
-      expect(myVertex.body["value"]).to eq 3
+      myVertex = @myVertex.update body: {"time": 13}
+      expect(myVertex.body[:value]).to eq 3
     end
   end
 

@@ -73,11 +73,11 @@ module Arango
       hash = {
         "name":     @name,
         "type":     @type,
-        "status:"   @status,
+        "status":   @status,
         "id":       @id,
         "isSystem": @isSystem,
         "body":     @body
-      }.compact!
+      }.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
     end
@@ -129,7 +129,8 @@ module Arango
         "type":               typeKeyGenerator,
         "increment":          incrementKeyGenerator,
         "offset":             offsetKeyGenerator
-      }.compact
+      }
+      keyOptions.delete_if{|k,v| v.nil?}
       keyOptions = nil if keyOptions.empty?
       type = case type
       when 2, "Document", nil, :document
@@ -197,7 +198,7 @@ module Arango
     end
 
     def rename(newName:)
-      body = { "name"_ newName }
+      body = { "name": newName }
       result = @database.request("PUT", "_api/collection/#{@name}/rename", body: body)
       return_element(result)
     end
@@ -462,7 +463,8 @@ module Arango
         "returnOld":   returnOld,
         "silent":      silent,
         "waitForSync": waitForSync
-      }.compact
+      }
+      options.delete_if{|k,v| v.nil?}
       options = nil if options.empty?
       if keys.is_a? Array
         keys = keys.map{|x| x.is_a?(String) ? x : x.key}
@@ -488,7 +490,8 @@ module Arango
       options = {
         "limit":        limit,
         "waitForSync":  waitForSync
-      }.compact
+      }
+      options.delete_if{|k,v| v.nil?}
       options = nil if options.empty?
       body = {
         "collection":  @name,
@@ -502,7 +505,8 @@ module Arango
       options = {
         "limit":        limit,
         "waitForSync":  waitForSync
-      }.compact
+      }
+      options.delete_if{|k,v| v.nil?}
       options = nil if options.empty?
       body = {
         "collection": @name,
@@ -520,7 +524,8 @@ module Arango
         "mergeObjects": mergeObjects,
         "limit":        limit,
         "waitForSync":  waitForSync
-      }.compact
+      }
+      options.delete_if{|k,v| v.nil?}
       options = nil if options.empty?
       body = {
         "collection": @name,
@@ -650,7 +655,7 @@ module Arango
       body = "#{attributes}\n"
       values[0].is_a?(Array) ? values.each{|x| body += "#{x}\n"} : body += "#{values}\n"
       @database.request("POST", "_api/import", query: query,
-        body: body.to_json, skip_to_json: true)
+        body: body, skip_to_json: true)
     end
 
     def importJSON(body:, type: "auto", fromPrefix: nil,
@@ -673,7 +678,7 @@ module Arango
         "details":     details
       }
       @database.request("POST", "_api/import", query: query,
-        body: body.to_json, skip_to_json: true)
+        body: body)
     end
 
   # === EXPORT ===

@@ -52,7 +52,8 @@ module Arango
         "command": @command,
         "params": @params,
         "created": @created
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
       hash
     end

@@ -64,7 +64,8 @@ module Arango
         "geoJson": @geoJson,
         "minLength": @minLength,
         "deduplicate": @deduplicate
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash[:collection] = level > 0 ? @collection.to_h(level-1) : @collection.name
     end
 

@@ -3,7 +3,6 @@ require_relative './../../spec_helper'
 describe Arango::Graph do
   context "#new" do
     it "create a new Graph instance without global" do
-      @server.verbose = true
       myGraph = @myDatabase.graph name: "MyGraph"
       expect(myGraph.name).to eq "MyGraph"
     end
@@ -59,7 +58,7 @@ describe Arango::Graph do
   context "#manageEdgeCollections" do
     it "add EdgeCollection" do
       myGraph = @myGraph.addEdgeDefinition collection: "MyEdgeCollection", from: "MyCollection", to: @myCollectionB
-      expect(myGraph.edgeDefinitions[0]["from"][0].name).to eq "MyCollection"
+      expect(myGraph.edgeDefinitions[0][:from][0].name).to eq "MyCollection"
     end
 
     it "retrieve EdgeCollection" do
@@ -69,12 +68,12 @@ describe Arango::Graph do
 
     it "retrieve EdgeCollection" do
       myGraph = @myGraph.edgeDefinitions
-      expect(myGraph[0]["collection"].name).to eq "MyEdgeCollection"
+      expect(myGraph[0][:collection].name).to eq "MyEdgeCollection"
     end
 
     it "replace EdgeCollection" do
       myGraph = @myGraph.replaceEdgeDefinition collection: @myEdgeCollection, from: "MyCollection", to: "MyCollection"
-      expect(myGraph.edgeDefinitions[0]["to"][0].name).to eq "MyCollection"
+      expect(myGraph.edgeDefinitions[0][:to][0].name).to eq "MyCollection"
     end
 
     it "remove EdgeCollection" do

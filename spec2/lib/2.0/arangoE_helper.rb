@@ -3,20 +3,20 @@ require_relative './../../spec_helper'
 describe Arango::Edge do
   context "#new" do
     it "create a new Edge instance" do
-      a = @myCollection.vertex(name: "myA", body: {"Hello" => "World"}).create
-      b = @myCollection.vertex(name: "myB", body: {"Hello" => "World"}).create
+      a = @myCollection.vertex(name: "myA", body: {"Hello": "World"}).create
+      b = @myCollection.vertex(name: "myB", body: {"Hello": "World"}).create
       myEdgeDocument = @myEdgeCollection.edge(from: a, to: b)
-      expect(myEdgeDocument.body["_from"]).to eq a.id
+      expect(myEdgeDocument.body[:_from]).to eq a.id
     end
   end
 
   context "#create" do
     it "create a new Edge" do
-      myDoc = @myCollection.createDocuments document: [{"A" => "B", "num" => 1},
-        {"C" => "D", "num" => 3}]
+      myDoc = @myCollection.createDocuments document: [{"A": "B", "num": 1},
+        {"C": "D", "num": 3}]
       myEdge = @myEdgeCollection.edge(from: myDoc[0].id, to: myDoc[1].id)
       myEdge = myEdge.create
-      expect(myEdge.body["_from"]).to eq myDoc[0].id
+      expect(myEdge.body[:_from]).to eq myDoc[0].id
     end
   end
 
@@ -29,16 +29,16 @@ describe Arango::Edge do
 
   context "#modify" do
     it "replace" do
-      a = @myCollection.vertex(body: {"Hello" => "World"}).create
-      b = @myCollection.vertex(body: {"Hello" => "World!!"}).create
-      myDocument = @myEdge.replace body: {"_from" => a.id, "_to" => b.id}
-      expect(myDocument.body["_from"]).to eq a.id
+      a = @myCollection.vertex(body: {"Hello": "World"}).create
+      b = @myCollection.vertex(body: {"Hello": "World!!"}).create
+      myDocument = @myEdge.replace body: {"_from": a.id, "_to": b.id}
+      expect(myDocument.body[:_from]).to eq a.id
     end
 
     it "update" do
-      cc = @myCollection.vertex(body: {"Hello" => "World!!!"}).create
-      myDocument = @myEdge.update body: {"_to" => cc.id}
-      expect(myDocument.body["_to"]).to eq cc.id
+      cc = @myCollection.vertex(body: {"Hello": "World!!!"}).create
+      myDocument = @myEdge.update body: {"_to": cc.id}
+      expect(myDocument.body[:_to]).to eq cc.id
     end
   end
 

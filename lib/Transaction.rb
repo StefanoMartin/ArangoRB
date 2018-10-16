@@ -70,7 +70,8 @@ module Arango
         "params": @params,
         "read": @read.map{|x| x.name},
         "write": @write.map{|x| x.name}
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
     end
 

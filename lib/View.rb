@@ -36,7 +36,8 @@ module Arango
         includeAllFields: includeAllFields,
         trackListPositions: trackListPositions,
         storeValues: storeValues
-      }.compact
+      }
+      @links[collection_name].delete_if{|k,v| v.nil?}
     end
 
     def to_h(level=0)
@@ -45,7 +46,8 @@ module Arango
         "id": @id,
         "type": @type,
         "links": @links
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
     end
 
@@ -82,11 +84,11 @@ module Arango
         body[:type] = @type
         body[:name] = @name
       end
-      body[:properties][:consolidationPolicy].compact!
+      body[:properties][:consolidationPolicy].delete_if{|k,v| v.nil?}
       body[:properties].delete(:consolidationPolicy) if body[:properties][:consolidationPolicy].empty?
-      body[:properties].compact!
+      body[:properties].delete_if{|k,v| v.nil?}
       body.delete(:properties) if body[:properties].empty?
-      body.compact!
+      body.delete_if{|k,v| v.nil?}
       result = @database.request(method, "_api/views", body: body)
       return_element(result)
     end

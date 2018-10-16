@@ -51,7 +51,7 @@ describe Arango::Database do
 
   context "#query" do
     it "properties" do
-      expect(@myDatabase.queryProperties["enabled"]).to be true
+      expect(@myDatabase.queryProperties[:enabled]).to be true
     end
 
     it "current" do
@@ -70,10 +70,10 @@ describe Arango::Database do
 
     it "kill" do
       @myCollection.create
-      @myCollection.createDocuments document: [{"num" => 1, "_key" => "FirstKey"},
-        {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1},
-        {"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3},
-        {"num" => 2}, {"num" => 5}, {"num" => 2}]
+      @myCollection.createDocuments document: [{"num": 1, "_key": "FirstKey"},
+        {"num": 1}, {"num": 1}, {"num": 1}, {"num": 1}, {"num": 1},
+        {"num": 1}, {"num": 2}, {"num": 2}, {"num": 2}, {"num": 3},
+        {"num": 2}, {"num": 5}, {"num": 2}]
       myAQL = @myDatabase.aql query: 'FOR i IN 1..1000000
   INSERT { name: CONCAT("test", i) } IN MyCollection'
       myAQL.size = 3
@@ -89,7 +89,7 @@ describe Arango::Database do
 
     it "changeProperties" do
       result = @myDatabase.changeQueryProperties maxSlowQueries: 65
-      expect(result["maxSlowQueries"]).to eq 65
+      expect(result[:maxSlowQueries]).to eq 65
     end
   end
 
@@ -100,7 +100,7 @@ describe Arango::Database do
 
     it "change Property Cache" do
       @myDatabase.changeQueryProperties maxSlowQueries: 130
-      expect(@myDatabase.queryProperties["maxSlowQueries"]).to eq 130
+      expect(@myDatabase.queryProperties[:maxSlowQueries]).to eq 130
     end
   end
 
@@ -113,7 +113,7 @@ describe Arango::Database do
 
     it "list Functions" do
       result = @myDatabase.aqlFunctions
-      expect(result[0]["name"]).to eq "myfunctions::temperature::celsiustofahrenheit"
+      expect(result[0][:name]).to eq "myfunctions::temperature::celsiustofahrenheit"
     end
 
     it "delete Function" do

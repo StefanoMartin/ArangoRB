@@ -8,19 +8,19 @@ describe Arango::Document do
     end
 
     it "create a new Edge instance" do
-      a = @myCollection.document(name: "myA", body: {"Hello" => "World"}).create
-      b = @myCollection.document(name: "myB", body: {"Hello" => "World"}).create
+      a = @myCollection.document(name: "myA", body: {"Hello": "World"}).create
+      b = @myCollection.document(name: "myB", body: {"Hello": "World"}).create
       myEdgeDocument = @myEdgeCollection.document(from: a, to: b)
-      expect(myEdgeDocument.body["_from"]).to eq a.id
+      expect(myEdgeDocument.body[:_from]).to eq a.id
     end
   end
 
   context "#create" do
     it "create a new Document" do
       @myDocument.destroy
-      @myDocument.body = {"Hello" => "World"}
+      @myDocument.body = {"Hello": "World"}
       myDocument = @myDocument.create
-      expect(myDocument.body["Hello"]).to eq "World"
+      expect(myDocument.body[:Hello]).to eq "World"
     end
 
     it "create a duplicate Document" do
@@ -34,17 +34,17 @@ describe Arango::Document do
     end
 
     it "create a new Edge" do
-      myDoc = @myCollection.createDocuments document: [{"A" => "B", "num" => 1}, {"C" => "D", "num" => 3}]
+      myDoc = @myCollection.createDocuments document: [{"A": "B", "num": 1}, {"C": "D", "num": 3}]
       myEdge = @myEdgeCollection.document from: myDoc[0].id, to: myDoc[1].id
       myEdge = myEdge.create
-      expect(myEdge.body["_from"]).to eq myDoc[0].id
+      expect(myEdge.body[:_from]).to eq myDoc[0].id
     end
   end
 
   context "#info" do
     it "retrieve Document" do
       myDocument = @myDocument.retrieve
-      expect(myDocument.body["Hello"]).to eq "World"
+      expect(myDocument.body[:Hello]).to eq "World"
     end
 
     it "retrieve Edges" do
@@ -62,13 +62,13 @@ describe Arango::Document do
 
   context "#modify" do
     it "replace" do
-      myDocument = @myDocument.replace body: {"value" => 3}
-      expect(myDocument.body["value"]).to eq 3
+      myDocument = @myDocument.replace body: {"value": 3}
+      expect(myDocument.body[:value]).to eq 3
     end
 
     it "update" do
-      myDocument = @myDocument.update body: {"time" => 13}
-      expect(myDocument.body["value"]).to eq 3
+      myDocument = @myDocument.update body: {"time": 13}
+      expect(myDocument.body[:value]).to eq 3
     end
   end
 

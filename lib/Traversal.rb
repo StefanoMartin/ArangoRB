@@ -188,7 +188,7 @@ module Arango
       hash[:graph] = level > 0 ? @graph&.to_h(level-1) : @graph&.name
       hash[:edgeCollection] = level > 0 ? @edgeCollection&.to_h(level-1) : @edgeCollection&.name
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
-      hash.compact!
+      hash.delete_if{|k,v| v.nil?}
       hash
     end
 

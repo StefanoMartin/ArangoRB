@@ -37,7 +37,8 @@ module Arango
         "user": @name,
         "extra": @extra,
         "active": @active
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
     end
 

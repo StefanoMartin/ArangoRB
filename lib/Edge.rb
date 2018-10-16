@@ -68,7 +68,7 @@ module Arango
         "_from":      @from.id,
         "_to":        @to.id
       }
-      result = @graph.request("POST", body: body, "edge/#{@collection.name}",
+      result = @graph.request("POST", "edge/#{@collection.name}", body: body, 
         query: query, key: :edge)
       return result if @server.async != false
       body2 = result.clone

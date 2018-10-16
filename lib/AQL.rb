@@ -46,8 +46,8 @@ module Arango
     attr_accessor :count, :query, :batchSize, :ttl, :cache, :options, :bindVars, :quantity
     attr_reader :hasMore, :id, :result, :idCache, :failOnWarning, :profile,
       :maxTransactionSize, :skipInaccessibleCollections, :maxWarningCount,
-      :intermediateCommitCount, :satelliteSyncWait, :fullCount, :server, :cached, :extra
-      :intermediateCommitSize, :optimizer_rules, :maxPlans, :database,
+      :intermediateCommitCount, :satelliteSyncWait, :fullCount, :server, :cached, :extra,
+      :intermediateCommitSize, :optimizer_rules, :maxPlans, :database
     alias size batchSize
     alias size= batchSize=
 
@@ -58,7 +58,7 @@ module Arango
         name = "optimizer.rules" if name == "optimizer_rules"
         @options[name] = attrs
       end
-      @options.compact!
+      @options.delete_if{|k,v| v.nil?}
       @options = nil if @options.empty?
     end
     private :set_option
@@ -72,14 +72,15 @@ module Arango
         "result":      @result,
         "count":       @count,
         "quantity":    @quantity,
-        "ttl" :        @ttl,
+        "ttl":        @ttl,
         "cache":       @cache,
         "batchSize":   @batchSize,
         "bindVars":    @bindVars,
         "options":     @options,
         "idCache":     @idCache,
         "memoryLimit": @memoryLimit
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1): @database.name
       hash
     end
@@ -112,7 +113,7 @@ module Arango
         "query":       @query,
         "count":       @count,
         "batchSize":   @batchSize,
-        "ttl" :        @ttl,
+        "ttl":        @ttl,
         "cache":       @cache,
         "options":     @options,
         "bindVars":    @bindVars,

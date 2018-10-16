@@ -59,7 +59,8 @@ module Arango
         "provides": @provides,
         "type": @type,
         "teardown": @teardown
-      }.compact
+      }
+      hash.delete_if{|k,v| v.nil?}
       hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
     end

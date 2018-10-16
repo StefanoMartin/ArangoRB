@@ -8,8 +8,8 @@ describe Arango::Collection do
     end
 
     it "create a new instance with type Edge" do
-      myCollection = @myDatabase.collection name: "MyCollection", type: "Edge"
-      expect(myCollection.type).to eq "Edge"
+      myCollection = @myDatabase.collection name: "MyCollection", type: :edge
+      expect(myCollection.type).to eq :edge
     end
   end
 
@@ -33,24 +33,24 @@ describe Arango::Collection do
     it "create a new Edge Collection" do
       @myEdgeCollection.destroy
       myCollection = @myEdgeCollection.create
-      expect(myCollection.type).to eq "Edge"
+      expect(myCollection.type).to eq :edge
     end
 
     it "create a new Document in the Collection" do
       myDocument = @myCollection.createDocuments document:
-        {"Hello" => "World", "num" => 1}
-      expect(myDocument[0].body["Hello"]).to eq "World"
+        {"Hello": "World", "num": 1}
+      expect(myDocument[0].body[:Hello]).to eq "World"
     end
 
     it "create new Documents in the Collection" do
-      myDocument = @myCollection.createDocuments document: [{"Ciao" => "Mondo", "num" => 1}, {"Hallo" => "Welt", "num" => 2}]
-      expect(myDocument[0].body["Ciao"]).to eq "Mondo"
+      myDocument = @myCollection.createDocuments document: [{"Ciao": "Mondo", "num": 1}, {"Hallo": "Welt", "num": 2}]
+      expect(myDocument[0].body[:Ciao]).to eq "Mondo"
     end
 
     it "create a new Edge in the Collection" do
-      myDoc = @myCollection.createDocuments document: [{"A" => "B", "num" => 1}, {"C" => "D", "num" => 3}]
+      myDoc = @myCollection.createDocuments document: [{"A": "B", "num": 1}, {"C": "D", "num": 3}]
       myEdge = @myEdgeCollection.createEdges from: myDoc[0].id, to: myDoc[1].id
-      expect(myEdge[0].body["_from"]).to eq myDoc[0].id
+      expect(myEdge[0].body[:_from]).to eq myDoc[0].id
     end
   end
 
@@ -62,7 +62,7 @@ describe Arango::Collection do
 
     it "properties of the Collection" do
       info = @myCollection.properties
-      expect(info["name"]).to eq "MyCollection"
+      expect(info[:name]).to eq "MyCollection"
     end
 
     it "documents in the Collection" do
@@ -72,7 +72,7 @@ describe Arango::Collection do
 
     it "statistics" do
       info = @myCollection.statistics
-      expect(info["lastTick"]).to eq 0
+      expect(info[:cacheInUse]).to eq false
     end
 
     it "checksum" do
@@ -86,42 +86,42 @@ describe Arango::Collection do
     end
 
     it "search Documents by match" do
-      info = @myCollection.documentsMatch match: {"num" => 1}
+      info = @myCollection.documentsMatch match: {"num": 1}
       expect(info.length).to eq 3
     end
 
     it "search Document by match" do
-      info = @myCollection.documentMatch match: {"num" => 1}
+      info = @myCollection.documentMatch match: {"num": 1}
       expect(info.collection.name).to eq "MyCollection"
     end
 
     it "search Document by key match" do
-      docs = @myCollection.createDocuments document: [{"_key" => "ThisIsATest1", "test" => "fantastic"}, {"_key" => "ThisIsATest2"}]
+      docs = @myCollection.createDocuments document: [{"_key": "ThisIsATest1", "test": "fantastic"}, {"_key": "ThisIsATest2"}]
       result = @myCollection.documentByKeys keys: ["ThisIsATest1", docs[1]]
-      expect(result[0].body["test"]).to eq "fantastic"
+      expect(result[0].body[:test]).to eq "fantastic"
     end
 
     it "remove Document by key match" do
-      docs = @myCollection.createDocuments document: [{"_key" => "ThisIsATest3", "test" => "fantastic"}, {"_key" => "ThisIsATest4"}]
+      docs = @myCollection.createDocuments document: [{"_key": "ThisIsATest3", "test": "fantastic"}, {"_key": "ThisIsATest4"}]
       result = @myCollection.removeByKeys keys: ["ThisIsATest3", docs[1]]
-      expect(result["removed"]).to eq 2
+      expect(result[:removed]).to eq 2
     end
 
     it "remove Document by match" do
-      @myCollection.createDocuments document: [{"_key" => "ThisIsATest5", "test" => "fantastic"}, {"_key" => "ThisIsATest6"}]
-      result = @myCollection.removeMatch match: {"test" => "fantastic"}
+      @myCollection.createDocuments document: [{"_key": "ThisIsATest5", "test": "fantastic"}, {"_key": "ThisIsATest6"}]
+      result = @myCollection.removeMatch match: {"test": "fantastic"}
       expect(result).to eq 2
     end
 
     it "replace Document by match" do
-      @myCollection.createDocuments document: {"test" => "fantastic", "val" => 4}
-      result = @myCollection.replaceMatch match: {"test" => "fantastic"}, newValue: {"val" => 5}
+      @myCollection.createDocuments document: {"test": "fantastic", "val": 4}
+      result = @myCollection.replaceMatch match: {"test": "fantastic"}, newValue: {"val": 5}
       expect(result).to eq 1
     end
 
     it "update Document by match" do
-      @myCollection.createDocuments document: {"test" => "fantastic2", "val" => 5}
-      result = @myCollection.updateMatch match: {"val" => 5}, newValue: {"val" => 6}
+      @myCollection.createDocuments document: {"test": "fantastic2", "val": 5}
+      result = @myCollection.updateMatch match: {"val": 5}, newValue: {"val": 6}
       expect(result).to eq 2
     end
 
@@ -144,7 +144,7 @@ describe Arango::Collection do
 
     it "change" do
       myCollection = @myCollection.change waitForSync: true
-      expect(myCollection.body["waitForSync"]).to be true
+      expect(myCollection.body[:waitForSync]).to be true
     end
 
     it "rename" do

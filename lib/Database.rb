@@ -28,8 +28,9 @@ module Arango
         "isSystem": @isSystem,
         "path":     @path,
         "id":       @id
-      }.compact
-      hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
+      }
+      hash.delete_if{|k,v| v.nil?}
+      hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
       hash
     end
 
@@ -195,7 +196,7 @@ module Arango
 # === FUNCTION ===
 
     def aqlFunctions(namespace: nil)
-      request("GET", "_api/aqlfunction", query: {"namespace": namespace})
+      request("GET", "_api/aqlfunction", query: {"namespace": namespace}, key: :result)
     end
 
     def createAqlFunction(code:, name:, isDeterministic: nil)
@@ -204,7 +205,7 @@ module Arango
     end
 
     def deleteAqlFunction(name:)
-      result = request("DELETE",  url: "_api/aqlfunction/#{name}")
+      result = request("DELETE", "_api/aqlfunction/#{name}")
       return return_delete(result)
     end
 
