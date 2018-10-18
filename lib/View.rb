@@ -6,7 +6,7 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
-    def initialize(database:, type: "arangosearch", name:, id:)
+    def initialize(database:, type: "arangosearch", name:, id: nil)
       assign_database(database)
       satisfy_category?(type, ["arangosearch"])
       @type = type

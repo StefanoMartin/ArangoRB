@@ -211,9 +211,13 @@ module Arango
 
     # === REPLICATION ===
 
-    def inventory(includeSystem: false)
-      query = { "includeSystem": includeSystem }
-      request("GET", "api/replication/inventory", query: query)
+    def inventory(includeSystem: nil, global: nil, batchId:)
+      query = {
+        "includeSystem": includeSystem,
+        "global": global,
+        "batchId": batchId
+      }
+      request("GET", "_api/replication/inventory", query: query)
     end
 
     def sync(endpoint:, username: nil, password:, includeSystem: nil,
@@ -291,9 +295,9 @@ module Arango
         "requestTimeout":  requestTimeout,
         "restrictType":    restrictType,
         "requireFromPresent":      requireFromPresent,
-        "idleMaxWaitTime":         dleMaxWaitTime,
-        "maxConnectRetries":       axConnectRetries,
-        "adaptivePolling":         daptivePolling,
+        "idleMaxWaitTime":         idleMaxWaitTime,
+        "maxConnectRetries":       maxConnectRetries,
+        "adaptivePolling":         adaptivePolling,
         "initialSyncMaxWaitTime":  initialSyncMaxWaitTime,
         "connectionRetryWaitTime": connectionRetryWaitTime,
         "restrictCollections":     restrictCollections,
@@ -403,17 +407,17 @@ module Arango
 
     def addUserAccess(grant:, user:)
       user = check_user(user)
-      user.add_database_access(grant: grant, database: @name)
+      user.addDatabaseAccess(grant: grant, database: @name)
     end
 
     def revokeUserAccess(user:)
       user = check_user(user)
-      user.clear_database_access(database: @name)
+      user.revokeDatabaseAccess(database: @name)
     end
 
     def userAccess(user:)
       user = check_user(user)
-      user.database_access(database: @name)
+      user.databaseAccess(database: @name)
     end
 
 # === VIEW ===
@@ -424,6 +428,10 @@ module Arango
       result.map do |view|
         Arango::View.new(database: self, id: view[:id], name: view[:name], type: view[:type])
       end
+    end
+
+    def view(name:)
+      Arango::View.new(database: self, name: name)
     end
   end
 end

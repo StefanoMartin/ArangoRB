@@ -740,7 +740,7 @@ module Arango
 
     def indexes
       query = { "collection":  @name }
-      result = @database.request("GET", "/_api/index", query: query)
+      result = @database.request("GET", "_api/index", query: query)
       return result if return_directly?(result)
       result[:indexes].map do |x|
         Arango::Index.new(body: x, id: x[:id], collection: self,
@@ -751,7 +751,7 @@ module Arango
 
 # === REPLICATION ===
 
-    def data(batchId: nil, from: nil, to: nil, chunkSize: nil,
+    def data(batchId:, from: nil, to: nil, chunkSize: nil,
       includeSystem: nil, failOnUnknown: nil, ticks: nil, flush: nil)
       query = {
         "collection": @name,

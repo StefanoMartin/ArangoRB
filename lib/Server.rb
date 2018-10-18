@@ -116,8 +116,8 @@ module Arango
       end
       query.delete_if{|k,v| v.nil?}
       headers.delete_if{|k,v| v.nil?}
-
-      options = @options.merge({body: body, query: query, headers: headers})
+      options = @options.merge({body: body, query: query})
+      options[:headers].merge!(headers)
 
       if ["GET", "HEAD", "DELETE"].include?(action)
         options.delete(:body)
@@ -255,7 +255,7 @@ module Arango
     end
 
     def role
-      request("GET", "_admin/server/role", skip_cluster: true, key: "role")
+      request("GET", "_admin/server/role", skip_cluster: true, key: :role)
     end
 
     def serverData
@@ -385,8 +385,9 @@ module Arango
 
     def destroyDumpBatch(id:, dbserver: nil)
       query = {DBserver: dbserver}
-      request("DELETE", "_api/replication/batch/#{id}",
+      result = request("DELETE", "_api/replication/batch/#{id}",
         body: body, query: query)
+      return_delete(result)
     end
 
     def prolongDumpBatch(id:, ttl:, dbserver: nil)
@@ -471,7 +472,7 @@ module Arango
     end
 
     def time
-      request("GET", "_admin/time")
+      request("GET", "_admin/time", key: :time)
     end
 
     def echo
@@ -482,8 +483,8 @@ module Arango
     #   request("GET", "_admin/long_echo")
     # end
 
-    def target_version
-      request("GET", "_admin/database/target-version")
+    def databaseVersion
+      request("GET", "_admin/database/target-version", key: :version)
     end
 
     def shutdown

@@ -16,7 +16,7 @@ module Arango
 
     def satisfy_category?(object, list)
       return if list.include?(object)
-      name = name.object_id.to_s
+      name = object.object_id.to_s
       raise Arango::Error.new err: :wrong_element, data: {"wrong_attribute": name,
         "wrong_value": object, "list": list}
     end

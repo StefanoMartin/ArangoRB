@@ -1,6 +1,6 @@
 require_relative './../../spec_helper'
 
-describe ArangoUser do
+describe Arango::User do
   context "#new" do
     it "create a new User without global" do
       myUser = @server.user name: "MyUser2", password: "Test"
@@ -32,12 +32,12 @@ describe ArangoUser do
   context "#database" do
     it "grant" do
       result = @myUser.addDatabaseAccess grant: "rw", database: @myDatabase
-      expect(result).to be true
+      expect(result).to eq "rw"
     end
 
     it "databases" do
       result = @myUser.listAccess
-      expect(result["MyDatabase"]).to eq "rw"
+      expect(result[:MyDatabase]).to eq "rw"
     end
 
     it "revoke" do

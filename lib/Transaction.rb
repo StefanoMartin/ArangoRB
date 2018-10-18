@@ -95,7 +95,7 @@ module Arango
         "intermediateCommitCount": intermediateCommitCount,
         "intermedateCommitSize": intermedateCommitSize
       }
-      request = @server.request( "POST", "/_api/transaction", body: body)
+      request = @server.request("POST", "_api/transaction", body: body)
       return result if @server.async != false
       @result = result[:result]
       return return_directly?(result) ? result : result[:result]

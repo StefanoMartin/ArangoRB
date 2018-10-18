@@ -9,8 +9,6 @@ module Arango
     def initialize(collection:, body: {}, id: nil, type: "hash", unique: nil,
       fields:, sparse: nil, geoJson: nil, minLength: nil, deduplicate: nil)
       assign_collection(collection)
-      satisfy_category?(type, ["hash", "skiplist", "persistent",
-        "geo", "fulltext"])
       body[:type]        ||= type
       body[:id]          ||= id
       body[:sparse]      ||= sparse
@@ -30,7 +28,7 @@ module Arango
     attr_reader :type, :database, :collection, :server
 
     def type=(type)
-      satisfy_category?(type, ["hash", "skiplist", "persistent", "geo", "fulltext"])
+      satisfy_category?(type, ["hash", "skiplist", "persistent", "geo", "fulltext", "primary"])
       @type = type
     end
     alias assign_type type=
@@ -38,7 +36,7 @@ module Arango
     def body=(result)
       @body        = result
       @id          = result[:id] || @id
-      @key         = @id.split("/")[1]
+      @key         = @id&.split("/")&.dig(1)
       @type        = assign_type(result[:type] || @type)
       @unique      = result[:unique]      || @unique
       @fields      = result[:fields]      || @fields
@@ -73,7 +71,6 @@ module Arango
 
     def retrieve
       result = @database.request("GET", "_api/index/#{@id}")
-      return result.headers[:"x-arango-async-id"] if @@async == "store"
       return_element(result)
     end
 
@@ -93,7 +90,8 @@ module Arango
     end
 
     def destroy
-      @database.request("DELETE", "/_api/index/#{@id}")
+      result = @database.request("DELETE", "_api/index/#{@id}")
+      return_delete(result)
     end
   end
 end

@@ -234,7 +234,7 @@ module Arango
 
     def download(path:, warning: @server.warning)
       query = {"mount": @mount}
-      @server.download("POST", "/_db/#{@database.name}/_api/foxx/download",
+      @server.download("POST", "_db/#{@database.name}/_api/foxx/download",
         path: path, query: query)
       puts "File saved in #{path}" if warning
     end

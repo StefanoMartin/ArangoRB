@@ -4,7 +4,7 @@ describe Arango::Server do
   context "#general" do
     it "address" do
       @server.verbose = true
-      expect(@server.base_uri).to eq "localhost:8529"
+      expect(@server.base_uri).to eq "http://localhost:8529"
     end
 
     it "username" do
@@ -21,7 +21,7 @@ describe Arango::Server do
 
   context "#monitoring" do
     it "log" do
-      expect(@server.log["totalAmount"]).to be >= 0
+      expect(@server.log[:totalAmount]).to be >= 0
     end
 
     it "reload" do
@@ -29,11 +29,11 @@ describe Arango::Server do
     end
 
     it "statistics" do
-      expect(@server.statistics["enabled"]).to be true
+      expect(@server.statistics[:enabled]).to be true
     end
 
     it "statisticsDescription" do
-      expect(@server.statisticsDescription["groups"][0].nil?).to be false
+      expect(@server.statisticsDescription[:groups][0].nil?).to be false
     end
 
     it "role" do
@@ -44,20 +44,17 @@ describe Arango::Server do
     #   expect(@server.serverData.class).to eq String
     # end
 
-
     # it "clusterStatistics" do
     #   expect(@server.clusterStatistics.class).to eq String
     # end
   end
 
   context "#lists" do
-    it "endpoints" do
-      binding.pry
-      expect(@server.endpoints[0].keys[0]).to eq "endpoint"
-    end
+    # it "endpoints" do
+    #   expect(@server.endpoints[0].keys[0]).to eq "endpoint"
+    # end
 
     it "users" do
-      binding.pry
       expect(@server.users[0].class).to be Arango::User
     end
 
@@ -75,19 +72,18 @@ describe Arango::Server do
     it "pendingAsync" do
       @server.async = "store"
       @myAQL.execute
-        binding.pry
       expect(@server.retrievePendingAsync).to eq []
     end
 
     it "fetchAsync" do
       @server.async = "store"
       id = @myAQL.execute
-      expect(@server.fetchAsync(id: id)["count"]).to eq 18
+      expect(@server.fetchAsync(id: id)[:count]).to eq 18
     end
 
     it "cancelAsync" do
       @server.async = "store"
-      id =  @myAQL.execute
+      id = @myAQL.execute
       expect(@server.cancelAsync(id: id)).to eq "not found"
     end
 
@@ -140,12 +136,12 @@ describe Arango::Server do
 
   context "#miscellaneous" do
     it "version" do
-      expect(@server.version["server"]).to eq "arango"
+      expect(@server.version[:server]).to eq "arango"
     end
 
     it "propertyWAL" do
       @server.changePropertyWAL historicLogfiles: 14
-      expect(@server.propertyWAL["historicLogfiles"]).to eq 14
+      expect(@server.propertyWAL[:historicLogfiles]).to eq 14
     end
 
     it "flushWAL" do
@@ -153,24 +149,24 @@ describe Arango::Server do
     end
 
     it "transactions" do
-      expect(ArangoServer.transactions["runningTransactions"]).to be >= 0
+      expect(@server.transactions[:runningTransactions]).to be >= 0
     end
 
     it "time" do
-      expect(ArangoServer.time.class).to be Float
+      expect(@server.time.class).to eq BigDecimal
     end
 
     it "echo" do
-      expect(ArangoServer.echo["user"]).to eq "root"
+      expect(@server.echo[:user]).to eq "root"
     end
 
     it "databaseVersion" do
-      expect(ArangoServer.databaseVersion.to_i).to be >= 1
+      expect(@server.databaseVersion.to_i).to be >= 1
     end
 
-    it "sleep" do
-      expect(ArangoServer.sleep duration: 10).to be >= 1
-    end
+    # it "sleep" do
+    #   expect(@server.sleep duration: 10).to be >= 1
+    # end
 
     # it "shutdown" do
     #   result = ArangoServer.shutdown

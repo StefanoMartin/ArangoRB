@@ -61,7 +61,7 @@ module Arango
 # == RETRIEVE
 
     def retrieve
-      result = @database.request("GET", "/_api/tasks/#{@id}")
+      result = @server.request("GET", "_api/tasks/#{@id}")
       return return_element(result)
     end
 
@@ -73,7 +73,7 @@ module Arango
         "offset": offset,
         "params": params
       }
-      result = @database.request("POST", "/_api/tasks", body: body)
+      result = @server.request("POST", "_api/tasks", body: body)
       return return_element(result)
     end
 
@@ -86,12 +86,12 @@ module Arango
         "offset": offset,
         "params": params
       }
-      result = @database.request("PUT", "/_api/task/#{@id}", body: body)
+      result = @server.request("PUT", "_api/task/#{@id}", body: body)
       return return_element(result)
     end
 
     def destroy
-      result = @database.request("DELETE", "/_api/task/#{@id}")
+      result = @server.request("DELETE", "_api/task/#{@id}")
       return return_directly?(result) ? result : true
     end
   end

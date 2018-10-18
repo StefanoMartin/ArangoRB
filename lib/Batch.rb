@@ -80,7 +80,7 @@ module Arango
         body += "\n#{query[:body].to_json}\n" unless query[:body].nil?
       end
       body += "--#{@boundary}--\n" if @queries.length > 0
-      @database.request("POST", "/_api/batch", body: body, skip_to_json: true,
+      @database.request("POST", "_api/batch", body: body, skip_to_json: true,
         headers: @headers)
     end
   end
