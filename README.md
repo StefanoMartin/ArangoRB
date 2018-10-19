@@ -1,12 +1,12 @@
-ArangoRB [![Gem Version](https://badge.fury.io/rb/arangorb.svg)](https://badge.fury.io/rb/arangorb)
-===============================
-
 ## Note of 19/10/2018
 Please note that I am workink on a new release 2.0 of this gem. It will not be backward compatible.
 It will bring the possibility to create your own instance of Server and it will introduce Views (3.4).
 Errors should be better handled and, by using Oj, it should have a faster usage.
 If you are curios you can give a look on the folder /lib of the branch https://github.com/StefanoMartin/ArangoRB/tree/arangorb_1_5.
 The README.md is no yet updated and at the moment I am in test phase.
+
+ArangoRB [![Gem Version](https://badge.fury.io/rb/arangorb.svg)](https://badge.fury.io/rb/arangorb)
+===============================
 
 [ArangoDatabase](https://www.arangodb.com/) is a native multi-model database with flexible data models for document, graphs, and key-values.
 ArangoRB is a Gem to use ArangoDatabase with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.0/HTTP/index.html).
