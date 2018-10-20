@@ -4,11 +4,11 @@ module Arango
   class Transaction
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Server_Return
+    include Arango::Database_Return
 
-    def initialize(server:, action:, write: [], read: [], params: nil,
+    def initialize(database:, action:, write: [], read: [], params: nil,
       maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil, intermediateCommitCount: nil, intermedateCommitSize: nil)
-      assign_server(server)
+      assign_database(database)
       @action = action
       @write  = return_write_or_read(write)
       @read   = return_write_or_read(read)
@@ -23,7 +23,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :read, :write, :result, :server
+    attr_reader :read, :write, :result, :server, :database
     attr_accessor :action, :params, :maxTransactionSize,
       :lockTimeout, :waitForSync, :intermediateCommitCount,
       :intermedateCommitSize
@@ -83,7 +83,7 @@ module Arango
         "write": @write.map{|x| x.name}
       }
       hash.delete_if{|k,v| v.nil?}
-      hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
+      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
     end
 
 # === EXECUTE ===
@@ -106,7 +106,7 @@ module Arango
         "intermediateCommitCount": intermediateCommitCount,
         "intermedateCommitSize": intermedateCommitSize
       }
-      request = @server.request("POST", "_api/transaction", body: body)
+      result = @database.request("POST", "_api/transaction", body: body)
       return result if @server.async != false
       @result = result[:result]
       return return_directly?(result) ? result : result[:result]

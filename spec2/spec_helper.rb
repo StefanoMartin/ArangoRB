@@ -40,7 +40,7 @@ RSpec.configure do |config|
 		rescue Arango::Error => e
 		end
 		@myUser.create
-		@myTask = @server.task(id: "mytaskid", name: "MyTaskID",
+		@myTask = @myDatabase.task(id: "mytaskid", name: "MyTaskID",
 			command: "(function(params) { require('@arangodb').print(params); })(params)",
 			params: {"foo": "bar", "bar": "foo"}, period: 60)
 	end

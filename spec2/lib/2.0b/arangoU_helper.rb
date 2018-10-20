@@ -17,7 +17,11 @@ describe Arango::User do
     end
 
     it "create a duplicate user" do
-      result = @myUser.create
+      begin
+        @myUser.create
+      rescue Arango::Error => e
+        result = e.message
+      end
       expect(result).to eq "duplicate user"
     end
   end

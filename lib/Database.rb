@@ -6,8 +6,19 @@ module Arango
     include Arango::Helper_Return
     include Arango::Server_Return
 
+    # def self.new(name:, server:)
+    #   if server.is_a?(Arango::Server)
+    #     cached = server.cache.cache.dig(:database, name, :instance)
+    #     return super if cached.nil?
+    #     return cached
+    #   end
+    #   super
+    # end
+
     def initialize(name:, server:)
       assign_server(server)
+      # @server.cache.save(:database, name, self)
+      # @cache = @server.cache.cache[:database][name]
       @name = name
       @server = server
       @isSystem = nil
@@ -17,7 +28,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :isSystem, :path, :id, :server
+    attr_reader :isSystem, :path, :id, :server, :cache
     attr_accessor :name
 
 # === TO HASH ===
@@ -432,6 +443,34 @@ module Arango
 
     def view(name:)
       Arango::View.new(database: self, name: name)
+    end
+
+# === TASK ===
+
+    def task(id: nil, name: nil, type: nil, period: nil, command: nil, params: nil, created: nil, body: {})
+      Arango::Task.new(id: id, name: name, type: type, period: period, command: command,
+        params: params, created: created, body: body, database: self)
+    end
+
+    def tasks
+      result = request("GET", "_api/tasks")
+      return result if return_directly?(result)
+      result.delete_if{|k| k[:database] != @name}
+      result.map do |task|
+        Arango::Task.new(body: task, database: self)
+      end
+    end
+
+# === TRANSACTION ===
+
+    def transaction(action:, write: [], read: [], params: nil,
+      maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil,
+      intermediateCommitCount: nil, intermedateCommitSize: nil)
+      Arango::Transaction.new(database: self, action: action, write: write,
+        read: read, params: params, maxTransactionSize: maxTransactionSize,
+        lockTimeout: lockTimeout, waitForSync: waitForSync,
+        intermediateCommitCount: intermediateCommitCount,
+        intermedateCommitSize: intermedateCommitSize)
     end
   end
 end

@@ -1,6 +1,6 @@
 require_relative './../../spec_helper'
 
-describe ArangoDatabase do
+describe Arango::Database do
   context "#retrieve" do
     it "walk" do
       print "\n"
@@ -10,10 +10,10 @@ describe ArangoDatabase do
       print "#{@myDatabase['MyCollection']["FirstKey"].name}\n"
       print "#{@myDatabase['MyCollection'][@myDatabase['MyCollection']["FirstKey"]].name}\n"
       print "#{@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection").map{|x| x.name}}\n"
-      print "#{@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.body["num"]}\n"
+      print "#{@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.body[:num]}\n"
       print "#{@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.database.name}\n"
-      print "#{@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.database['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.body["num"]}\n"
-      expect(@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.database['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.body["num"]).to eq 1
+      print "#{@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.database['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.body[:num]}\n"
+      expect(@myDatabase['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.database['MyCollection']["FirstKey"].out("MyEdgeCollection")[0].to.body[:num]).to eq 1
     end
   end
 end

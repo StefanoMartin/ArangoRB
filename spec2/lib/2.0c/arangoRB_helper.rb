@@ -1,22 +1,22 @@
 require_relative './../../spec_helper'
 
-describe ArangoDatabase do
+describe Arango::Database do
   context "#retrieve" do
     it "collection" do
       expect(@myDatabase["MyCollection"].class).to be Arango::Collection
     end
 
     it "collection" do
-      expect(@myDatabase.collection("MyCollection").class).to be Arango::Collection
+      expect(@myDatabase.collection(name: "MyCollection").class).to be Arango::Collection
     end
 
     it "graph" do
-      expect(@myDatabase.graph(key: "MyGraph").class).to be Arango::Graph
+      expect(@myDatabase.graph(name: "MyGraph").class).to be Arango::Graph
     end
   end
 end
 
-describe ArangoCollection do
+describe Arango::Collection do
   context "#retrieve" do
     it "document" do
       expect(@myCollection["MyDocument"].class).to be Arango::Document
@@ -28,7 +28,7 @@ describe ArangoCollection do
   end
 end
 
-describe ArangoDocument do
+describe Arango::Document do
   context "#retrieve" do
     it "collection" do
       expect(@myDocument.collection.class).to be Arango::Collection
@@ -40,7 +40,7 @@ describe ArangoDocument do
   end
 end
 
-describe ArangoVertex do
+describe Arango::Vertex do
   context "#retrieve" do
     it "collection" do
       expect(@myVertex.collection.class).to be Arango::Collection
@@ -56,7 +56,7 @@ describe ArangoVertex do
   end
 end
 
-describe ArangoEdge do
+describe Arango::Edge do
   context "#retrieve" do
     it "collection" do
       expect(@myEdge.collection.class).to be Arango::Collection
@@ -73,59 +73,59 @@ describe ArangoEdge do
 end
 
 
-describe ArangoGraph do
+describe Arango::Graph do
   context "#retrieve" do
     it "database" do
-      expect(@myGraph.database.class).to be ArangoDatabase
+      expect(@myGraph.database.class).to be Arango::Database
     end
   end
 end
 
-describe ArangoIndex do
+describe Arango::Index do
   context "#retrieve" do
     it "collection" do
-      expect(@myIndex.collection.class).to be ArangoCollection
+      expect(@myIndex.collection.class).to be Arango::Collection
     end
 
     it "database" do
-      expect(@myIndex.database.class).to be ArangoDatabase
+      expect(@myIndex.database.class).to be Arango::Database
     end
   end
 end
 
-describe ArangoTask do
+describe Arango::Task do
   context "#retrieve" do
     it "database" do
-      expect(@myTask.database.class).to be ArangoDatabase
+      expect(@myTask.database.class).to be Arango::Database
     end
   end
 end
 
-describe ArangoTraversal do
+describe Arango::Traversal do
   context "#retrieve" do
     it "database" do
       @myTraversal.vertex = @myDoc[0]
   		@myTraversal.graph = @myGraph
   		@myTraversal.collection = @myEdgeCollection
       @myTraversal.in
-      expect(@myTraversal.database.class).to be ArangoDatabase
+      expect(@myTraversal.database.class).to be Arango::Database
     end
 
     it "graph" do
-      expect(@myTraversal.graph.class).to be ArangoGraph
+      expect(@myTraversal.graph.class).to be Arango::Graph
     end
 
     it "vertex" do
-      expect(@myTraversal.vertex.class).to be ArangoDocument
+      expect(@myTraversal.vertex.class).to be Arango::Document
     end
 
     it "collection" do
-      expect(@myTraversal.collection.class).to be ArangoCollection
+      expect(@myTraversal.collection.class).to be Arango::Collection
     end
   end
 end
 
-describe ArangoUser do
+describe Arango::User do
   context "#retrieve" do
     it "database" do
       expect(@myUser["MyDatabase"].class).to be String
@@ -133,7 +133,7 @@ describe ArangoUser do
 
     it "database" do
       @myUser.grant database: @myDatabase
-      expect(@myUser["MyDatabase"].class).to be ArangoDatabase
+      expect(@myUser["MyDatabase"].class).to be Arango::Database
     end
 
     it "database" do

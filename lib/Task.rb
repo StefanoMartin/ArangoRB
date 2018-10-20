@@ -4,11 +4,11 @@ module Arango
   class Task
     include Arango::Helper_Error
     include Arango::Helper_Return
-    include Arango::Server_Return
+    include Arango::Database_Return
 
     def initialize(id: nil, name: nil, type: nil, period: nil, command: nil,
-      params: nil, created: nil, server:, body: {})
-      assign_server(server)
+      params: nil, created: nil, body: {}, database:)
+      assign_database(database)
       body2 = {
         "id": id,
         "name": name,
@@ -24,7 +24,7 @@ module Arango
 
  # === DEFINE ===
 
-    attr_reader :server, :body
+    attr_reader :server, :body, :database
     attr_accessor :id, :name, :type, :period, :created,
       :command, :params, :offset
 
@@ -54,44 +54,47 @@ module Arango
         "created": @created
       }
       hash.delete_if{|k,v| v.nil?}
-      hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
+      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
     end
 
 # == RETRIEVE
 
     def retrieve
-      result = @server.request("GET", "_api/tasks/#{@id}")
+      result = @database.request("GET", "_api/tasks/#{@id}")
       return return_element(result)
     end
 
     def create(command: @command, period: @period, offset: @offset, params: @params)
       body = {
+        "id": @id,
         "name": @name,
         "command": command,
         "period": period,
         "offset": offset,
-        "params": params
+        "params": params,
+        "database": @database.name
       }
-      result = @server.request("POST", "_api/tasks", body: body)
+      result = @database.request("POST", "_api/tasks", body: body)
       return return_element(result)
     end
 
     def update(command: @command, period: @period, offset: @offset,
       params: @params)
       body = {
+        "id": @id,
         "name": @name,
         "command": command,
         "period": period,
         "offset": offset,
         "params": params
       }
-      result = @server.request("PUT", "_api/task/#{@id}", body: body)
+      result = @database.request("PUT", "_api/tasks/#{@id}", body: body)
       return return_element(result)
     end
 
     def destroy
-      result = @server.request("DELETE", "_api/task/#{@id}")
+      result = @server.request("DELETE", "_api/tasks/#{@id}")
       return return_directly?(result) ? result : true
     end
   end

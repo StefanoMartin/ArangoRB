@@ -26,7 +26,7 @@ module Arango
       @body   = result
       @name   = result[:user]   || @name
       @extra  = result[:extra]  || @extra
-      @active = result[:active] || @active
+      @active = result[:active].nil? ? @active : result[:active]
     end
     alias assign_attributes body=
 
@@ -41,6 +41,15 @@ module Arango
       hash.delete_if{|k,v| v.nil?}
       hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
     end
+
+    def [](database)
+      if self.databases[database.to_sym] == "rw"
+        Arango::Database.new name: database, server: @server
+      else
+        "This User does not have access to Database #{database}."
+      end
+    end
+    alias database []
 
   # == USER ACTION ==
 
@@ -99,6 +108,10 @@ module Arango
       return return_directly?(result) ? result : result[database.to_sym]
     end
 
+    def grant(database:)
+      addDatabaseAccess(grant: "rw", database: database)
+    end
+
     def addCollectionAccess(grant:, database:, collection:)
       satisfy_category?(grant, ["rw", "ro", "none"])
       satisfy_class?(database, [Arango::Database, String])
@@ -117,6 +130,7 @@ module Arango
       result = @server.request("DELETE", "_api/user/#{@name}/database/#{database}")
       return return_directly?(result) ? result : true
     end
+    alias revoke revokeDatabaseAccess
 
     def revokeCollectionAccess(database:, collection:)
       satisfy_class?(database, [Arango::Database, String])
@@ -132,6 +146,7 @@ module Arango
       result = @server.request("GET", "_api/user/#{@name}/database", query: query)
       return return_directly?(result) ? result : result[:result]
     end
+    alias databases listAccess
 
     def databaseAccess(database:)
       satisfy_class?(database, [Arango::Database, String])

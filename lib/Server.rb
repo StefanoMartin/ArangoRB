@@ -19,11 +19,12 @@ module Arango
       @return_output = return_output
       @cluster = cluster
       @warning = warning
+      # @cache = Arango::Cache.new
     end
 
 # === DEFINE ===
 
-    attr_reader :async, :port, :server, :base_uri, :username
+    attr_reader :async, :port, :server, :base_uri, :username, :cache
     attr_accessor :cluster, :verbose, :return_output, :warning
 
     def username=(username)
@@ -133,6 +134,7 @@ module Arango
       if !skip_to_json && !options[:body].nil?
         options[:body] = Oj.dump(options[:body], mode: :json)
       end
+      options.delete_if{|k,v| v.empty?}
 
       response = case action
       when "GET"
@@ -332,13 +334,10 @@ module Arango
     def tasks
       result = request("GET", "_api/tasks")
       return result if return_directly?(result)
-      result.map{|task| Arango::Task.new(body: task, server: self)}
-    end
-
-    def task(id: nil, name: nil, type: nil, period: nil, command: nil, params: {},
-      created: nil)
-      Arango::Task.new(id: id, name: name, type: type, period: period,
-        command: command, params: params, created: created, server: self)
+      result.map do |task|
+        database = Arango::Database.new(name: task[:database], server: self)
+        Arango::Task.new(body: task, database: database)
+      end
     end
 
 # === ASYNC ===
@@ -473,16 +472,6 @@ module Arango
         "throttleWhenPending": throttleWhenPending
       }
       request("PUT", "_admin/wal/properties", body: body)
-    end
-
-    def transaction(action:, write: [], read: [], params: nil,
-      maxTransactionSize: nil, lockTimeout: nil, waitForSync: nil,
-      intermediateCommitCount: nil, intermedateCommitSize: nil)
-      Arango::Transaction.new(server: self, action: action, write: write,
-        read: read, params: params, maxTransactionSize: maxTransactionSize,
-        lockTimeout: lockTimeout, waitForSync: waitForSync,
-        intermediateCommitCount: intermediateCommitCount,
-        intermedateCommitSize: intermedateCommitSize)
     end
 
     def transactions

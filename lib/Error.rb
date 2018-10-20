@@ -53,7 +53,10 @@ module Arango
       },
       batch_query_not_valid: {
         code: 10017, message: "Query is not valid"
-      }
+      }#,
+      # element_in_cache_does_not_exist: {
+      #   code: 10018, message: "Element in cache does not exist"
+      # }
     }
 
     def initialize(err:, data: nil, skip_assignment: false)
