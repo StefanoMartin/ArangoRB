@@ -6,9 +6,32 @@ module Arango
     include Arango::Helper_Return
     include Arango::Collection_Return
 
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      collection = hash[:collection]
+      if collection.is_a?(Arango::Collection) &&
+        collection.database.server.active_cache && !hash[:name].nil?
+        cache_name = "#{collection.database.name}/#{collection.name}/#{hash[:name]}"
+        cached = collection.database.server.cache.cache.dig(:document, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          cached.assign_attributes(*args)
+          return cached
+        end
+      end
+      super
+    end
+
     def initialize(name: nil, collection:, body: {}, rev: nil, from: nil,
-      to: nil)
+      to: nil, cache_name: nil)
       assign_collection(collection)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:document, cache_name, self)
+      end
       body[:_key]  ||= name
       body[:_rev]  ||= rev
       body[:_to]   ||= to
@@ -29,7 +52,7 @@ module Arango
 # === DEFINE ==
 
     attr_reader :name, :collection, :graph, :database, :server, :id, :rev,
-      :body, :from, :to
+      :body, :from, :to, :cache_name
     alias_method :key, :name
 
     def body=(result)
@@ -50,6 +73,10 @@ module Arango
       @rev  = result[:_rev]
       set_up_from_or_to("from", result[:_from])
       set_up_from_or_to("to", result[:_to])
+      if @server.active_cache && @cache_name.nil?
+        @cache_name = "#{@database.name}/#{@id}"
+        @server.cache.save(:document, @cache_name, self)
+      end
     end
     alias assign_attributes body=
 
@@ -60,7 +87,8 @@ module Arango
         "name": @name,
         "id":   @id,
         "rev":  @rev,
-        "body": @body
+        "body": @body,
+        "cache_name": @cache_name
       }
       hash[:collection] = level > 0 ? @collection.to_h(level-1) : @collection.name
       hash[:from] = level > 0 ? @from&.to_h(level-1) : @from&.id

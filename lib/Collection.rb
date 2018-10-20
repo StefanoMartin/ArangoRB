@@ -6,12 +6,34 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      database = hash[:database]
+      if database.is_a?(Arango::Database) && database.server.active_cache
+        cache_name = "#{database.name}/#{hash[:name]}"
+        cached = database.server.cache.cache.dig(:database, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          cached.assign_attributes(*args)
+          return cached
+        end
+      end
+      super
+    end
+
     def initialize(name:, database:, graph: nil, body: {}, type: :document,
-      isSystem: nil)
+      isSystem: nil, cache_name: nil)
       @name = name
       assign_database(database)
       assign_graph(graph)
       assign_type(type)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:collection, cache_name, self)
+      end
       body[:type]     ||= type == :document ? 2 : 3
       body[:status]   ||= nil
       body[:isSystem] ||= isSystem
@@ -22,7 +44,8 @@ module Arango
 # === DEFINE ===
 
     attr_reader :status, :isSystem, :id, :server, :database, :graph, :type,
-     :countExport, :hasMoreExport, :idExport, :hasMoreSimple, :idSimple, :body
+     :countExport, :hasMoreExport, :idExport, :hasMoreSimple, :idSimple, :body,
+     :cache_name
     attr_accessor :name
 
     def graph=(graph)
@@ -43,6 +66,10 @@ module Arango
       @status   = reference_status(result[:status])
       @id       = result[:id] || @id
       @isSystem = result[:isSystem] || @isSystem
+      if @server.active_cache && @cache_name.nil?
+        @cache_name = "#{@database.name}/#{@name}"
+        @server.cache.save(:database, @cache_name, self)
+      end
     end
     alias assign_attributes body=
 
@@ -76,7 +103,8 @@ module Arango
         "status":   @status,
         "id":       @id,
         "isSystem": @isSystem,
-        "body":     @body
+        "body":     @body,
+        "cache_name": @cache_name
       }.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
       hash

@@ -6,19 +6,30 @@ module Arango
     include Arango::Helper_Return
     include Arango::Server_Return
 
-    # def self.new(name:, server:)
-    #   if server.is_a?(Arango::Server)
-    #     cached = server.cache.cache.dig(:database, name, :instance)
-    #     return super if cached.nil?
-    #     return cached
-    #   end
-    #   super
-    # end
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      server = hash[:server]
+      if server.is_a?(Arango::Server) && server.active_cache
+        cache_name = hash[:name]
+        cached = server.cache.cache.dig(:database, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          cached.assign_attributes(*args)
+          return cached
+        end
+      end
+      super
+    end
 
-    def initialize(name:, server:)
+    def initialize(name:, server:, cache_name: nil)
       assign_server(server)
-      # @server.cache.save(:database, name, self)
-      # @cache = @server.cache.cache[:database][name]
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:database, cache_name, self)
+      end
       @name = name
       @server = server
       @isSystem = nil
@@ -28,7 +39,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :isSystem, :path, :id, :server, :cache
+    attr_reader :isSystem, :path, :id, :server, :cache_name
     attr_accessor :name
 
 # === TO HASH ===
@@ -38,7 +49,8 @@ module Arango
         "name":     @name,
         "isSystem": @isSystem,
         "path":     @path,
-        "id":       @id
+        "id":       @id,
+        "cache_name": @cache_name
       }
       hash.delete_if{|k,v| v.nil?}
       hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
@@ -59,14 +71,21 @@ module Arango
 
 # === GET ===
 
+    def assign_attributes(result)
+      return unless result.is_a?(Hash)
+      @name     = result[:name]
+      @isSystem = result[:isSystem]
+      @path     = result[:path]
+      @id       = result[:id]
+      if @server.active_cache && @cache_name.nil?
+        @cache_name = result[:name]
+        @server.cache.save(:database, @cache_name, self)
+      end
+    end
+
     def retrieve
       result = request("GET", "_api/database/current", key: :result)
-      if result.is_a?(Hash)
-        @name     = result[:name]
-        @isSystem = result[:isSystem]
-        @path     = result[:path]
-        @id       = result[:id]
-      end
+      assign_attributes(result)
       return return_directly?(result) ? result : self
     end
     alias current retrieve

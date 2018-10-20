@@ -36,11 +36,31 @@ module Arango
 
     attr_reader :cache, :max
 
+    def to_h
+      hash = {
+        "max": @max,
+        "cache": {}
+      }
+      @cache.each do |key, hash2|
+        next if hash2.empty?
+        hash[:cache][key] = hash2.keys
+      end
+      hash
+    end
+
     def save(type, id, obj)
       while @cache[type].length >= @max[type]
         @cache[type].shift
       end
       @cache[type][id] = obj
+    end
+
+    def destroy(type, id)
+      @cache[type].delete(id)
+    end
+
+    def clear
+      @cache.each_key{|k| @cache[k] = {}}
     end
 
     def updateMax(type:, val:)

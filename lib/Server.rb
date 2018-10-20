@@ -6,7 +6,7 @@ module Arango
 
     def initialize(username: "root", password:, server: "localhost",
       warning: true, port: "8529", verbose: false, return_output: false,
-      cluster: nil, async: false)
+      cluster: nil, async: false, active_cache: true)
       @base_uri = "http://#{server}:#{port}"
       @server = server
       @port = port
@@ -19,13 +19,24 @@ module Arango
       @return_output = return_output
       @cluster = cluster
       @warning = warning
-      # @cache = Arango::Cache.new
+      @active_cache = active_cache
+      @cache = @active_cache ? Arango::Cache.new : nil
     end
 
 # === DEFINE ===
 
-    attr_reader :async, :port, :server, :base_uri, :username, :cache
+    attr_reader :async, :port, :server, :base_uri, :username, :cache, :active_cache
     attr_accessor :cluster, :verbose, :return_output, :warning
+
+    def active_cache=(active)
+      satisfy_category?(active, [true, false])
+      @active_cache = active
+      if @active_cache
+        @cache ||= Arango::Cache.new
+      elsif !@cache.nil?
+        @cache.clear
+      end
+    end
 
     def username=(username)
       @username = username

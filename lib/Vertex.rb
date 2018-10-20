@@ -2,8 +2,12 @@
 
 module Arango
   class Vertex < Arango::Document
-    def initialize(name: nil, collection:, body: {}, rev: nil)
+    def initialize(name: nil, collection:, body: {}, rev: nil, cache_name: nil)
       assign_collection(collection)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:document, cache_name, self)
+      end
       body[:_key] ||= name
       body[:_rev] ||= rev
       body[:_id]  ||= "#{@collection.name}/#{name}" unless name.nil?
