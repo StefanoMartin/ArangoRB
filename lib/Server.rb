@@ -47,14 +47,14 @@ module Arango
     end
 
     def async=(async)
-      satisfy_category?(async, ["true", "false", false, true, "store"])
+      satisfy_category?(async, ["true", "false", false, true, "store", :store])
       case async
       when true, "true"
         @options[:headers]["x-arango-async"] = "true"
         @async = true
-      when "store"
+      when :store, "store"
         @options[:headers]["x-arango-async"] ="store"
-        @async = "store"
+        @async = :store
       when false, "false"
         @options[:headers].delete("x-arango-async")
         @async = false
@@ -104,7 +104,7 @@ module Arango
 
     def request(action, url, body: {}, headers: {}, query: {},
       key: nil, return_direct_result: @return_output, skip_to_json: false,
-      skip_cluster: false, keepNull: false)
+      skip_cluster: false, keepNull: false, skip_parsing: false)
       send_url = "#{@base_uri}/"
       if !@cluster.nil? && !skip_cluster
         send_url += "_admin/#{@cluster}/"
@@ -149,11 +149,31 @@ module Arango
         HTTParty.delete(send_url, options)
       end
 
+      if @verbose
+        puts "\n===RESPONSE==="
+        puts "CODE: #{response.code}"
+      end
+
       case @async
-      when "store"
-        return response.headers["x-arango-async-id"]
+      when :store
+        val = response.headers["x-arango-async-id"]
+        if @verbose
+          puts val
+          puts "==============="
+        end
+        return val
       when true
+        puts "===============" if @verbose
         return true
+      end
+
+      if skip_parsing
+        val = response.parsed_response
+        if @verbose
+          puts val
+          puts "==============="
+        end
+        return val
       end
 
       begin
@@ -165,7 +185,6 @@ module Arango
       end
 
       if @verbose
-        puts "\n===RESPONSE==="
         if result.is_a?(Hash) || result.is_a?(Array)
           puts JSON.pretty_generate(result)
         else
@@ -313,7 +332,7 @@ module Arango
     def tasks
       result = request("GET", "_api/tasks")
       return result if return_directly?(result)
-      result[:result].map{|task| Arango::Task.new(body: task, server: self)}
+      result.map{|task| Arango::Task.new(body: task, server: self)}
     end
 
     def task(id: nil, name: nil, type: nil, period: nil, command: nil, params: {},
@@ -329,12 +348,12 @@ module Arango
     end
 
     def cancelAsync(id:)
-      request("PUT", "_api/job/#{id}/cancel")
+      request("PUT", "_api/job/#{id}/cancel", key: :result)
     end
 
     def destroyAsync(id:, stamp: nil)
       query = {"stamp": stamp}
-      request("DELETE", "_api/job/#{id}", query: query)
+      request("DELETE", "_api/job/#{id}", query: query, key: :result)
     end
 
     def destroyAsyncByType(type:, stamp: nil)
@@ -370,8 +389,8 @@ module Arango
 
   # === BATCH ===
 
-    def batch(boundary: "XboundaryX")
-      Arango::Batch.new(server: self, boundary: boundary)
+    def batch(boundary: "XboundaryX", queries: [])
+      Arango::Batch.new(server: self, boundary: boundary, queries: queries)
     end
 
     def createDumpBatch(ttl:, dbserver: nil)
@@ -385,8 +404,7 @@ module Arango
 
     def destroyDumpBatch(id:, dbserver: nil)
       query = {DBserver: dbserver}
-      result = request("DELETE", "_api/replication/batch/#{id}",
-        body: body, query: query)
+      result = request("DELETE", "_api/replication/batch/#{id}", query: query)
       return_delete(result)
     end
 
@@ -396,7 +414,7 @@ module Arango
       result = request("PUT", "_api/replication/batch/#{id}",
         body: body, query: query)
       return result if return_directly?(result)
-      return result[:id]
+      return true
     end
 
   # === AGENCY ===
@@ -503,6 +521,11 @@ module Arango
     def return_directly?(result)
       return @async != false || @return_direct_result
       return result if result == true
+    end
+
+    def return_delete(result)
+      return result if @async != false
+      return return_directly?(result) ? result : true
     end
   end
 end

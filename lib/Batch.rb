@@ -26,14 +26,22 @@ module Arango
 
     def queries=(queries)
       queries = [queries] unless queries.is_a?(Array)
-      queries.each do |query|
-        satisfy_class?(query, Hash)
+      @queries = queries.map do |query|
+        begin
+          query.keys.each do |key|
+            query[(key.to_sym rescue key) || key] = query.delete(key)
+          end
+        rescue
+          raise Arango::Error.new(err: :batch_query_not_valid,
+            data: {wrong_query: query})
+        end
+        satisfy_class?(query, [Hash])
         if query[:id].nil?
-          query[:id] = @id.clone.to_s
+          query[:id] = @id.to_s
           @id += 1
         end
+        query
       end
-      @queries = queries
     end
     alias assign_queries queries=
 
@@ -51,13 +59,13 @@ module Arango
 
 # === QUERY ===
 
-    def addQuery(id: @id, method:, url:, body: nil)
+    def addQuery(id: @id, method:, address:, body: nil)
       id = id.to_s
-      @queries[id.to_s] = {
-        "id":     id,
-        "method": method,
-        "url":    url,
-        "body":   body
+      @queries[id] = {
+        "id":      id,
+        "method":  method,
+        "address": address,
+        "body":    body
       }
       @id += 1
     end
@@ -73,15 +81,14 @@ module Arango
       @queries.each do |query|
         body += "--#{@boundary}\n"
         body += "Content-Type: application/x-arango-batchpart\n"
-        body += "Content-Id: #{query[:id]}\n"
-        body += "\n"
+        body += "Content-Id: #{query[:id]}\n\n"
         body += "#{query[:method]} "
-        body += "#{query[:url]} HTTP/1.1\n"
-        body += "\n#{query[:body].to_json}\n" unless query[:body].nil?
+        body += "#{query[:address]} HTTP/1.1\n"
+        body += "\n#{Oj.dump(query[:body])}\n" unless query[:body].nil?
       end
       body += "--#{@boundary}--\n" if @queries.length > 0
-      @database.request("POST", "_api/batch", body: body, skip_to_json: true,
-        headers: @headers)
+      @server.request("POST", "_api/batch", body: body, skip_to_json: true,
+        headers: @headers, skip_parsing: true)
     end
   end
 end

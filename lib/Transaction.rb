@@ -32,8 +32,20 @@ module Arango
       @write = return_write_or_read(write)
     end
 
+    def addWrite(write)
+      write = return_write_or_read(write)
+      @write ||= []
+      @write << write
+    end
+
     def read=(read)
       @read = return_write_or_read(read)
+    end
+
+    def addRead(read)
+      read = return_write_or_read(read)
+      @read ||= []
+      @read << read
     end
 
     def return_write_or_read(value)
@@ -65,7 +77,6 @@ module Arango
     def to_h(level=0)
       hash = {
         "action": @action,
-        "collections": @collections,
         "result": @result,
         "params": @params,
         "read": @read.map{|x| x.name},

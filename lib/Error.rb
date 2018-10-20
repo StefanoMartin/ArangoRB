@@ -50,6 +50,9 @@ module Arango
       },
       impossible_to_parse_arangodb_response: {
         code: 10016, message: "Impossible to parse ArangoDB response"
+      },
+      batch_query_not_valid: {
+        code: 10017, message: "Query is not valid"
       }
     }
 

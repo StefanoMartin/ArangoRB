@@ -65,51 +65,60 @@ describe Arango::Server do
 
   context "#async" do
     it "create async" do
-      @server.async = "store"
-      expect(@server.async).to eq "store"
+      @server.async = :store
+      expect(@server.async).to eq :store
     end
 
     it "pendingAsync" do
-      @server.async = "store"
+      @server.async = :store
       @myAQL.execute
-      expect(@server.retrievePendingAsync).to eq []
+      val = @server.retrievePendingAsync
+      expect(val.to_i.to_s).to eq val
     end
 
     it "fetchAsync" do
-      @server.async = "store"
+      @server.async = :store
       id = @myAQL.execute
-      expect(@server.fetchAsync(id: id)[:count]).to eq 18
+      @server.async = false
+      val = @server.fetchAsync(id: id)
+      expect(val[:result]).to eq [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 2, 5, 2, 1, 1, 2]
     end
 
     it "cancelAsync" do
-      @server.async = "store"
+      @server.async = :store
       id = @myAQL.execute
-      expect(@server.cancelAsync(id: id)).to eq "not found"
+      @server.async = false
+      val = @server.cancelAsync(id: id)
+      expect(val).to eq true
     end
 
     it "destroyAsync" do
-      @server.async = "store"
-      id =  @myAQL.execute
-      expect(@server.destroyAsync type: id).to be true
+      @server.async = :store
+      id = @myAQL.execute
+      @server.async = false
+      val = @server.destroyAsync id: id
+      expect(val).to be true
     end
   end
 
   context "#batch" do
     it "batch" do
       @server.async = false
-      @myCollection.create
       queries = [{
-        "type": "POST",
+        "method": "POST",
         "address": "/_db/MyDatabase/_api/collection",
         "body": {"name": "newCOLLECTION"},
         "id": "1"
       },
       {
-        "type": "GET",
+        "method": "GET",
         "address": "/_api/database",
         "id": "2"
       }]
-      expect((@server.batch queries: queries).class).to be String
+      val = @server.batch queries: queries
+      expect(val.class).to be Arango::Batch
+      response = val.execute
+      expect(response.class).to be String
     end
 
     it "createDumpBatch" do
@@ -118,7 +127,8 @@ describe Arango::Server do
 
     it "prolongDumpBatch" do
       dumpBatchID = @server.createDumpBatch ttl: 100
-      expect((@server.prolongDumpBatch ttl: 100, id: dumpBatchID).to_i).to be > 1
+      val = @server.prolongDumpBatch ttl: 100, id: dumpBatchID
+      expect(val).to be true
     end
 
     it "destroyDumpBatch" do
@@ -139,10 +149,11 @@ describe Arango::Server do
       expect(@server.version[:server]).to eq "arango"
     end
 
-    it "propertyWAL" do
-      @server.changePropertyWAL historicLogfiles: 14
-      expect(@server.propertyWAL[:historicLogfiles]).to eq 14
-    end
+    # it "propertyWAL" do
+    #   @server.changePropertyWAL historicLogfiles: 14
+    #   val = @server.propertyWAL[:historicLogfiles]
+    #   expect(val).to eq 14
+    # end
 
     it "flushWAL" do
       expect(@server.flushWAL).to be true

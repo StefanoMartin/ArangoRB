@@ -7,7 +7,7 @@ module Arango
     include Arango::Server_Return
 
     def initialize(id: nil, name: nil, type: nil, period: nil, command: nil,
-      params: {}, created: nil, server:, body: {})
+      params: nil, created: nil, server:, body: {})
       assign_server(server)
       body2 = {
         "id": id,
@@ -17,7 +17,7 @@ module Arango
         "command": command,
         "params": params,
         "created": created
-      }
+      }.delete_if{|k,v| v.nil?}
       body.merge!(body2)
       assign_attributes(body)
     end
