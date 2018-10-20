@@ -7,7 +7,7 @@ RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
 		@server = Arango::Server.new username: "root", password: "root",
-			server: "localhost", port: "8529", verbose: true
+			server: "localhost", port: "8529"
 		@myDatabase    = @server.database(name: "MyDatabase")
 		@myDatabase.create
 		@myGraph       = @myDatabase.graph(name: "MyGraph").create
@@ -28,7 +28,7 @@ RSpec.configure do |config|
 		@myEdgeCollection.graph = @myGraph
 		@myVertex = @myCollection.vertex(body: {"Hello": "World", "num": 1},
 			name: "FirstVertex").create
-		@vertexA = @myCollection.vertex(body: {"Hello": "World", "num": 1}).create
+		@vertexA = @myCollection.vertex(body: {"Hello": "World", "num": 1}, name: "Second_Key").create
 	  @vertexB = @myCollection.vertex(body: {"Hello": "Moon", "num": 2}).create
 	  @myEdge = @myEdgeCollection.edge(from: @vertexA, to: @vertexB).create
 		@myIndex = @myCollection.index(unique: false, fields: "num", type: "hash",
@@ -42,16 +42,15 @@ RSpec.configure do |config|
 		@myUser.create
 		@myTask = @myDatabase.task(id: "mytaskid", name: "MyTaskID",
 			command: "(function(params) { require('@arangodb').print(params); })(params)",
-			params: {"foo": "bar", "bar": "foo"}, period: 60)
+			params: {"foo": "bar", "bar": "foo"}, period: 60).create
 	end
 
 	config.after(:all) do
-		begin
-			@myDatabase.destroy
-			@myUser.destroy  unless @myUser.nil?
-			@myIndex.destroy unless @myIndex.nil?
-		rescue Arango::Error => e
-			puts e.message
+		[@myIndex, @myDatabase, @myUser].each do |c|
+			begin
+				c.destroy unless c.nil?
+			rescue Arango::Error => e
+			end
 		end
 	end
 end

@@ -19,7 +19,7 @@ describe Arango::Task do
     end
 
     it "create a new Task instance with ID" do
-      myArangoTask = Arango::Task.new id: "mytaskid", name: "MyTaskID",
+      myArangoTask = Arango::Task.new id: "mytaskid2", name: "MyTaskID",
         command: "(function(params) { require('@arangodb').print(params); })(params)",
         params: {"foo2": "bar2", "bar2": "foo2"}, period: 2, database: @myDatabase
       myArangoTask.create
@@ -29,7 +29,7 @@ describe Arango::Task do
     it "duplicate a Task instance with ID" do
       val = nil
       begin
-        myArangoTask = Arango::Task.new id: "mytaskid", name: "MyTaskID",
+        myArangoTask = Arango::Task.new id: "mytaskid2", name: "MyTaskID",
           command: "(function(params) { require('@arangodb').print(params); })(params)",
           params: {"foo21": "bar2", "bar21": "foo21"}, period: 2, database: @myDatabase
         myArangoTask.create
@@ -62,7 +62,7 @@ describe Arango::Task do
 
   context "#destroy" do
     it "destroy" do
-      myArangoTask = Arango::Task.new id: "mytaskid", database: @myDatabase
+      myArangoTask = Arango::Task.new id: "mytaskid2", database: @myDatabase
       expect(myArangoTask.destroy).to be true
     end
   end

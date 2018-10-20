@@ -24,7 +24,7 @@ describe "ArangoHash" do
       print "#{@myIndex.to_h}\n"
       print "#{@myUser.to_h}\n"
       print "#{@myTask.to_h}\n"
-      expect(@myTask.to_hash.class).to be Hash
+      expect(@myTask.to_h.class).to be Hash
     end
   end
 end

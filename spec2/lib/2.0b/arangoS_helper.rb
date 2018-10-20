@@ -164,7 +164,7 @@ describe Arango::Server do
     end
 
     it "time" do
-      expect(@server.time.class).to eq BigDecimal
+      expect([BigDecimal, Float].include?(@server.time.class)).to eq true
     end
 
     it "echo" do

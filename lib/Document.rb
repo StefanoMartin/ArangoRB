@@ -245,6 +245,18 @@ module Arango
       edges(collection, "in")
     end
 
+    def toR
+      return nil if @to.nil?
+      @to.retrieve
+      @to
+    end
+
+    def fromR
+      return nil if @from.nil?
+      @from.retrieve
+      @from
+    end
+
 # === TRAVERSAL ===
 
     def traversal(body: {}, sort: nil, direction: nil, minDepth: nil,
