@@ -6,8 +6,32 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
-    def initialize(database:, type: "arangosearch", name:, id: nil)
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      database = hash[:database]
+      if database.is_a?(Arango::Database) && database.server.active_cache && !hash[:id].nil?
+        cache_name = "#{database.name}/#{hash[:id]}"
+        cached = database.server.cache.cache.dig(:view, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          body = {}
+          [:type, :name].each{|k| body[k] ||= hash[k]}
+          cached.assign_attributes(body)
+          return cached
+        end
+      end
+      super
+    end
+
+    def initialize(database:, type: "arangosearch", name:, id: nil, cache_name: nil)
       assign_database(database)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:view, cache_name, self)
+      end
       satisfy_category?(type, ["arangosearch"])
       @type = type
       @name = name
@@ -17,7 +41,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :type, :links, :database
+    attr_reader :type, :links, :database, :cache_name
     attr_accessor :id, :name
 
     def type=(type)
@@ -45,7 +69,8 @@ module Arango
         "name": @name,
         "id": @id,
         "type": @type,
-        "links": @links
+        "links": @links,
+        "cache_name": @cache_name
       }
       hash.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
@@ -57,6 +82,10 @@ module Arango
       @type  = assign_type(result[:type] || @type)
       @links = result[:links] || @links
       @name  = result[:name] || name
+      if @server.active_cache && @cache_name.nil?
+        @cache_name = "#{@database.name}/#{@id}"
+        @server.cache.save(:task, @cache_name, self)
+      end
     end
     alias assign_attributes body=
 

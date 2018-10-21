@@ -17,7 +17,9 @@ module Arango
           hash[:cache_name] = cache_name
           return super
         else
-          cached.assign_attributes(*args)
+          body = hash[:body] || {}
+          [:type, :isSystem].each{|k| body[k] ||= hash[k]}
+          cached.assign_attributes(body)
           return cached
         end
       end

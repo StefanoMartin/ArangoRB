@@ -6,8 +6,35 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
-    def initialize(database:, body: {}, mount:, development: nil, legacy: nil, provides: nil, name: nil, version: nil, type: "application/json", setup: nil, teardown: nil)
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      database = hash[:database]
+      if database.is_a?(Arango::Database) && database.server.active_cache && !hash[:mount].nil?
+        cache_name = "#{database.name}/#{hash[:mount]}"
+        cached = database.server.cache.cache.dig(:foxx, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          body = hash[:body] || {}
+          [:mount, :development, :legacy, :provides, :name, :version,
+            :type, :setup, :teardown].each{|k| body[k] ||= hash[k]}
+          cached.assign_attributes(body)
+          return cached
+        end
+      end
+      super
+    end
+
+    def initialize(database:, body: {}, mount:, development: nil, legacy: nil,
+      provides: nil, name: nil, version: nil, type: "application/json",
+      setup: nil, teardown: nil, cache_name: nil)
       assign_database(database)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:foxx, cache_name, self)
+      end
       assign_attributes(body)
       assign_type(type)
       @mount       ||= mount
@@ -22,7 +49,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :database, :server, :type, :body
+    attr_reader :database, :server, :type, :body, :cache_name
     attr_accessor :name, :development, :legacy, :provides,
       :version, :mount, :setup, :teardown
 
@@ -35,6 +62,10 @@ module Arango
         @development = result[:development] || @development
         @legacy      = result[:legacy]      || @legacy
         @provides    = result[:provides]    || @provides
+        if @server.active_cache && @cache_name.nil?
+          @cache_name = "#{@database.name}/#{@mount}"
+          @server.cache.save(:task, @cache_name, self)
+        end
       end
     end
     alias assign_attributes body=
@@ -58,10 +89,11 @@ module Arango
         "legacy": @legacy,
         "provides": @provides,
         "type": @type,
-        "teardown": @teardown
+        "teardown": @teardown,
+        "cache_name": @cache_name
       }
       hash.delete_if{|k,v| v.nil?}
-      hash["database"] = level > 0 ? @database.to_h(level-1) : @database.name
+      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
       hash
     end
 

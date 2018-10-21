@@ -18,7 +18,9 @@ module Arango
           hash[:cache_name] = cache_name
           return super
         else
-          cached.assign_attributes(*args)
+          body = hash[:body] || {}
+          [:rev, :from, :to].each{|k| body[:"_#{k}"] ||= hash[k]}
+          cached.assign_attributes(body)
           return cached
         end
       end
@@ -65,15 +67,15 @@ module Arango
         "_to":   @to
       }
       @body = hash.merge(result)
-      @name = result[:_key]
-      @id   = result[:_id]
+      @name = result[:_key] || @name
+      @id   = result[:_id]  || @id
       if @id.nil? && !@name.nil?
         @id = "#{@collection.name}/#{@name}"
       end
       @rev  = result[:_rev]
       set_up_from_or_to("from", result[:_from])
       set_up_from_or_to("to", result[:_to])
-      if @server.active_cache && @cache_name.nil?
+      if @server.active_cache && @cache_name.nil? && !@id.nil?
         @cache_name = "#{@database.name}/#{@id}"
         @server.cache.save(:document, @cache_name, self)
       end

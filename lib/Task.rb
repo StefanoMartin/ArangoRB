@@ -6,25 +6,41 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      database = hash[:database]
+      if database.is_a?(Arango::Database) && database.server.active_cache && !hash[:id].nil?
+        cache_name = "#{database.name}/#{hash[:id]}"
+        cached = database.server.cache.cache.dig(:task, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          body = hash[:body] || {}
+          [:name, :type, :period, :command, :params, :created].each{|k| body[k] ||= hash[k]}
+          cached.assign_attributes(body)
+        end
+      end
+      super
+    end
+
     def initialize(id: nil, name: nil, type: nil, period: nil, command: nil,
-      params: nil, created: nil, body: {}, database:)
+      params: nil, created: nil, body: {}, database:, cache_name: nil)
       assign_database(database)
-      body2 = {
-        "id": id,
-        "name": name,
-        "type": type,
-        "period": period,
-        "command": command,
-        "params": params,
-        "created": created
-      }.delete_if{|k,v| v.nil?}
-      body.merge!(body2)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:task, cache_name, self)
+      end
+      [:id, :name, :type, :period, :command, :params, :created].each do |k|
+        body[k] ||= binding.local_variable_get(k)
+      end
       assign_attributes(body)
     end
 
  # === DEFINE ===
 
-    attr_reader :server, :body, :database
+    attr_reader :server, :body, :database, :cache_name
     attr_accessor :id, :name, :type, :period, :created,
       :command, :params, :offset
 
@@ -38,6 +54,10 @@ module Arango
       @params  = result[:params]  || @params
       @offset  = result[:offset]  || @offset
       @created = result[:created] || @created
+      if @server.active_cache && @cache_name.nil?
+        @cache_name = "#{@database.name}/#{@id}"
+        @server.cache.save(:task, @cache_name, self)
+      end
     end
     alias assign_attributes body=
 
@@ -51,7 +71,8 @@ module Arango
         "period": @period,
         "command": @command,
         "params": @params,
-        "created": @created
+        "created": @created,
+        "cache_name": @cache_name
       }
       hash.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name

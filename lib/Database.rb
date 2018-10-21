@@ -17,7 +17,6 @@ module Arango
           hash[:cache_name] = cache_name
           return super
         else
-          cached.assign_attributes(*args)
           return cached
         end
       end

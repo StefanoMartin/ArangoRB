@@ -5,16 +5,12 @@ module Arango
         database: 10,
         collection: 20,
         document: 200,
-        graph: 1,
-        vertex: 50,
-        edge: 100,
+        graph: 10,
         index: 20,
-        aql: 100,
-        user: 50,
+        user: 20,
         task: 20,
-        traversal: 20,
-        transaction: 20,
-        other: 100
+        view: 20,
+        foxx: 20
       }
 
       @cache = {
@@ -22,15 +18,12 @@ module Arango
         collection: {},
         document: {},
         graph: {},
-        vertex: {},
-        edge: {},
         index: {},
         aql: {},
         user: {},
         task: {},
-        traversal: {},
-        transaction: {},
-        other: {}
+        view: {},
+        foxx: {}
       }
     end
 

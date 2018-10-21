@@ -6,9 +6,35 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      database = hash[:database]
+      if database.is_a?(Arango::Database) && database.server.active_cache
+        cache_name = "#{database.name}/#{hash[:name]}"
+        cached = database.server.cache.cache.dig(:graph, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          body = hash[:body] || {}
+          [:isSmart, :edgeDefinitions, :orphanCollections, :numberOfShards,
+            :replicationFactor, :smartGraphAttribute].each{|k| body[k] ||= hash[k]}
+          cached.assign_attributes(body)
+          return cached
+        end
+      end
+      super
+    end
+
     def initialize(name:, database:, edgeDefinitions: [],
-      orphanCollections: [], body: {}, numberOfShards: nil, isSmart: nil, smartGraphAtttribute: nil, replicationFactor: nil)
+      orphanCollections: [], body: {}, numberOfShards: nil, isSmart: nil,
+      smartGraphAtttribute: nil, replicationFactor: nil, cache_name: nil)
       assign_database(database)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:graph, cache_name, self)
+      end
       body[:_key]    ||= name
       body[:_id]     ||= "_graphs/#{name}"
       body[:isSmart] ||= isSmart
@@ -22,7 +48,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :name, :database, :server, :id, :body, :rev, :isSmart
+    attr_reader :name, :database, :server, :id, :body, :rev, :isSmart, :cache_name
     attr_accessor :numberOfShards, :replicationFactor, :smartGraphAttribute
     alias key name
 
@@ -38,6 +64,10 @@ module Arango
       @numberOfShards = result[:numberOfShards] || @numberOfShards
       @replicationFactor = result[:replicationFactor] || @replicationFactor
       @smartGraphAttribute = result[:smartGraphAttribute] || @smartGraphAttribute
+      if @server.active_cache && @cache_name.nil?
+        @cache_name = "#{@database.name}/#{@name}"
+        @server.cache.save(:graph, @cache_name, self)
+      end
     end
     alias assign_attributes body=
 
@@ -177,7 +207,8 @@ module Arango
         "replicationFactor": @replicationFactor,
         "smartGraphAttribute": @smartGraphAttribute,
         "edgeDefinitions": edgeDefinitionsRaw,
-        "orphanCollections": orphanCollectionsRaw
+        "orphanCollections": orphanCollectionsRaw,
+        "cache_name": @cache_name
       }
       hash.delete_if{|k,v| v.nil?}
       hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name

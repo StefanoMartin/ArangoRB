@@ -6,8 +6,32 @@ module Arango
     include Arango::Helper_Return
     include Arango::Server_Return
 
-    def initialize(server:, password: "", name:, extra: {}, active: nil)
+    def self.new(*args)
+      hash = args[0]
+      super unless hash.is_a?(Hash)
+      database = hash[:database]
+      if database.is_a?(Arango::Database) && database.server.active_cache
+        cache_name = hash[:name]
+        cached = database.server.cache.cache.dig(:user, cache_name)
+        if cached.nil?
+          hash[:cache_name] = cache_name
+          return super
+        else
+          body = {}
+          [:password, :extra, :active].each{|k| body[k] ||= hash[k]}
+          cached.assign_attributes(body)
+          return cached
+        end
+      end
+      super
+    end
+
+    def initialize(server:, password: "", name:, extra: {}, active: nil, cache_name: nil)
       assign_server(server)
+      unless cache_name.nil?
+        @cache_name = cache_name
+        @server.cache.save(:user, cache_name, self)
+      end
       @password = password
       @name     = name
       @extra    = extra
@@ -17,16 +41,21 @@ module Arango
 # === DEFINE ===
 
     attr_accessor :name, :extra, :active
-    attr_reader :server, :body
+    attr_reader :server, :body, :cache_name
     attr_writer :password
     alias user name
     alias user= name=
 
     def body=(result)
       @body   = result
+      @password = result[:password] || @password
       @name   = result[:user]   || @name
       @extra  = result[:extra]  || @extra
       @active = result[:active].nil? ? @active : result[:active]
+      if @server.active_cache && @cache_name.nil?
+        @cache_name = @name
+        @server.cache.save(:user, @cache_name, self)
+      end
     end
     alias assign_attributes body=
 
@@ -36,7 +65,8 @@ module Arango
       hash = {
         "user": @name,
         "extra": @extra,
-        "active": @active
+        "active": @active,
+        "cache_name": @cache_name
       }
       hash.delete_if{|k,v| v.nil?}
       hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
