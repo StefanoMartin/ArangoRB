@@ -4,8 +4,8 @@ require_relative File.expand_path('../../lib/arangorb', __FILE__)
 require "awesome_print"
 
 # OPEN REMOTE DATABASE
-ArangoServer.default_server user: "root", password: "tretretre", server: "172.17.8.101", port: "8529"
-myReplication = ArangoReplication.new endpoint: "tcp://10.10.1.97:8529", username: "root", password: "", database: "year"
+Arango::Server.default_server user: "root", password: "tretretre", server: "172.17.8.101", port: "8529"
+myReplication = Arango::Replication.new endpoint: "tcp://10.10.1.97:8529", username: "root", password: "", database: "year"
 
 print "\n === REPLICATE === \n"
 # REPLICATION (only once)
@@ -14,7 +14,7 @@ ap myReplication.sync
 
 print "\n === INFORMATION === \n"
 # INFO
-myDB = ArangoDatabase.new database: "year"
+myDB = Arango::Database.new database: "year"
 ap myDB.inventory # Fetch Collection data
 print "\n =========== \n"
 day_class = myDB["Day"]

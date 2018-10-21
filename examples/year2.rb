@@ -2,10 +2,10 @@
 
 require_relative File.expand_path('../../lib/arangorb', __FILE__)
 
-ArangoServer.default_server user: "root", password: "tretretre", server: "127.0.0.1", port: "8529"
-ArangoServer.database = "year"
+Arango::Server.default_server user: "root", password: "tretretre", server: "127.0.0.1", port: "8529"
+Arango::Server.database = "year"
 
-yearDatabase = ArangoDatabase.new.retrieve
+yearDatabase = Arango::Database.new.retrieve
 print "I am using the following Database: #{yearDatabase.name}.\n"
 
 collections = yearDatabase.collections
@@ -34,5 +34,5 @@ print "The month #{february2016.body["value"]} comes after #{january2016.body["v
 today = "2016-09-23T10:56"
 today = today.split(/-|T|:/).map{|x| x.to_i}
 query = "FOR v,e,p IN 1..4 ANY \"Year/#{today[0]}\" GRAPH \"yearGraph\" FILTER p.vertices[1].num == #{today[1]} && p.vertices[2].num == #{today[2]} && p.vertices[3].num == #{today[3]} && p.vertices[4].num == #{today[4]} RETURN p.vertices[4]"
-value = ArangoAQL.new(query: query).execute
+value = Arango::AQL.new(query: query).execute
 print "This example was created at this date: #{value.result.first.body["value"]}.\n"
