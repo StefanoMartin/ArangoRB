@@ -3,7 +3,6 @@ require_relative './../../spec_helper'
 describe Arango::Server do
   context "#general" do
     it "address" do
-      @server.verbose = true
       expect(@server.base_uri).to eq "http://localhost:8529"
     end
 

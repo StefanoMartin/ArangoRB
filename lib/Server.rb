@@ -5,8 +5,7 @@ module Arango
     include Arango::Helper_Error
 
     def initialize(username: "root", password:, server: "localhost",
-      warning: true, port: "8529", verbose: false, return_output: false,
-      cluster: nil, async: false, active_cache: true)
+      warning: true, port: "8529", verbose: false, return_output: false, cluster: nil, async: false, active_cache: true, pool: false, size: 5, timeout: 5)
       @base_uri = "http://#{server}:#{port}"
       @server = server
       @port = port
@@ -14,19 +13,28 @@ module Arango
       @password = password
       @options = {body: {}, headers: {}, query: {},
         basic_auth: {username: @username, password: @password }, format: :plain}
-      assign_async(async)
       @verbose = verbose
       @return_output = return_output
       @cluster = cluster
       @warning = warning
       @active_cache = active_cache
       @cache = @active_cache ? Arango::Cache.new : nil
+      @pool = pool
+      @size = size
+      @timeout = timeout
+      @request = Arango::Request.new(return_output: @return_output,
+        base_uri: @base_uri, cluster: @cluster, options: @options, verbose: @verbose, async: @async)
+      assign_async(async)
+      if @pool
+        @internal_request = ConnectionPool.new(size: @size, timeout: @timeout){ @request }
+      end
     end
 
 # === DEFINE ===
 
-    attr_reader :async, :port, :server, :base_uri, :username, :cache, :active_cache
-    attr_accessor :cluster, :verbose, :return_output, :warning
+    attr_reader :async, :port, :server, :base_uri, :username, :cache, :cluster,
+      :verbose, :return_output, :active_cache, :pool
+    attr_accessor :warning, :size, :timeout
 
     def active_cache=(active)
       satisfy_category?(active, [true, false])
@@ -38,24 +46,63 @@ module Arango
       end
     end
 
+    def pool=(pool)
+      satisfy_category?(pool, [true, false])
+      return if @pool == pool
+      @pool = pool
+      if @pool
+        @internal_request = ConnectionPool.new(size: @size, timeout: @timeout){ @request }
+      else
+        @internal_request&.shutdown { |conn| conn.quit }
+        @internal_request = nil
+      end
+    end
+    alias changePoolStatus pool=
+
+    def restartPool
+      changePoolStatus(false)
+      changePoolStatus(true)
+    end
+
+    def verbose=(verbose)
+      satisfy_category?(verbose, [true, false])
+      @verbose = verbose
+      @request.verbose = verbose
+    end
+
+    def cluster=(cluster)
+      @cluster = cluster
+      @request.cluster = cluster
+    end
+
+    def return_output=(return_output)
+      satisfy_category?(return_output, [true, false])
+      @return_output = return_output
+      @request.return_output = return_output
+    end
+
     def username=(username)
       @username = username
       @options[:basic_auth][:username] = @username
+      @request.options = options
     end
 
     def password=(password)
       @password = password
       @options[:basic_auth][:password] = @password
+      @request.options = options
     end
 
     def port=(port)
       @port = port
       @base_uri = "http://#{@server}:#{@port}"
+      @request.base_uri = @base_uri
     end
 
     def server=(server)
       @server = server
       @base_uri = "http://#{@server}:#{@port}"
+      @request.base_uri = @base_uri
     end
 
     def async=(async)
@@ -71,6 +118,8 @@ module Arango
         @options[:headers].delete("x-arango-async")
         @async = false
       end
+      @request.async = @async
+      @request.options = @options
     end
     alias assign_async async=
 
@@ -94,129 +143,20 @@ module Arango
 
 # === REQUESTS ===
 
-    def download(url:, path:, body: {}, headers: {}, query: {}, skip_cluster: false)
-      send_url = "#{@base_uri}/"
-      if !@cluster.nil? && !skip_cluster
-        send_url += "_admin/#{@cluster}/"
-      end
-      send_url += url
-      body.delete_if{|k,v| v.nil?}
-      query.delete_if{|k,v| v.nil?}
-      headers.delete_if{|k,v| v.nil?}
-      body = Oj.dump(body, mode: :json)
-      options = @options.merge({body: body, query: query, headers: headers, stream_body: true})
-      puts "\n#{action} #{send_url}\n" if @verbose
-      File.open(path, "w") do |file|
-        file.binmode
-        HTTParty.post(send_url, options) do |fragment|
-          file.write(fragment)
-        end
+    def request(*args)
+      if @pool
+        @internal_request.with{|request| request.request(*args)}
+      else
+        @request.request(*args)
       end
     end
 
-    def request(action, url, body: {}, headers: {}, query: {},
-      key: nil, return_direct_result: @return_output, skip_to_json: false,
-      skip_cluster: false, keepNull: false, skip_parsing: false)
-      send_url = "#{@base_uri}/"
-      if !@cluster.nil? && !skip_cluster
-        send_url += "_admin/#{@cluster}/"
+    def download(*args)
+      if @pool
+        @internal_request.with{|request| request.download(*args)}
+      else
+        @request.download(*args)
       end
-      send_url += url
-
-      if body.is_a?(Hash)
-        body.delete_if{|k,v| v.nil?} unless keepNull
-      end
-      query.delete_if{|k,v| v.nil?}
-      headers.delete_if{|k,v| v.nil?}
-      options = @options.merge({body: body, query: query})
-      options[:headers].merge!(headers)
-
-      if ["GET", "HEAD", "DELETE"].include?(action)
-        options.delete(:body)
-      end
-
-      if @verbose
-        puts "\n===REQUEST==="
-        puts "#{action} #{send_url}\n"
-        puts JSON.pretty_generate(options)
-        puts "==============="
-      end
-
-      if !skip_to_json && !options[:body].nil?
-        options[:body] = Oj.dump(options[:body], mode: :json)
-      end
-      options.delete_if{|k,v| v.empty?}
-
-      response = case action
-      when "GET"
-        HTTParty.get(send_url, options)
-      when "HEAD"
-        HTTParty.head(send_url, options)
-      when "PATCH"
-        HTTParty.patch(send_url, options)
-      when "POST"
-        HTTParty.post(send_url, options)
-      when "PUT"
-        HTTParty.put(send_url, options)
-      when "DELETE"
-        HTTParty.delete(send_url, options)
-      end
-
-      if @verbose
-        puts "\n===RESPONSE==="
-        puts "CODE: #{response.code}"
-      end
-
-      case @async
-      when :store
-        val = response.headers["x-arango-async-id"]
-        if @verbose
-          puts val
-          puts "==============="
-        end
-        return val
-      when true
-        puts "===============" if @verbose
-        return true
-      end
-
-      if skip_parsing
-        val = response.parsed_response
-        if @verbose
-          puts val
-          puts "==============="
-        end
-        return val
-      end
-
-      begin
-        result = Oj.load(response.parsed_response, mode: :json, symbol_keys: true)
-      rescue Exception => e
-        raise Arango::Error.new err: :impossible_to_parse_arangodb_response,
-          data: {"response": response.parsed_response, "action": action, "url": send_url,
-            "request": JSON.pretty_generate(options)}
-      end
-
-      if @verbose
-        if result.is_a?(Hash) || result.is_a?(Array)
-          puts JSON.pretty_generate(result)
-        else
-          puts "#{result}\n"
-        end
-        puts "==============="
-      end
-
-      if ![Hash, NilClass, Array].include?(result.class)
-        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: {"response": response, "action": action, "url": send_url, "request": JSON.pretty_generate(options)}
-      elsif result.is_a?(Hash) && result[:error]
-        raise Arango::ErrorDB.new message: result[:errorMessage],
-          code: result[:code], data: result, errorNum: result[:errorNum],
-          action: action, url: send_url, request: options
-      end
-      if return_direct_result || @return_output || !result.is_a?(Hash)
-        return result
-      end
-      return key.nil? ? result.delete_if{|k,v| k == :error || k == :code}: result[key]
     end
 
   #  == DATABASE ==

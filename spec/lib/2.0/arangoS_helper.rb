@@ -11,6 +11,7 @@ describe Arango::Server do
     it "print verbose" do
       @server.verbose = true
       expect(@server.verbose).to be true
+      @server.verbose = false
     end
   end
 end

@@ -52,7 +52,6 @@ describe Arango::Traversal do
 
   context "#execute" do
     it "execute Traversal" do
-      @server.verbose = true
       @myTraversal.any
       @myTraversal.execute
       expect(@myTraversal.vertices.length).to be >= 30

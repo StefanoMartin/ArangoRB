@@ -113,7 +113,7 @@ module Arango
         "query":       @query,
         "count":       @count,
         "batchSize":   @batchSize,
-        "ttl":        @ttl,
+        "ttl":         @ttl,
         "cache":       @cache,
         "options":     @options,
         "bindVars":    @bindVars,

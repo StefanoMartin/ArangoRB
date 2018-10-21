@@ -7,7 +7,7 @@ RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
 		@server = Arango::Server.new username: "root", password: "root",
-			server: "localhost", port: "8529"
+			server: "localhost", port: "8529", pool: true
 		@myDatabase    = @server.database(name: "MyDatabase")
 		@myDatabase.create
 		@myGraph       = @myDatabase.graph(name: "MyGraph").create

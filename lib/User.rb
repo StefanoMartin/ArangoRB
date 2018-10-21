@@ -69,7 +69,8 @@ module Arango
         "cache_name": @cache_name
       }
       hash.delete_if{|k,v| v.nil?}
-      hash["server"] = level > 0 ? @server.to_h(level-1) : @server.base_uri
+      hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
+      hash
     end
 
     def [](database)

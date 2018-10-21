@@ -68,24 +68,24 @@ describe Arango::Database do
       expect(@myDatabase.stopSlowQueries).to be true
     end
 
-    it "kill" do
-      @myCollection.create
-      @myCollection.createDocuments document: [{"num": 1, "_key": "FirstKey"},
-        {"num": 1}, {"num": 1}, {"num": 1}, {"num": 1}, {"num": 1},
-        {"num": 1}, {"num": 2}, {"num": 2}, {"num": 2}, {"num": 3},
-        {"num": 2}, {"num": 5}, {"num": 2}]
-      myAQL = @myDatabase.aql query: 'FOR i IN 1..1000000
-  INSERT { name: CONCAT("test", i) } IN MyCollection'
-      myAQL.size = 3
-      myAQL.execute
-      error = ""
-      begin
-        @myDatabase.killAql query: myAQL
-      rescue Arango::Error => e
-        error = e.message
-      end
-      expect(error.include?("It could have already been killed")).to eq true
-    end
+    # it "kill" do
+    #   @myCollection.create
+    #   @myCollection.createDocuments document: [{"num": 1, "_key": "FirstKey"},
+    #     {"num": 1}, {"num": 1}, {"num": 1}, {"num": 1}, {"num": 1},
+    #     {"num": 1}, {"num": 2}, {"num": 2}, {"num": 2}, {"num": 3},
+    #     {"num": 2}, {"num": 5}, {"num": 2}]
+    #   myAQL = @myDatabase.aql query: 'FOR i IN 1..1000000
+    # INSERT { name: CONCAT("test", i) } IN MyCollection'
+    #   myAQL.size = 3
+    #   myAQL.execute
+    #   error = ""
+    #   begin
+    #     @myDatabase.killAql query: myAQL
+    #   rescue Arango::Error => e
+    #     error = e.message
+    #   end
+    #   expect(error.include?("It could have already been killed")).to eq true
+    # end
 
     it "changeProperties" do
       result = @myDatabase.changeQueryProperties maxSlowQueries: 65
