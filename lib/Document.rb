@@ -20,6 +20,7 @@ module Arango
         else
           body = hash[:body] || {}
           [:rev, :from, :to].each{|k| body[:"_#{k}"] ||= hash[k]}
+          body[:"_key"] ||= hash[:name]
           cached.assign_attributes(body)
           return cached
         end
@@ -40,23 +41,53 @@ module Arango
       body[:_from] ||= from
       body[:_id]   ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
-      # DEFINE
-      ["name", "rev", "key", "from", "to"].each do |attribute|
-        temp_attrs = attribute
-        temp_attrs = "key" if attribute == "name"
-        define_singleton_method(:"#{attribute}=") do |attrs|
-          @body[:"_#{temp_attrs}"] = attrs
-          assign_attributes(@body)
-        end
-        define_singleton_method(:"#{attribute}") do
-          @body[:"_#{temp_attrs}"]
-        end
-      end
+    end
+
+    def name
+      return @body[:_key]
+    end
+    alias key name
+
+    def rev
+      return @body[:_rev]
+    end
+
+    def id
+      return @body[:_id]
+    end
+
+    def from
+      return @body[:_from]
+    end
+
+    def to
+      return @body[:_to]
+    end
+
+    def name=(att)
+      assign_attributes({_key: att})
+    end
+    alias key= name=
+
+    def rev=(att)
+      assign_attributes({_rev: att})
+    end
+
+    def id=(att)
+      assign_attributes({_id: id})
+    end
+
+    def from=(att)
+      assign_attributes({_from: from})
+    end
+
+    def to=(att)
+      assign_attributes({_to: to})
     end
 
 # === DEFINE ==
 
-    attr_reader :collection, :graph, :database, :server, :id, :body, :cache_name, :from, :to
+    attr_reader :collection, :graph, :database, :server, :body, :cache_name
 
     def body=(result)
       result.delete_if{|k,v| v.nil?}
@@ -83,19 +114,18 @@ module Arango
 
 # === TO HASH ===
 
-    def to_h(level=0)
-      hash = {
-        "name": @body[:_key],
-        "id":   @body[:_id],
-        "rev":  @body[:_rev],
-        "from": @body[:_from],
-        "to":   @body[:_to],
-        "body": @body,
-        "cache_name": @cache_name
-      }
-      hash[:collection] = level > 0 ? @collection.to_h(level-1) : @collection.name
-      hash.delete_if{|k,v| v.nil?}
-      hash
+    def to_h
+      {
+        "name":  @body[:_key],
+        "id":    @body[:_id],
+        "rev":   @body[:_rev],
+        "from":  @body[:_from],
+        "to":    @body[:_to],
+        "body":  @body,
+        "cache_name":  @cache_name,
+        "collection": @collection.name,
+        "graph": @graph&.name
+      }.delete_if{|k,v| v.nil?}
     end
 
     def set_up_from_or_to(attrs, var)
@@ -109,7 +139,7 @@ module Arango
         end
         @body[:"_#{attrs}"] = var
       when Arango::Document
-        @body[:"_#{attrs}"] = var.id
+        @body[:"_#{attrs}"] = "test"#var.id
       else
         raise Arango::Error.new err: :attribute_is_not_valid, data:
           {"attribute": attrs, "wrong_value": var}

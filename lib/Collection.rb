@@ -98,18 +98,17 @@ module Arango
 
 # === TO HASH ===
 
-    def to_h(level=0)
-      hash = {
+    def to_h
+      {
         "name":     @name,
         "type":     @type,
         "status":   @status,
         "id":       @id,
         "isSystem": @isSystem,
         "body":     @body,
-        "cache_name": @cache_name
+        "cache_name": @cache_name,
+        "database": @database.name
       }.delete_if{|k,v| v.nil?}
-      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
-      hash
     end
 
 # === GET ===

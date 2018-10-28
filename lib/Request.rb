@@ -95,7 +95,8 @@ module Arango
       end
 
       if @verbose
-        if result.is_a?(Hash) || result.is_a?(Array)
+        case result
+        when Hash, Array
           puts JSON.pretty_generate(result)
         else
           puts "#{result}\n"
@@ -103,17 +104,22 @@ module Arango
         puts "==============="
       end
 
-      if ![Hash, NilClass, Array].include?(result.class)
-        raise Arango::Error.new message: "ArangoRB didn't return a valid result", data: {"response": response, "action": action, "url": send_url, "request": JSON.pretty_generate(options)}
-      elsif result.is_a?(Hash) && result[:error]
-        raise Arango::ErrorDB.new message: result[:errorMessage],
-          code: result[:code], data: result, errorNum: result[:errorNum],
-          action: action, url: send_url, request: options
-      end
-      if return_direct_result || !result.is_a?(Hash)
+      case result
+      when Hash
+        if result[:error]
+          raise Arango::ErrorDB.new message: result[:errorMessage],
+            code: result[:code], data: result, errorNum: result[:errorNum],
+            action: action, url: send_url, request: options
+        elsif return_direct_result
+          return result
+        end
+      when Array, NilClass
         return result
+      else
+        raise Arango::Error.new message: "ArangoRB didn't return a valid result",
+          data: {"response": response, "action": action, "url": send_url, "request": JSON.pretty_generate(options)}
       end
-      return key.nil? ? result.delete_if{|k,v| k == :error || k == :code}: result[key]
+      return key.nil? ? result.delete_if{|k,v| k == :error || k == :code} : result[key]
     end
 
     def download(url:, path:, body: {}, headers: {}, query: {}, skip_cluster: false)

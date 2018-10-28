@@ -47,14 +47,12 @@ module Arango
 
 # === TO HASH ===
 
-    def to_h(level=0)
-      hash = {
+    def to_h
+      {
         "boundary": @boundary,
-        "queries":  @queries
-      }
-      hash.delete_if{|k,v| v.nil?}
-      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
-      hash
+        "queries":  @queries,
+        "database": @database.name
+      }.delete_if{|k,v| v.nil?}
     end
 
 # === QUERY ===

@@ -79,8 +79,8 @@ module Arango
 
 # === DEFINE ===
 
-    def to_h(level=0)
-      hash = {
+    def to_h
+      {
         "key": @key,
         "id": @id,
         "body": @body,
@@ -91,11 +91,9 @@ module Arango
         "idCache": @idCache,
         "geoJson": @geoJson,
         "minLength": @minLength,
-        "deduplicate": @deduplicate
-      }
-      hash.delete_if{|k,v| v.nil?}
-      hash[:collection] = level > 0 ? @collection.to_h(level-1) : @collection.name
-      hash
+        "deduplicate": @deduplicate,
+        "collection": @collection.name
+      }.delete_if{|k,v| v.nil?}
     end
 
 # === COMMANDS ===

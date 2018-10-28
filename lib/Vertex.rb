@@ -12,18 +12,6 @@ module Arango
       body[:_rev] ||= rev
       body[:_id]  ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
-      ["name", "rev", "from", "to", "key"].each do |attribute|
-        temp_attrs = attribute
-        temp_attrs = "key" if attribute == "name"
-        define_singleton_method(:"=#{attribute}") do |attrs|
-          body[:"_#{temp_attrs}"] = attrs
-          assign_attributes(body)
-        end
-        next if ["from", "to"].include?(attribute)
-        define_singleton_method(:"#{attribute}") do
-          @body[:"_#{temp_attrs}"]
-        end
-      end
     end
 
 # === DEFINE ===
@@ -42,14 +30,6 @@ module Arango
       @server = @database.server
     end
     alias assign_collection collection=
-
-# === TO HASH ===
-
-    def to_h(level=0)
-      hash = super(level)
-      hash[:graph] = level > 0 ? @graph.to_h(level-1) : @graph.name
-      hash
-    end
 
 # == GET ==
 
@@ -140,5 +120,8 @@ module Arango
       raise Arango::Error.new message: "You cannot assign from or to to a Vertex"
     end
     alias to= from=
+    alias to from=
+    alias toR from=
+    alias fromR from=
   end
 end

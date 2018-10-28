@@ -64,16 +64,15 @@ module Arango
       @links[collection_name].delete_if{|k,v| v.nil?}
     end
 
-    def to_h(level=0)
-      hash = {
+    def to_h
+      {
         "name": @name,
         "id": @id,
         "type": @type,
         "links": @links,
-        "cache_name": @cache_name
-      }
-      hash.delete_if{|k,v| v.nil?}
-      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
+        "cache_name": @cache_name,
+        "database": @database.name
+      }.delete_if{|k,v| v.nil?}
     end
 
     def body=(result)

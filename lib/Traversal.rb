@@ -160,8 +160,8 @@ module Arango
 
   # === TO HASH ===
 
-    def to_h(level=0)
-      hash = {
+    def to_h
+      {
         "sort": @sort,
         "direction": @direction,
         "maxDepth": @maxDepth,
@@ -182,14 +182,12 @@ module Arango
             "vertices": x[:vertices].map{|v| v.id}
           }
         end,
-        "idCache": @idCache
-      }
-      hash[:startVertex] = level > 0 ? @startVertex&.to_h(level-1) : @startVertex&.id
-      hash[:graph] = level > 0 ? @graph&.to_h(level-1) : @graph&.name
-      hash[:edgeCollection] = level > 0 ? @edgeCollection&.to_h(level-1) : @edgeCollection&.name
-      hash[:database] = level > 0 ? @database.to_h(level-1) : @database.name
-      hash.delete_if{|k,v| v.nil?}
-      hash
+        "idCache": @idCache,
+        "startVertex": @startVertex&.id,
+        "graph": @graph&.name,
+        "edgeCollection": @edgeCollection&.name,
+        "database": @database.name
+      }.delete_if{|k,v| v.nil?}
     end
 
   # === EXECUTE ===

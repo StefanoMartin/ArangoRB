@@ -125,7 +125,7 @@ module Arango
 
 # === TO HASH ===
 
-    def to_h(level=0)
+    def to_h
       hash = {
         "base_uri": @base_uri,
         "server":   @server,
@@ -136,9 +136,7 @@ module Arango
         "return_output": @return_output,
         "cluster": @cluster,
         "warning": @warning
-      }
-      hash.delete_if{|k,v| v.nil?}
-      hash
+      }.delete_if{|k,v| v.nil?}
     end
 
 # === REQUESTS ===

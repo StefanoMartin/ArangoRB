@@ -61,16 +61,14 @@ module Arango
 
 # === TO HASH ===
 
-    def to_h(level=0)
-      hash = {
+    def to_h
+      {
         "user": @name,
         "extra": @extra,
         "active": @active,
-        "cache_name": @cache_name
-      }
-      hash.delete_if{|k,v| v.nil?}
-      hash[:server] = level > 0 ? @server.to_h(level-1) : @server.base_uri
-      hash
+        "cache_name": @cache_name,
+        "server": @server.base_uri
+      }.delete_if{|k,v| v.nil?}
     end
 
     def [](database)
