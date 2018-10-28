@@ -7,13 +7,14 @@
 # Minute --(NEXT)--> Next Minute
 
 require_relative '../lib/arangorb'
+require 'objspace'
 
 year = 2016
 
 print "\n === DATABASE === \n"
 
 server = Arango::Server.new username: "root", password: "root", server: "localhost",
-  port: "8529", pool: false, active_cache: false, verbose: true
+  port: "8529", pool: false, active_cache: true, verbose: false
 database = server.database name: "year"
 graph = database.graph name: "yearGraph"
 database.destroy rescue ""
@@ -46,6 +47,7 @@ nexts = []; times = []
 
 new_yearV   = yearC.document name: "#{new_year}",
   body: {"value": "#{new_year}", "num": new_year.to_i}
+
 new_monthV  = monthC.document name: "#{new_year}-#{new_month}",
   body: {"value": "#{new_year}-#{new_month}", "num": new_month.to_i}
 new_dayV    = dayC.document name: "#{new_year}-#{new_month}-#{new_day}",
@@ -67,6 +69,8 @@ old_year = new_year; old_month = new_month; old_day = new_day; old_hour = new_ho
 
 
 while(t.year < year+1)
+  puts "TIMES: #{ObjectSpace.memsize_of(times)}"
+  puts "NEXTS: #{ObjectSpace.memsize_of(nexts)}"
   t += 60
   new_minute = t.strftime("%M")
   new_hour = t.strftime("%H")

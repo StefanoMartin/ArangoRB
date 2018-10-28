@@ -13,20 +13,22 @@ module Arango
       assign_attributes(body)
       # DEFINE
       ["name", "rev", "from", "to", "key"].each do |attribute|
+        temp_attrs = attribute
+        temp_attrs = "key" if attribute == "name"
         define_singleton_method(:"=#{attribute}") do |attrs|
-          temp_attrs = attribute
-          temp_attrs = "key" if attribute == "name"
           body[:"_#{temp_attrs}"] = attrs
           assign_attributes(body)
+        end
+        next if ["from", "to"].include?(attribute)
+        define_singleton_method(:"#{attribute}") do
+          @body[:"_#{temp_attrs}"]
         end
       end
     end
 
 # === DEFINE ===
 
-    attr_reader :name, :collection, :database, :server, :graph, :id, :rev,
-      :body, :from, :to
-    alias_method :key, :name
+    attr_reader :name, :collection, :database, :server, :graph, :from, :to
 
     def collection=(collection)
       satisfy_class?(collection, [Arango::Collection])
@@ -53,8 +55,8 @@ module Arango
 
     def retrieve(if_match: false)
       headers = {}
-      headers[:"If-Match"] = @rev if if_match
-      result = @graph.request("GET", "edge/#{@collection.name}/#{@name}",
+      headers[:"If-Match"] = @body[:_rev] if if_match
+      result = @graph.request("GET", "edge/#{@collection.name}/#{@body[:_key]}",
         headers: headers, key: :edge)
       return_element(result)
     end
@@ -68,7 +70,7 @@ module Arango
         "_from":      @from.id,
         "_to":        @to.id
       }
-      result = @graph.request("POST", "edge/#{@collection.name}", body: body, 
+      result = @graph.request("POST", "edge/#{@collection.name}", body: body,
         query: query, key: :edge)
       return result if @server.async != false
       body2 = result.clone
@@ -85,8 +87,8 @@ module Arango
         "keepNull":    keepNull
       }
       headers = {}
-      headers[:"If-Match"] = @rev if if_match
-      result = @graph.request("PUT", "edge/#{@collection.name}/#{@name}",
+      headers[:"If-Match"] = @body[:_rev] if if_match
+      result = @graph.request("PUT", "edge/#{@collection.name}/#{@body[:_key]}",
         body: body, query: query, headers: headers, key: :edge)
       return result if @server.async != false
       body2 = result.clone
@@ -98,8 +100,8 @@ module Arango
     def update(body: {}, waitForSync: nil, if_match: false)
       query = {"waitForSync": waitForSync}
       headers = {}
-      headers[:"If-Match"] = @rev if if_match
-      result = @graph.request("PATCH", "edge/#{@collection.name}/#{@name}",
+      headers[:"If-Match"] = @body[:_rev] if if_match
+      result = @graph.request("PATCH", "edge/#{@collection.name}/#{@body[:_key]}",
         body: body, query: query, headers: headers, key: :edge)
       return result if @server.async != false
       body2 = result.clone
@@ -114,8 +116,8 @@ module Arango
     def destroy(waitForSync: nil, if_match: false)
       query = {"waitForSync": waitForSync}
       headers = {}
-      headers[:"If-Match"] = @rev if if_match
-      result = @graph.request("DELETE", "edge/#{@collection.name}/#{@name}",
+      headers[:"If-Match"] = @body[:_rev] if if_match
+      result = @graph.request("DELETE", "edge/#{@collection.name}/#{@body[:_key]}",
         query: query, headers: headers)
       return_delete(result)
     end

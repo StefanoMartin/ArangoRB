@@ -41,42 +41,41 @@ module Arango
       body[:_id]   ||= "#{@collection.name}/#{name}" unless name.nil?
       assign_attributes(body)
       # DEFINE
-      ["name", "rev", "from", "to", "key"].each do |attribute|
+      ["name", "rev", "key", "from", "to"].each do |attribute|
+        temp_attrs = attribute
+        temp_attrs = "key" if attribute == "name"
         define_singleton_method(:"#{attribute}=") do |attrs|
-          temp_attrs = attribute
-          temp_attrs = "key" if attribute == "name"
           @body[:"_#{temp_attrs}"] = attrs
           assign_attributes(@body)
+        end
+        define_singleton_method(:"#{attribute}") do
+          @body[:"_#{temp_attrs}"]
         end
       end
     end
 
 # === DEFINE ==
 
-    attr_reader :name, :collection, :graph, :database, :server, :id, :rev,
-      :body, :from, :to, :cache_name
-    alias_method :key, :name
+    attr_reader :collection, :graph, :database, :server, :id, :body, :cache_name, :from, :to
 
     def body=(result)
       result.delete_if{|k,v| v.nil?}
+      @body = {}
       hash = {
-        "_key":  @name,
-        "_id":   @id,
-        "_rev":  @rev,
-        "_from": @from,
-        "_to":   @to
+        "_key":  @body[:_key],
+        "_id":   @body[:_id],
+        "_rev":  @body[:_rev],
+        "_from": @body[:_from],
+        "_to":   @body[:_to]
       }
       @body = hash.merge(result)
-      @name = result[:_key] || @name
-      @id   = result[:_id]  || @id
-      if @id.nil? && !@name.nil?
-        @id = "#{@collection.name}/#{@name}"
+      if @body[:_id].nil? && !@body[:_key].nil?
+        @body[:_id] = "#{@collection.name}/#{@body[:_key]}"
       end
-      @rev  = result[:_rev]
       set_up_from_or_to("from", result[:_from])
       set_up_from_or_to("to", result[:_to])
-      if @server.active_cache && @cache_name.nil? && !@id.nil?
-        @cache_name = "#{@database.name}/#{@id}"
+      if @server.active_cache && @cache_name.nil? && !@body[:_id].nil?
+        @cache_name = "#{@database.name}/#{@body[:_id]}"
         @server.cache.save(:document, @cache_name, self)
       end
     end
@@ -86,52 +85,74 @@ module Arango
 
     def to_h(level=0)
       hash = {
-        "name": @name,
-        "id":   @id,
-        "rev":  @rev,
+        "name": @body[:_key],
+        "id":   @body[:_id],
+        "rev":  @body[:_rev],
+        "from": @body[:_from],
+        "to":   @body[:_to],
         "body": @body,
         "cache_name": @cache_name
       }
       hash[:collection] = level > 0 ? @collection.to_h(level-1) : @collection.name
-      hash[:from] = level > 0 ? @from&.to_h(level-1) : @from&.id
-      hash[:to] = level > 0 ? @to&.to_h(level-1) : @to&.id
       hash.delete_if{|k,v| v.nil?}
       hash
     end
 
     def set_up_from_or_to(attrs, var)
-      if var.is_a?(NilClass)
-        instance = nil
-      elsif var.is_a?(String)
-        if !var.is_a?(String) || !var.include?("/")
-          raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute": attrs, "wrong_value": var}
+      case var
+      when NilClass
+        @body[:"_#{attrs}"] = nil
+      when String
+        unless var.include?("/")
+          raise Arango::Error.new err: :attribute_is_not_valid, data:
+            {"attribute": attrs, "wrong_value": var}
         end
-        collection_name, document_name = var.split("/")
-        collection = Arango::Collection.new name: collection_name,
-          database: @database
-        if @graph.nil?
-          instance = Arango::Document.new name: document_name, collection: collection
-        else
-          collection.graph = @graph
-          instance = Arango::Vertex.new name: document_name, collection: collection
-        end
-      elsif var.is_a?(Arango::Document)
-        instance = var
+        @body[:"_#{attrs}"] = var
+      when Arango::Document
+        @body[:"_#{attrs}"] = var.id
       else
-        raise Arango::Error.new err: :attribute_is_not_valid, data: {"attribute": attrs, "wrong_value": var}
+        raise Arango::Error.new err: :attribute_is_not_valid, data:
+          {"attribute": attrs, "wrong_value": var}
       end
-      instance_variable_set("@#{attrs}", instance)
-      @body[:"_#{attrs}"] = instance&.id unless instance&.id.nil?
     end
     private :set_up_from_or_to
+
+    def from(string: false)
+      return @body[:_from] if string
+    end
+
+    def to(string: false)
+      return @body[:_to] if string
+      retrieve_instance_from_and_to(@body[:_to])
+    end
+
+    def retrieve_instance_from_and_to(var)
+      case var
+      when NilClass
+        return nil
+      when String
+        collection_name, document_name = var.split("/")
+        collection = Arango::Collection.new name: collection_name, database: @database
+        if @graph.nil?
+          instance = Arango::Document.new(name: document_name, collection: collection)
+          instance.retrieve
+        else
+          collection.graph = @graph
+          instance = Arango::Vertex.new(name: document_name, collection: collection)
+          instance.retrieve
+        end
+        return instance
+      end
+    end
+    private :retrieve_instance_from_and_to
 
 # == GET ==
 
     def retrieve(if_none_match: false, if_match: false)
       headers = {}
-      headers[:"If-None-Match"] = @rev if if_none_match
-      headers[:"If-Match"]      = @rev if if_match
-      result = @database.request("GET",  "_api/document/#{@id}", headers: headers)
+      headers[:"If-None-Match"] = @body[:_rev] if if_none_match
+      headers[:"If-Match"]      = @body[:_rev] if if_match
+      result = @database.request("GET",  "_api/document/#{@body[:_id]}", headers: headers)
       return_element(result)
     end
 
@@ -139,9 +160,9 @@ module Arango
 
     def head(if_none_match: false, if_match: false)
       headers = {}
-      headers[:"If-None-Match"] = @rev if if_none_match
-      headers[:"If-Match"]      = @rev if if_match
-      @database.request("HEAD", "_api/document/#{@id}", headers: headers)
+      headers[:"If-None-Match"] = @body[:_rev] if if_none_match
+      headers[:"If-Match"]      = @body[:_rev] if if_match
+      @database.request("HEAD", "_api/document/#{@body[:_id]}", headers: headers)
     end
 
 # == POST ==
@@ -178,8 +199,8 @@ module Arango
         "silent":      silent
       }
       headers = {}
-      headers[:"If-Match"] = @rev if if_match
-      result = @database.request("PUT", "_api/document/#{@id}", body: body,
+      headers[:"If-Match"] = @body[:_rev] if if_match
+      result = @database.request("PUT", "_api/document/#{@body[:_id]}", body: body,
         query: query, headers: headers)
       return result if @server.async != false || silent
       body2 = result.clone
@@ -205,8 +226,8 @@ module Arango
         "silent":       silent
       }
       headers = {}
-      headers[:"If-Match"] = @rev if if_match
-      result = @database.request("PATCH", "_api/document/#{@id}", body: body,
+      headers[:"If-Match"] = @body[:_rev] if if_match
+      result = @database.request("PATCH", "_api/document/#{@body[:_id]}", body: body,
         query: query, headers: headers, keepNull: keepNull)
       return result if @server.async != false || silent
       body2 = result.clone
@@ -233,8 +254,8 @@ module Arango
         "silent":      silent
       }
       headers = {}
-      headers[:"If-Match"] = @rev if if_match
-      result = @database.request("DELETE", "_api/document/#{@id}", query: query,
+      headers[:"If-Match"] = @body[:_rev] if if_match
+      result = @database.request("DELETE", "_api/document/#{@body[:_id]}", query: query,
         headers: headers)
       return result if @server.async != false || silent
       body2 = result.clone
@@ -254,7 +275,7 @@ module Arango
       satisfy_class?(collection, [Arango::Collection, String])
       collection = collection.is_a?(Arango::Collection) ? collection.name : collection
       query = {
-        "vertex":    @id,
+        "vertex":    @body[:_id],
         "direction": direction
       }
       result = @database.request("GET", "_api/edges/#{collection}", query: query)
@@ -276,15 +297,11 @@ module Arango
     end
 
     def toR
-      return nil if @to.nil?
-      @to.retrieve
-      @to
+      retrieve_instance_from_and_to(@body[:_to])
     end
 
     def fromR
-      return nil if @from.nil?
-      @from.retrieve
-      @from
+      retrieve_instance_from_and_to(@body[:_from])
     end
 
 # === TRAVERSAL ===
