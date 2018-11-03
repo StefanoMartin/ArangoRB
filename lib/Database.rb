@@ -247,26 +247,6 @@ module Arango
       request("GET", "_api/replication/inventory", query: query)
     end
 
-    def sync(endpoint:, username: nil, password:, includeSystem: nil,
-      initialSyncMaxWaitTime: 0, restrictType: nil, incremental: nil,
-      restrictCollections: nil, database: @name)
-      satisfy_category?(restrictType, ["include", "exclude", nil])
-      satisfy_category?(restrictCollections, ["include", "exclude", nil])
-      satisfy_class?(password)
-      body = {
-        "username": username,
-        "password": password,
-        "endpoint": endpoint,
-        "database": database,
-        "restrictType":  restrictType,
-        "incremental":   incremental,
-        "includeSystem": includeSystem,
-        "restrictCollections":    restrictCollections,
-        "initialSyncMaxWaitTime": initialSyncMaxWaitTime
-      }
-      request("PUT", "_api/replication/sync", body: body)
-    end
-
     def clusterInventory(includeSystem: nil)
       query = { "includeSystem": includeSystem }
       request("GET", "_api/replication/clusterInventory", query: query)
@@ -294,92 +274,6 @@ module Arango
       request("GET", "_api/replication/logger-tick-ranges")
     end
 
-    def configurationReplication
-      request("GET", "_api/replication/applier-config")
-    end
-
-    def modifyConfigurationReplication(endpoint: nil, username: nil,
-      password: nil, includeSystem: nil, verbose: nil,
-      connectTimeout: nil, autoResync: nil, idleMinWaitTime: nil,
-      requestTimeout: nil, requireFromPresent: nil, idleMaxWaitTime: nil,
-      restrictCollections: nil, restrictType: nil,
-      initialSyncMaxWaitTime: nil, maxConnectRetries: nil,
-      autoStart: nil, adaptivePolling: nil, connectionRetryWaitTime: nil,
-      autoResyncRetries: nil, chunkSize: nil, database: @name)
-      satisfy_category?(restrictType, ["include", "exclude", nil])
-      body = {
-        "username": username,
-        "password": password,
-        "endpoint": endpoint,
-        "database": database,
-        "verbose":  verbose,
-        "autoResync": autoResync,
-        "autoStart":  autoStart,
-        "chunkSize":  chunkSize,
-        "includeSystem":   includeSystem,
-        "connectTimeout":  connectTimeout,
-        "idleMinWaitTime": idleMinWaitTime,
-        "requestTimeout":  requestTimeout,
-        "restrictType":    restrictType,
-        "requireFromPresent":      requireFromPresent,
-        "idleMaxWaitTime":         idleMaxWaitTime,
-        "maxConnectRetries":       maxConnectRetries,
-        "adaptivePolling":         adaptivePolling,
-        "initialSyncMaxWaitTime":  initialSyncMaxWaitTime,
-        "connectionRetryWaitTime": connectionRetryWaitTime,
-        "restrictCollections":     restrictCollections,
-        "autoResyncRetries":       autoResyncRetries
-      }
-      request("PUT", "_api/replication/applier-config", body: body)
-    end
-    alias modifyReplication modifyConfigurationReplication
-
-    def startReplication(from: nil)
-      satisfy_class?(from, [String, Integer, NilClass])
-      request("PUT", "_api/replication/applier-start", query: {from: from})
-    end
-
-    def stopReplication
-      request("PUT", "_api/replication/applier-stop")
-    end
-
-    def stateReplication
-      request("GET", "_api/replication/applier-state")
-    end
-
-    def enslave(endpoint:, username: nil, password:, includeSystem: true,
-      verbose: false, connectTimeout: nil, autoResync: nil,
-      idleMinWaitTime: nil, requestTimeout: nil, requireFromPresent: nil,
-      idleMaxWaitTime: nil, restrictCollections: nil, restrictType: nil,
-      initialSyncMaxWaitTime: nil, maxConnectRetries: nil,
-      adaptivePolling: nil, connectionRetryWaitTime: nil,
-      autoResyncRetries: nil, chunkSize: nil, database: @name)
-      satisfy_category?(restrictType, ["include", "exclude", nil])
-      body = {
-        "username":      username,
-        "password":      password,
-        "includeSystem": includeSystem,
-        "endpoint":      endpoint,
-        "initialSyncMaxWaitTime": initialSyncMaxWaitTime,
-        "database":        database,
-        "verbose":         verbose,
-        "connectTimeout":  connectTimeout,
-        "autoResync":      autoResync,
-        "idleMinWaitTime": idleMinWaitTime,
-        "requestTimeout":  requestTimeout,
-        "requireFromPresent": requireFromPresent,
-        "idleMaxWaitTime":   idleMaxWaitTime,
-        "restrictType":      restrictType,
-        "maxConnectRetries": maxConnectRetries,
-        "adaptivePolling":   adaptivePolling,
-        "connectionRetryWaitTime": connectionRetryWaitTime,
-        "restrictCollections":     restrictCollections,
-        "autoResyncRetries": autoResyncRetries,
-        "chunkSize":          chunkSize
-      }
-      request("PUT", "_api/replication/make-slave", body: body)
-    end
-
     def serverId
       request("GET", "_api/replication/server-id", key: :serverId)
     end
@@ -403,6 +297,44 @@ module Arango
         barrierID: barrierID
       }
       request("GET", "_api/wal/tail", query: query)
+    end
+
+    def replication(master:, includeSystem: true,
+      initialSyncMaxWaitTime: nil, incremental: nil,
+      restrictCollections: nil, connectTimeout: nil,
+      autoResync: nil, idleMinWaitTime: nil, requestTimeout: nil,
+      requireFromPresent: nil, idleMaxWaitTime: nil, restrictType: nil,
+      maxConnectRetries: nil, adaptivePolling: nil,
+      connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil,
+      verbose: nil)
+      Arango::Replication.new(slave: self, master: master, includeSystem: includeSystem,
+        initialSyncMaxWaitTime: initialSyncMaxWaitTime, incremental: incremental,
+        restrictCollections: restrictCollections, connectTimeout: connectTimeout,
+        autoResync: autoResync, idleMinWaitTime: idleMinWaitTime,
+        requestTimeout: requestTimeout, requireFromPresent: requireFromPresent, idleMaxWaitTime: idleMaxWaitTime, restrictType: restrictType,
+        maxConnectRetries: maxConnectRetries, adaptivePolling: adaptivePolling,
+        connectionRetryWaitTime: connectionRetryWaitTime,
+        autoResyncRetries: autoResyncRetries, chunkSize: chunkSize,
+        verbose: verbose)
+    end
+
+    def replication_as_master(slave:, includeSystem: true,
+      initialSyncMaxWaitTime: nil, incremental: nil,
+      restrictCollections: nil, connectTimeout: nil,
+      autoResync: nil, idleMinWaitTime: nil, requestTimeout: nil,
+      requireFromPresent: nil, idleMaxWaitTime: nil, restrictType: nil,
+      maxConnectRetries: nil, adaptivePolling: nil,
+      connectionRetryWaitTime: nil, autoResyncRetries: nil, chunkSize: nil,
+      verbose: nil)
+      Arango::Replication.new(master: self, slave: slave, includeSystem: includeSystem,
+        initialSyncMaxWaitTime: initialSyncMaxWaitTime, incremental: incremental,
+        restrictCollections: restrictCollections, connectTimeout: connectTimeout,
+        autoResync: autoResync, idleMinWaitTime: idleMinWaitTime,
+        requestTimeout: requestTimeout, requireFromPresent: requireFromPresent, idleMaxWaitTime: idleMaxWaitTime, restrictType: restrictType,
+        maxConnectRetries: maxConnectRetries, adaptivePolling: adaptivePolling,
+        connectionRetryWaitTime: connectionRetryWaitTime,
+        autoResyncRetries: autoResyncRetries, chunkSize: chunkSize,
+        verbose: verbose)
     end
 
 # === FOXX ===

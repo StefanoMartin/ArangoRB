@@ -67,7 +67,6 @@ old_yearV = new_yearV; old_monthV = new_monthV; old_dayV = new_dayV;
 old_hourV = new_hourV; old_minuteV = new_minuteV
 old_year = new_year; old_month = new_month; old_day = new_day; old_hour = new_hour
 
-
 while(t.year < year+1)
   t += 60
   new_minute = t.strftime("%M")
@@ -123,10 +122,16 @@ end
 print "\n === CREATION === \n"
 
 server.async = true
-minuteC.createDocuments document: minutes; print "C"
-hourC.createDocuments document: hours;     print "C"
-dayC.createDocuments document: days;       print "C"
-monthC.createDocuments document: months;   print "C"
-yearC.createDocuments document: years;     print "C"
-nextC.createDocuments document: nexts;     print "C"
-timeC.createDocuments document: times;     print "C\n"
+begin
+  minuteC.createDocuments document: minutes; print "C"
+  hourC.createDocuments document: hours;     print "C"
+  dayC.createDocuments document: days;       print "C"
+  monthC.createDocuments document: months;   print "C"
+  yearC.createDocuments document: years;     print "C"
+  nextC.createDocuments document: nexts;     print "C"
+  timeC.createDocuments document: times;     print "C\n"
+rescue Exception => e
+  puts e.to_h
+end
+
+print "\n === CONCLUDED ==="

@@ -68,7 +68,6 @@ module Arango
     def to_h
       {
         "query":       @query,
-        "database":    @database,
         "result":      @result,
         "count":       @count,
         "quantity":    @quantity,

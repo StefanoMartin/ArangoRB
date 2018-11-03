@@ -56,14 +56,6 @@ module Arango
       return @body[:_id]
     end
 
-    def from
-      return @body[:_from]
-    end
-
-    def to
-      return @body[:_to]
-    end
-
     def name=(att)
       assign_attributes({_key: att})
     end
@@ -78,11 +70,13 @@ module Arango
     end
 
     def from=(att)
-      assign_attributes({_from: from})
+      att = att.id if att.is_a?(Arango::Document)
+      assign_attributes({_from: att})
     end
 
     def to=(att)
-      assign_attributes({_to: to})
+      att = att.id if att.is_a?(Arango::Document)
+      assign_attributes({_to: att})
     end
 
 # === DEFINE ==
@@ -91,7 +85,8 @@ module Arango
 
     def body=(result)
       result.delete_if{|k,v| v.nil?}
-      @body = {}
+      @body ||= {}
+      # binding.pry if @body[:_key] == "Second_Key"
       hash = {
         "_key":  @body[:_key],
         "_id":   @body[:_id],
@@ -139,7 +134,7 @@ module Arango
         end
         @body[:"_#{attrs}"] = var
       when Arango::Document
-        @body[:"_#{attrs}"] = "test"#var.id
+        @body[:"_#{attrs}"] = var.id
       else
         raise Arango::Error.new err: :attribute_is_not_valid, data:
           {"attribute": attrs, "wrong_value": var}
@@ -149,6 +144,7 @@ module Arango
 
     def from(string: false)
       return @body[:_from] if string
+      retrieve_instance_from_and_to(@body[:_from])
     end
 
     def to(string: false)
@@ -164,14 +160,11 @@ module Arango
         collection_name, document_name = var.split("/")
         collection = Arango::Collection.new name: collection_name, database: @database
         if @graph.nil?
-          instance = Arango::Document.new(name: document_name, collection: collection)
-          instance.retrieve
+          return Arango::Document.new(name: document_name, collection: collection)
         else
           collection.graph = @graph
-          instance = Arango::Vertex.new(name: document_name, collection: collection)
-          instance.retrieve
+          return Arango::Vertex.new(name: document_name, collection: collection)
         end
-        return instance
       end
     end
     private :retrieve_instance_from_and_to
@@ -324,14 +317,6 @@ module Arango
 
     def in(collection)
       edges(collection, "in")
-    end
-
-    def toR
-      retrieve_instance_from_and_to(@body[:_to])
-    end
-
-    def fromR
-      retrieve_instance_from_and_to(@body[:_from])
     end
 
 # === TRAVERSAL ===

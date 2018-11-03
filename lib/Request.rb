@@ -44,19 +44,24 @@ module Arango
       end
       options.delete_if{|k,v| v.empty?}
 
-      response = case action
-      when "GET"
-        HTTParty.get(send_url, options)
-      when "HEAD"
-        HTTParty.head(send_url, options)
-      when "PATCH"
-        HTTParty.patch(send_url, options)
-      when "POST"
-        HTTParty.post(send_url, options)
-      when "PUT"
-        HTTParty.put(send_url, options)
-      when "DELETE"
-        HTTParty.delete(send_url, options)
+      begin
+        response = case action
+        when "GET"
+          HTTParty.get(send_url, options)
+        when "HEAD"
+          HTTParty.head(send_url, options)
+        when "PATCH"
+          HTTParty.patch(send_url, options)
+        when "POST"
+          HTTParty.post(send_url, options)
+        when "PUT"
+          HTTParty.put(send_url, options)
+        when "DELETE"
+          HTTParty.delete(send_url, options)
+        end
+      rescue Exception => e
+        raise Arango::Error.new err: :impossible_to_connect_with_database,
+          data: {"error": e.message}
       end
 
       if @verbose

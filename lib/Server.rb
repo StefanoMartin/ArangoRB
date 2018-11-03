@@ -253,6 +253,10 @@ module Arango
 
   # === ENDPOINT ===
 
+    def endpoint
+      "tcp://#{@server}:#{@port}"
+    end
+
     def endpoints
       request("GET", "_api/cluster/endpoints")
     end

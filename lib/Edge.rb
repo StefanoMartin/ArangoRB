@@ -15,7 +15,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :name, :collection, :database, :server, :graph, :from, :to
+    attr_reader :collection, :database, :server, :graph
 
     def collection=(collection)
       satisfy_class?(collection, [Arango::Collection])
@@ -46,8 +46,8 @@ module Arango
       body = @body.merge(body)
       query = {
         "waitForSync": waitForSync,
-        "_from":      @from.id,
-        "_to":        @to.id
+        "_from":      @body[:_from],
+        "_to":        @body[:_to]
       }
       result = @graph.request("POST", "edge/#{@collection.name}", body: body,
         query: query, key: :edge)

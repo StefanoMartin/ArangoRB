@@ -16,7 +16,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :name, :collection, :database, :server
+    attr_reader :collection, :database, :server, :graph
 
     def collection=(collection)
       satisfy_class?(collection, [Arango::Collection])
@@ -117,7 +117,7 @@ module Arango
 # === WRONG ===
 
     def from=(arg)
-      raise Arango::Error.new message: "You cannot assign from or to to a Vertex"
+      raise Arango::Error.new err: you_cannot_assign_from_or_to_to_a_vertex
     end
     alias to= from=
     alias to from=

@@ -53,10 +53,16 @@ module Arango
       },
       batch_query_not_valid: {
         code: 10017, message: "Query is not valid"
-      }#,
-      # element_in_cache_does_not_exist: {
-      #   code: 10018, message: "Element in cache does not exist"
-      # }
+      },
+      arangorb_didnt_return_a_valid_result: {
+        code: 10018, message: "ArangoRB didn't return a valid result"
+      },
+      impossible_to_connect_with_database: {
+        code: 10019, message: "Impossible to connect with database"
+      },
+      you_cannot_assign_from_or_to_to_a_vertex: {
+        code: 10020, message: "You cannot assign from or to to a Vertex"
+      }
     }
 
     def initialize(err:, data: nil, skip_assignment: false)
@@ -69,6 +75,15 @@ module Arango
       super(@message)
     end
     attr_reader :data, :code, :message
+
+    def to_h
+      {
+        "message": @message,
+        "code": @code,
+        "data": @data,
+        "internal_code": @internal_code
+      }.delete_if{|k,v| v.nil?}
+    end
   end
 end
 
@@ -85,5 +100,17 @@ module Arango
       super(err: nil, skip_assignment: true)
     end
     attr_reader :message, :code, :data, :errorNum, :action, :url, :request
+  end
+
+  def to_h
+    {
+      "action": @action,
+      "url": @url,
+      "request": @request,
+      "message": @message,
+      "code": @code,
+      "data": @data,
+      "errorNum": @errorNum
+    }.delete_if{|k,v| v.nil?}
   end
 end

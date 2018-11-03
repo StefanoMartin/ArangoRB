@@ -287,12 +287,11 @@ module Arango
       when Hash
         x
       when Arango::Document
-        if (type == :vertex && x.type == :edge)  ||
-           (type == :document && x.type == :edge) ||
-           (type == :edge && x.type == :document) ||
-           (type == :edge && x.type == :vertex)
+        if (type == :vertex && x.collection.type == :edge)  ||
+           (type == :edge && x.collection.type == :document) ||
+           (type == :edge && x.collection.type == :vertex)
           raise Arango::Error.new err: :wrong_type_instead_of_expected_one, data:
-            {"expected_value":  type, "received_value":  x.type, "wrong_object":  x}
+            {"expected_value":  type, "received_value":  x.collection.type, "wrong_object":  x}
         end
         x.body
       when Arango::Edge, Arango::Vertex
@@ -303,7 +302,7 @@ module Arango
         end
         x.body
       end
-      return body
+      return body.delete_if{|k,v| v.nil?}
     end
     private :return_body
 
