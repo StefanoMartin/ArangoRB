@@ -26,7 +26,8 @@ module Arango
 
     def queries=(queries)
       queries = [queries] unless queries.is_a?(Array)
-      @queries = queries.map do |query|
+      @queries = {}
+      queries.each do |query|
         begin
           query.keys.each do |key|
             query[(key.to_sym rescue key) || key] = query.delete(key)
@@ -40,8 +41,9 @@ module Arango
           query[:id] = @id.to_s
           @id += 1
         end
-        query
+        @queries[query[:id]] = query
       end
+      return @queries
     end
     alias assign_queries queries=
 
@@ -64,19 +66,22 @@ module Arango
         "method":  method,
         "address": address,
         "body":    body
-      }
+      }.delete_if{|k,v| v.nil?}
       @id += 1
+      return @queries
     end
+    alias modifyQuery addQuery
 
     def removeQuery(id:)
       @queries.delete(id)
+      return @queries
     end
 
 # === EXECUTE ===
 
     def execute
       body = ""
-      @queries.each do |query|
+      @queries.each do |id, query|
         body += "--#{@boundary}\n"
         body += "Content-Type: application/x-arango-batchpart\n"
         body += "Content-Id: #{query[:id]}\n\n"

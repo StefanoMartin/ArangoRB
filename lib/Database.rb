@@ -172,6 +172,8 @@ module Arango
       return return_delete(result)
     end
 
+# === QUERY CACHE ===
+
     def clearQueryCache
       result = request("DELETE", "_api/query-cache")
       return return_delete(result)
@@ -211,16 +213,7 @@ module Arango
       optimizer_rules: optimizer_rules, maxPlans: maxPlans)
   end
 
-  def killAql(query:)
-    satisfy_class?(query, [Arango::AQL, String])
-    if query.is_a?(Arango::AQL) && query&.id.nil?
-      raise Arango::Error.new err: :no_aql_id_available, data: {"query_id": nil}
-    end
-    id = query.is_a?(String) ? id : query.id
-    request("DELETE", "_api/query/#{id}")
-  end
-
-# === FUNCTION ===
+# === AQL FUNCTION ===
 
     def aqlFunctions(namespace: nil)
       request("GET", "_api/aqlfunction", query: {"namespace": namespace}, key: :result)

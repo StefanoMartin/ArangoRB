@@ -5,7 +5,7 @@ module Arango
     include Arango::Helper_Error
 
     def initialize(username: "root", password:, server: "localhost",
-      warning: true, port: "8529", verbose: false, return_output: false, cluster: nil, async: false, active_cache: true, pool: false, size: 5, timeout: 5)
+      warning: true, port: "8529", verbose: false, return_output: false, async: false, active_cache: false, pool: false, size: 5, timeout: 5)
       @base_uri = "http://#{server}:#{port}"
       @server = server
       @port = port
@@ -15,7 +15,6 @@ module Arango
         basic_auth: {username: @username, password: @password }, format: :plain}
       @verbose = verbose
       @return_output = return_output
-      @cluster = cluster
       @warning = warning
       @active_cache = active_cache
       @cache = @active_cache ? Arango::Cache.new : nil
@@ -23,7 +22,7 @@ module Arango
       @size = size
       @timeout = timeout
       @request = Arango::Request.new(return_output: @return_output,
-        base_uri: @base_uri, cluster: @cluster, options: @options, verbose: @verbose, async: @async)
+        base_uri: @base_uri, options: @options, verbose: @verbose, async: @async)
       assign_async(async)
       if @pool
         @internal_request = ConnectionPool.new(size: @size, timeout: @timeout){ @request }
@@ -32,7 +31,7 @@ module Arango
 
 # === DEFINE ===
 
-    attr_reader :async, :port, :server, :base_uri, :username, :cache, :cluster,
+    attr_reader :async, :port, :server, :base_uri, :username, :cache,
       :verbose, :return_output, :active_cache, :pool
     attr_accessor :warning, :size, :timeout
 
@@ -68,11 +67,6 @@ module Arango
       satisfy_category?(verbose, [true, false])
       @verbose = verbose
       @request.verbose = verbose
-    end
-
-    def cluster=(cluster)
-      @cluster = cluster
-      @request.cluster = cluster
     end
 
     def return_output=(return_output)
@@ -134,7 +128,6 @@ module Arango
         "async":    @async,
         "verbose":  @verbose,
         "return_output": @return_output,
-        "cluster": @cluster,
         "warning": @warning
       }.delete_if{|k,v| v.nil?}
     end
@@ -192,63 +185,67 @@ module Arango
         upto: upto, level: level, start: start, size: size,
         offset: offset, search: search, sort: sort
       }
-      request("GET", "_admin/log", query: query, skip_cluster: true)
+      request("GET", "_admin/log", query: query)
     end
 
     def loglevel
-      request("GET", "_admin/log/level", skip_cluster: true)
+      request("GET", "_admin/log/level")
     end
 
     def updateLoglevel(body:)
-      request("PUT", "_admin/log/level", skip_cluster: true, body: body)
+      request("PUT", "_admin/log/level", body: body)
     end
 
     def reload
-      request("GET", "_admin/server/availability", skip_cluster: true)
+      request("GET", "_admin/server/reload")
       return true
     end
 
     def available?
-      request("POST", "_admin/routing/reload", body: {}, skip_cluster: true)
+      request("POST", "_admin/routing/availability", body: {})
     end
 
     def statistics
-      request("GET", "_admin/statistics", skip_cluster: true)
+      request("GET", "_admin/statistics")
     end
 
     def statisticsDescription
-      request("GET", "_admin/statistics-description", skip_cluster: true)
+      request("GET", "_admin/statistics-description")
     end
 
     def status
-      request("GET", "_admin/status", skip_cluster: true)
+      request("GET", "_admin/status")
     end
 
     def role
-      request("GET", "_admin/server/role", skip_cluster: true, key: :role)
+      request("GET", "_admin/server/role", key: :role)
     end
 
     def serverData
-      request("GET", "_admin/server/id", skip_cluster: true)
+      request("GET", "_admin/server/id")
     end
 
     def mode
-      request("GET", "_admin/server/mode", skip_cluster: true)
+      request("GET", "_admin/server/mode")
     end
 
     def updateMode(mode:)
       satisfy_category?(mode, ["default", "readonly"])
       body = {mode: mode}
-      request("PUT", "_admin/server/mode", body: mode, skip_cluster: true)
+      request("PUT", "_admin/server/mode", body: mode)
     end
 
     def clusterHealth
-      request("GET", "_admin/health", skip_cluster: true)
+      request("GET", "_admin/health")
     end
 
     def clusterStatistics dbserver:
       query = {DBserver: dbserver}
-      request("GET", "_admin/clusterStatistics", query: query, skip_cluster: true)
+      request("GET", "_admin/clusterStatistics", query: query)
+    end
+
+    def serverId
+      request("GET", "_api/replication/server-id", key: :serverId)
     end
 
   # === ENDPOINT ===
@@ -438,10 +435,6 @@ module Arango
     def echo
       request("POST", "_admin/echo", body: {})
     end
-
-    # def echo
-    #   request("GET", "_admin/long_echo")
-    # end
 
     def databaseVersion
       request("GET", "_admin/database/target-version", key: :version)

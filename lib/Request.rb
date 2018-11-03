@@ -1,23 +1,19 @@
 module Arango
   class Request
-    def initialize(return_output:, base_uri:, cluster:, options:, verbose:, async:)
+    def initialize(return_output:, base_uri:, options:, verbose:, async:)
       @return_output = return_output
       @base_uri = base_uri
-      @cluster = cluster
       @options = options
       @verbose = verbose
       @async = async
     end
 
-    attr_accessor :return_output, :base_uri, :cluster, :options, :verbose, :async
+    attr_accessor :return_output, :base_uri, :options, :verbose, :async
 
     def request(action, url, body: {}, headers: {}, query: {},
       key: nil, return_direct_result: @return_output, skip_to_json: false,
-      skip_cluster: false, keepNull: false, skip_parsing: false)
+      keepNull: false, skip_parsing: false)
       send_url = "#{@base_uri}/"
-      if !@cluster.nil? && !skip_cluster
-        send_url += "_admin/#{@cluster}/"
-      end
       send_url += url
 
       if body.is_a?(Hash)
@@ -127,11 +123,8 @@ module Arango
       return key.nil? ? result.delete_if{|k,v| k == :error || k == :code} : result[key]
     end
 
-    def download(url:, path:, body: {}, headers: {}, query: {}, skip_cluster: false)
+    def download(url:, path:, body: {}, headers: {}, query: {})
       send_url = "#{@base_uri}/"
-      if !@cluster.nil? && !skip_cluster
-        send_url += "_admin/#{@cluster}/"
-      end
       send_url += url
       body.delete_if{|k,v| v.nil?}
       query.delete_if{|k,v| v.nil?}

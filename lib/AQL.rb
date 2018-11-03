@@ -133,6 +133,10 @@ module Arango
       @database.request("DELETE", "_api/cursor/#{@id}")
     end
 
+    def kill
+      @database.request("DELETE", "_api/query/#{@id}")
+    end
+
 # === PROPERTY QUERY ===
 
     def explain
@@ -146,10 +150,6 @@ module Arango
 
     def parse
       @database.request("POST", "_api/query", body: {"query": @query})
-    end
-
-    def kill(id: @id)
-      @database.request("DELETE", "_api/query/#{id}")
     end
   end
 end
