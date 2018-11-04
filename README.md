@@ -8,7 +8,7 @@ ArangoRB 0.1.0 - 1.3.0 have been tested with ArangoDB 3.0  with Ruby 2.3.1</br>
 ArangoRB 1.4.0 has been tested with ArangoDB 3.1 with Ruby 2.3.3</br>
 ArangoRB 2.0.0 has been tested with ArangoDB 3.4 with Ruby 2.3.3</br>
 
-It requires the gem "HTTParty"</br>
+It requires the gems "HTTParty", "Oj" and "connection_pool"</br>
 
 To install ArangoRB: `gem install arangorb`
 
@@ -63,7 +63,6 @@ Classes relative to ArangoDB elements:
 * [Arango::Batch](#ArangoBatch): to manage a Batch of multiple requests
 * [Arango::Foxx](#ArangoFoxx): to manage a Foxx instance
 * [Arango::View](#ArangoView): to manage a View instance
-* [Arango::Replication](#ArangoReplication): to manage a Replication
 
 Classes relative to the Gem ArangoRB
 * [Arango::Cache](#ArangoCache): to manage internal Cache
@@ -156,7 +155,7 @@ b = Arango::Document.new name: "test", collection: my_collection
 ```
 
 Note that if you set server.active_cache to false, then the stored Cache will be emptied.
-For more information about the cache, look at the section about Arango::Cache.
+For more information about the cache, look at the section about [Arango::Cache](#ArangoCache).
 
 ### Information
 
@@ -254,67 +253,6 @@ ArangoDB permits the sharding of the database. Although these methods has not be
 server.clusterHealth port: port # Allows to check whether a given port is usable
 server.serverId # Returns the id of a server in a cluster.
 server.clusterStatistics dbserver: dbserver # Allows to query the statistics of a DBserver in the cluster
-```
-
-## Arango::Batch
-
-To create a batch request, you can use ArangoRB::Batch object. This permit to do multiple requests with one single call to the API.
-
-To create a batch use one of the following way:
-
-``` ruby
-batch = server.batch
-batch = Arango::Batch.new(server: server)
-```
-
-To add a queries to the batch request you can use the brutal way:
-
-``` ruby
-batch.queries = [
-  {
-    "type": "POST",
-    "address": "/_db/MyDatabase/_api/collection",
-    "body": {"name": "newCOLLECTION"},
-    "id": "1"
-  },
-  {
-    "type": "GET",
-    "address": "/_api/database",
-    "id": "2"
-  }
-]
-```
-
-Or the Ruby way (the id will be handled by the system, if not specified):
-
-``` ruby
-batch = server.batch
-batch.addQuery(method: "POST", address: "/_db/MyDatabase/_api/collection",
-  body: {"name": "newCOLLECTION"})
-batch.addQuery(method: "GET", address: "/_api/database")
-```
-
-In both the cases the queries will be stored in an hash with key the id of the query and as value the query.
-This query can be handled with the following methods:
-
-``` ruby
-batch.to_h # Retrieve an hash version of the instance
-batch.modifyQuery(id: "1", method: "GET", address: "/_db/MyDatabase/_api/collection/newCOLLECTION") # Modify the Query with id "1"
-batch.removeQuery(id: "1") # Remove query
-```
-
-To execute the query use:
-
-``` ruby
-batch.execute
-```
-
-To manage how the server handle the batch, Arango::Server offers the following functions:
-
-``` ruby
-server.createDumpBatch ttl: 10 # Create a new dump batch with 10 second time-to-live (return id of the dumpBatch)
-server.prolongDumpBatch id: idDumpBatch, ttl: 20 # Prolong the life of a batch for 20 seconds
-server.destroyDumpBatch id: idDumpBatch # Delete a selected batch
 ```
 
 <a name="ArangoDatabase"></a>
@@ -952,6 +890,67 @@ myReplication.configuration # check the Configuration of the Replication
 myReplication.state # check the status of the Replication
 myReplication.stop # stop the Replication
 myReplication.modify  # modify the Configuration of the Replication (you can modify only a stopped Replication)
+```
+
+## Arango::Batch
+
+To create a batch request, you can use ArangoRB::Batch object. This permit to do multiple requests with one single call to the API.
+
+To create a batch use one of the following way:
+
+``` ruby
+batch = server.batch
+batch = Arango::Batch.new(server: server)
+```
+
+To add a queries to the batch request you can use the brutal way:
+
+``` ruby
+batch.queries = [
+  {
+    "type": "POST",
+    "address": "/_db/MyDatabase/_api/collection",
+    "body": {"name": "newCOLLECTION"},
+    "id": "1"
+  },
+  {
+    "type": "GET",
+    "address": "/_api/database",
+    "id": "2"
+  }
+]
+```
+
+Or the Ruby way (the id will be handled by the system, if not specified):
+
+``` ruby
+batch = server.batch
+batch.addQuery(method: "POST", address: "/_db/MyDatabase/_api/collection",
+  body: {"name": "newCOLLECTION"})
+batch.addQuery(method: "GET", address: "/_api/database")
+```
+
+In both the cases the queries will be stored in an hash with key the id of the query and as value the query.
+This query can be handled with the following methods:
+
+``` ruby
+batch.to_h # Retrieve an hash version of the instance
+batch.modifyQuery(id: "1", method: "GET", address: "/_db/MyDatabase/_api/collection/newCOLLECTION") # Modify the Query with id "1"
+batch.removeQuery(id: "1") # Remove query
+```
+
+To execute the query use:
+
+``` ruby
+batch.execute
+```
+
+To manage how the server handle the batch, Arango::Server offers the following functions:
+
+``` ruby
+server.createDumpBatch ttl: 10 # Create a new dump batch with 10 second time-to-live (return id of the dumpBatch)
+server.prolongDumpBatch id: idDumpBatch, ttl: 20 # Prolong the life of a batch for 20 seconds
+server.destroyDumpBatch id: idDumpBatch # Delete a selected batch
 ```
 
 <a name="ArangoView"></a>
