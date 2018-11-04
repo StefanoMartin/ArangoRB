@@ -12,8 +12,8 @@ module Arango
       maxWarningCount: nil, intermediateCommitCount: nil,
       satelliteSyncWait: nil, fullCount: nil, intermediateCommitSize: nil,
       optimizer_rules: nil, maxPlans: nil)
-      satisfy_class?(query, [Arango::AQL, String])
-      @query = query.is_a?(String) ? query: query.query
+      satisfy_class?(query, [String])
+      @query = query
       assign_database(database)
 
       @count       = count

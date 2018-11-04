@@ -25,13 +25,12 @@ describe Arango::Traversal do
     end
 
     it "instantiate Graph" do
-      @myTraversal.graph = @myGraph
       expect(@myTraversal.graph.name).to eq @myGraph.name
     end
 
     it "instantiate EdgeCollection" do
-      @myTraversal.collection = @myEdgeCollection
-      expect(@myTraversal.collection.name).to eq @myEdgeCollection.name
+      @myTraversal.edgeCollection = @myEdgeCollection
+      expect(@myTraversal.edgeCollection.name).to eq @myEdgeCollection.name
     end
 
     it "instantiate Direction" do

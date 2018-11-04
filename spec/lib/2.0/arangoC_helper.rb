@@ -2,7 +2,7 @@ require_relative './../../spec_helper'
 
 describe Arango::Collection do
   context "#new" do
-    it "create a new instancel" do
+    it "create a new instance" do
       myCollection = @myDatabase.collection name: "MyCollection"
       expect(myCollection.name).to eq "MyCollection"
     end

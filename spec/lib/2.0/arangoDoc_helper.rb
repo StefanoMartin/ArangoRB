@@ -50,7 +50,7 @@ describe Arango::Document do
     it "retrieve Edges" do
       @myEdgeCollection.createEdges from: ["MyCollection/myA", "MyCollection/myB"],
         to: @myDocument
-      myEdges = @myDocument.edges(@myEdgeCollection)
+      myEdges = @myDocument.edges(collection: @myEdgeCollection)
       expect(myEdges.length).to eq 2
     end
 

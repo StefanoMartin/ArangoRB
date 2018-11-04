@@ -105,8 +105,6 @@ describe Arango::Traversal do
   context "#retrieve" do
     it "database" do
       @myTraversal.vertex = @myDoc[0]
-  		@myTraversal.graph = @myGraph
-  		@myTraversal.collection = @myEdgeCollection
       @myTraversal.in
       expect(@myTraversal.database.class).to be Arango::Database
     end

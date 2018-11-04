@@ -197,7 +197,7 @@ module Arango
     end
 
     def reload
-      request("GET", "_admin/server/reload")
+      request("GET", "_admin/routing/reload")
       return true
     end
 

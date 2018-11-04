@@ -11,7 +11,6 @@ module Arango
       vertex:, visitor: nil, itemOrder: nil, strategy: nil,
       filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
       uniqueness: nil, order: nil, expander: nil)
-      assign_database(database)
       satisfy_category?(direction, ["outbound", "inbound", "any", nil])
       satisfy_category?(itemOrder, ["forward", "backward", nil])
       satisfy_category?(strategy, ["depthfirst", "breadthfirst", nil])
@@ -40,7 +39,7 @@ module Arango
 
     attr_accessor :sort, :maxDepth, :minDepth, :visitor, :filter, :init, :maxiterations, :uniqueness, :expander
     attr_reader :vertices, :paths, :direction, :itemOrder,
-      :strategy, :order, :database, :server, :vertex, :edgeCollection, :graph, :body
+      :strategy, :order, :database, :server, :vertex, :edgeCollection, :graph, :body, :collection
     alias startVertex vertex
 
     def body=(body)
@@ -96,11 +95,10 @@ module Arango
       when String
         if @database.nil?
           raise Arango::Error.new err: :database_undefined_for_traversal
-        end
-        if vertex.include?("/")
+        elsif vertex.include? "/"
           val = vertex.split("/")
           @collection = Arango::Collection.new(database: @database, name: val[0])
-          @vertex = Arango::Document.new(collection: collection, name: val[1])
+          @vertex = Arango::Document.new(collection: @collection, name: val[1])
           return
         end
       end
@@ -110,6 +108,7 @@ module Arango
     alias return_vertex startVertex=
 
     def edgeCollection=(collection)
+      return nil if collection.nil?
       satisfy_class?(collection, [Arango::Collection, String])
       case collection
       when Arango::Collection
@@ -131,8 +130,6 @@ module Arango
     alias max= maxDepth=
     alias min minDepth
     alias min= minDepth=
-    alias collection edgeCollection
-    alias collection= edgeCollection=
 
     def in
       @direction = "inbound"
@@ -163,11 +160,11 @@ module Arango
         "uniqueness": @uniqueness,
         "order": @order,
         "expander": @expander,
-        "vertices": @vertices.map{|x| x.id},
-        "paths": @paths.map do |x|
+        "vertices": @vertices&.map{|x| x.id},
+        "paths": @paths&.map do |x|
           {
-            "edges": x[:edges].map{|e| e.id},
-            "vertices": x[:vertices].map{|v| v.id}
+            "edges": x[:edges]&.map{|e| e.id},
+            "vertices": x[:vertices]&.map{|v| v.id}
           }
         end,
         "idCache": @idCache,

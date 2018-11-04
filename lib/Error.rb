@@ -109,17 +109,17 @@ module Arango
       super(err: nil, skip_assignment: true)
     end
     attr_reader :message, :code, :data, :errorNum, :action, :url, :request
-  end
 
-  def to_h
-    {
-      "action": @action,
-      "url": @url,
-      "request": @request,
-      "message": @message,
-      "code": @code,
-      "data": @data,
-      "errorNum": @errorNum
-    }.delete_if{|k,v| v.nil?}
+    def to_h
+      {
+        "action": @action,
+        "url": @url,
+        "request": @request,
+        "message": @message,
+        "code": @code,
+        "data": @data,
+        "errorNum": @errorNum
+      }.delete_if{|k,v| v.nil?}
+    end
   end
 end

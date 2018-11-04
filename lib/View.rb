@@ -91,12 +91,12 @@ module Arango
     # === COMMANDS ===
 
     def retrieve
-      result = @database.request("GET", "_api/views/#{@name}")
-      return result.headers[:"x-arango-async-id"] if @@async == "store"
+      result = @database.request("GET", "_api/view/#{@name}")
+      return result.headers[:"x-arango-async-id"] if @server.async == :store
       return_element(result)
     end
 
-    def manage_properties(method, consolidationIntervalMsec: nil, threshold: nil, segmentThreshold: nil, cleanupIntervalStep: nil)
+    def manage_properties(method, url, consolidationIntervalMsec: nil, threshold: nil, segmentThreshold: nil, cleanupIntervalStep: nil)
       body = {
         properties: {
           links: @links.empty? ? nil : @links,
@@ -117,35 +117,35 @@ module Arango
       body[:properties].delete_if{|k,v| v.nil?}
       body.delete(:properties) if body[:properties].empty?
       body.delete_if{|k,v| v.nil?}
-      result = @database.request(method, "_api/views", body: body)
+      result = @database.request(method, url, body: body)
       return_element(result)
     end
     private :manage_properties
 
     def create(consolidationIntervalMsec: nil, threshold: nil, segmentThreshold: nil, cleanupIntervalStep: nil)
-      manage_properties("POST", "_api/views", consolidationIntervalMsec: consolidationIntervalMsec, threshold: threshold, segmentThreshold: segmentThreshold, cleanupIntervalStep: cleanupIntervalStep)
+      manage_properties("POST", "_api/view", consolidationIntervalMsec: consolidationIntervalMsec, threshold: threshold, segmentThreshold: segmentThreshold, cleanupIntervalStep: cleanupIntervalStep)
     end
 
     def replaceProperties(consolidationIntervalMsec: nil, threshold: nil, segmentThreshold: nil, cleanupIntervalStep: nil)
-      manage_properties("PUT", "_api/views/#{@name}/properties", consolidationIntervalMsec: consolidationIntervalMsec, threshold: threshold, segmentThreshold: segmentThreshold, cleanupIntervalStep: cleanupIntervalStep)
+      manage_properties("PUT", "_api/view/#{@name}/properties", consolidationIntervalMsec: consolidationIntervalMsec, threshold: threshold, segmentThreshold: segmentThreshold, cleanupIntervalStep: cleanupIntervalStep)
     end
 
     def updateProperties(consolidationIntervalMsec: nil, threshold: nil, segmentThreshold: nil, cleanupIntervalStep: nil)
-      manage_properties("PATCH", "_api/views/#{@name}/properties", consolidationIntervalMsec: consolidationIntervalMsec, threshold: threshold, segmentThreshold: segmentThreshold, cleanupIntervalStep: cleanupIntervalStep)
+      manage_properties("PATCH", "_api/view/#{@name}/properties", consolidationIntervalMsec: consolidationIntervalMsec, threshold: threshold, segmentThreshold: segmentThreshold, cleanupIntervalStep: cleanupIntervalStep)
     end
 
     def rename name:
       body = {name: name}
-      result = @database.request("PUT", "_api/views/#{@name}/rename", body: body)
+      result = @database.request("PUT", "_api/view/#{@name}/rename", body: body)
       return_element(result)
     end
 
     def properties
-      @database.request("GET", "_api/views/#{@name}/properties")
+      @database.request("GET", "_api/view/#{@name}/properties")
     end
 
-    def remove
-      @database.request("DELETE", "_api/views/#{@name}", key: :result)
+    def destroy
+      @database.request("DELETE", "_api/view/#{@name}", key: :result)
     end
   end
 end

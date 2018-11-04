@@ -43,6 +43,7 @@ RSpec.configure do |config|
 		@myTask = @myDatabase.task(id: "mytaskid", name: "MyTaskID",
 			command: "(function(params) { require('@arangodb').print(params); })(params)",
 			params: {"foo": "bar", "bar": "foo"}, period: 60).create
+		@myView = @myDatabase.view name: "MyView"
 	end
 
 	config.after(:all) do

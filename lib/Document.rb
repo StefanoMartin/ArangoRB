@@ -294,7 +294,7 @@ module Arango
 
   # === EDGE ===
 
-    def edges(collection:, direction=nil)
+    def edges(collection:, direction: nil)
       satisfy_class?(collection, [Arango::Collection, String])
       collection = collection.is_a?(Arango::Collection) ? collection.name : collection
       query = {
@@ -316,11 +316,11 @@ module Arango
     end
 
     def out(collection)
-      edges(collection: collection, "out")
+      edges(collection: collection, direction: "out")
     end
 
-    def in(collection: collection)
-      edges(collection, "in")
+    def in(collection)
+      edges(collection: collection, direction: "in")
     end
 
 # === TRAVERSAL ===
