@@ -20,6 +20,14 @@ ArangoRB 1.4 and ArangoRB 2.0 are not compatible.
 The new version provide different improvements.
 * Now all the instances are in a module Arango. This means that previous classes like Arango::Server will become Arango::Server.
 * Arango::Server is now an instance. This means that ArangoRB 2.0 will permits to use different servers.
+* ArangoRB has implemented connection_pool 
+* ArangoRB has now a better implementation of Cache 
+* The returned values are returned with symbols as keys 
+* Oj is used for parsing instead of JSON 
+* Add supports for View and Foxx 
+* Better hierarchy handling between the different instances. For example now myDocument.database will return the database instance that includes the document.
+* Better handling of replication (untested)
+* Clean in general the code (for future easier maintance) 
 
 ## Classes used
 
