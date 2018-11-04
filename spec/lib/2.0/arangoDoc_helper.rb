@@ -47,6 +47,15 @@ describe Arango::Document do
       expect(myDocument.body[:Hello]).to eq "World"
     end
 
+    it "retrieve Document as Hash" do
+      @server.return_output = true
+      myDocument = @myDocument.retrieve
+      expect(myDocument.class).to be Hash
+      @server.return_output = false
+      myDocument = @myDocument.retrieve
+      expect(myDocument.class).to be Arango::Document
+    end
+
     it "retrieve Edges" do
       @myEdgeCollection.createEdges from: ["MyCollection/myA", "MyCollection/myB"],
         to: @myDocument

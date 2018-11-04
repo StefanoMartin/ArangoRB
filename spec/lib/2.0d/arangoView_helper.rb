@@ -25,6 +25,10 @@ describe "Arango::View" do
       expect(@myView.name).to eq "MyView2"
     end
 
+    it "rename a View" do
+      expect(@myView.properties[:type]).to eq "arangosearch"
+    end
+
     it "retrieve multiple views" do
       views = @myDatabase.views
       expect(views[0].class).to be Arango::View

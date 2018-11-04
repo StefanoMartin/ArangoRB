@@ -50,7 +50,7 @@ module Arango
     end
     alias assign_type type=
 
-    def add_link(collection:, analyzers: nil, fields: {}, includeAllFields: nil, trackListPositions: nil, storeValues: nil)
+    def addLink(collection:, analyzers: nil, fields: {}, includeAllFields: nil, trackListPositions: nil, storeValues: nil)
       satisfy_class?(collection, [Arango::Collection, String])
       collection_name = collection.is_a?(String) ? collection : collection.name
       satisfy_category?(storeValues, ["none", "id", nil])
