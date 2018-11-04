@@ -6,11 +6,11 @@ module Arango
     include Arango::Helper_Return
     include Arango::Database_Return
 
-    def initialize(body: {}, database:, edgeCollection: nil,
+    def initialize(body: {}, edgeCollection: nil,
       sort: nil, direction: nil, minDepth: nil,
-      startVertex: nil, visitor: nil, itemOrder: nil, strategy: nil,
+      vertex:, visitor: nil, itemOrder: nil, strategy: nil,
       filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
-      uniqueness: nil, order: nil, graphName: nil, graph: nil, expander: nil)
+      uniqueness: nil, order: nil, expander: nil)
       assign_database(database)
       satisfy_category?(direction, ["outbound", "inbound", "any", nil])
       satisfy_category?(itemOrder, ["forward", "backward", nil])
@@ -20,7 +20,7 @@ module Arango
       body[:direction]      ||= direction
       body[:maxDepth]       ||= maxDepth
       body[:minDepth]       ||= minDepth
-      body[:startVertex]    ||= startVertex
+      body[:startVertex]    ||= vertex
       body[:visitor]        ||= visitor
       body[:itemOrder]      ||= itemOrder
       body[:strategy]       ||= strategy
@@ -31,7 +31,6 @@ module Arango
       body[:order]          ||= order
       body[:expander]       ||= expander
       body[:edgeCollection] ||= edgeCollection
-      body[:graphName]      ||= graph || graphName
       assign_body(body)
       @vertices = nil
       @paths = nil
@@ -41,7 +40,8 @@ module Arango
 
     attr_accessor :sort, :maxDepth, :minDepth, :visitor, :filter, :init, :maxiterations, :uniqueness, :expander
     attr_reader :vertices, :paths, :direction, :itemOrder,
-      :strategy, :order, :database, :server, :startVertex, :edgeCollection, :graph, :body
+      :strategy, :order, :database, :server, :vertex, :edgeCollection, :graph, :body
+    alias startVertex vertex
 
     def body=(body)
       @body = body
@@ -49,7 +49,7 @@ module Arango
       @direction   = body[:direction] || @direction
       @maxDepth    = body[:maxDepth] || @maxDepth
       @minDepth    = body[:minDepth] || @minDepth
-      return_vertex(body[:startVertex] || @startVertex)
+      return_vertex(body[:startVertex] || @vertex)
       @visitor     = body[:visitor] || @visitor
       @itemOrder   = body[:itemOrder] || @itemOrder
       @strategy    = body[:strategy] || @strategy
@@ -59,7 +59,6 @@ module Arango
       @uniqueness  = body[:uniqueness] || @uniqueness
       @order       = body[:order] || @order
       @expander    = body[:expander] || @expander
-      return_graph(body[:graphName] || @graph || @graphName)
       return_edgeCollection(body[:edgeCollection] || @edgeCollection)
     end
     alias assign_body body=
@@ -85,56 +84,46 @@ module Arango
     end
 
     def startVertex=(vertex)
-      if vertex.is_a?(Arango::Edge)
-        raise Arango::Error.new message: "#{vertex} should be an Arango::Vertex, an Arango::Document (not Edge) or a valid vertex id"
-      elsif vertex.is_a?(Arango::Document)
-        @startVertex = vertex
-      elsif vertex.is_a?(String) && vertex.include?("/")
-        val = vertex.split("/")
-        collection = Arango::Collection.new(database: @database, name: val[0])
-        @startVertex = Arango::Document.new(collection: collection, name: val[1])
-      else
-        raise Arango::Error.new message: "#{vertex} should be an Arango::Vertex, an Arango::Document or a valid vertex id"
+      case vertex
+      when Arango::Edge
+      when Arango::Document, Arango::Vertex
+        @vertex = vertex
+        @collection = @vertex.collection
+        @database = @collection.database
+        @graph  = @collection.graph
+        @server = @database.server
+        return
+      when String
+        if @database.nil?
+          raise Arango::Error.new err: :database_undefined_for_traversal
+        end
+        if vertex.include?("/")
+          val = vertex.split("/")
+          @collection = Arango::Collection.new(database: @database, name: val[0])
+          @vertex = Arango::Document.new(collection: collection, name: val[1])
+          return
+        end
       end
+      raise Arango::Error.new err: :wrong_start_vertex_type
     end
+    alias vertex= startVertex=
     alias return_vertex startVertex=
 
     def edgeCollection=(collection)
-      if collection.is_a?(Arango::Collection) && collection.type != :edge
-        raise Arango::Error.new message: "#{collection} should be an Edge Arango::Collection or a name of a class"
-      elsif (collection.is_a?(Arango::Collection) && collection.type == :edge) || collection.nil?
+      satisfy_class?(collection, [Arango::Collection, String])
+      case collection
+      when Arango::Collection
+        if collection.type != :edge
+          raise Arango::Error.new err: :edge_collection_should_be_of_type_edge
+        end
         @edgeCollection = collection
-      elsif collection.is_a?(String)
+      when String
         collection_instance = Arango::Collection.new(name: edgedef[:collection],
           database: @database, type: :edge, graph: @graph)
         @edgeCollection = collection_instance
-      else
-        raise Arango::Error.new message: "#{collection} should be an Arango::Collection or
-        a name of a class"
       end
     end
     alias return_edgeCollection edgeCollection=
-
-    def graph=(graph)
-      case graph
-      when Arango::Graph
-        if graph.database.name != @database.name
-          raise Arango::Error.new message: "#{graph} should have the same database of the chosen database"
-        end
-        @graph = graph
-      when NilClass
-        @graph = nil
-      when String
-        @graph = Arango::Graph.new(name: graph, database: @database)
-      else
-        raise Arango::Error.new message: "#{graph} should be an Arango::Graph or a name of a graph"
-      end
-    end
-    alias return_graph graph=
-
-    def graphName
-      @graph&.name
-    end
 
     alias vertex= startVertex=
     alias vertex startVertex
@@ -144,7 +133,6 @@ module Arango
     alias min= minDepth=
     alias collection edgeCollection
     alias collection= edgeCollection=
-    alias graphName= graph=
 
     def in
       @direction = "inbound"
@@ -183,7 +171,7 @@ module Arango
           }
         end,
         "idCache": @idCache,
-        "startVertex": @startVertex&.id,
+        "startVertex": @vertex&.id,
         "graph": @graph&.name,
         "edgeCollection": @edgeCollection&.name,
         "database": @database.name
@@ -198,7 +186,7 @@ module Arango
         "direction": @direction,
         "maxDepth": @maxDepth,
         "minDepth": @minDepth,
-        "startVertex": @startVertex&.id,
+        "startVertex": @vertex&.id,
         "visitor": @visitor,
         "itemOrder": @itemOrder,
         "strategy": @strategy,
@@ -214,18 +202,22 @@ module Arango
       result = @database.request("POST", "_api/traversal", body: body)
       return result if @server.async != false
       @vertices = result[:result][:visited][:vertices].map do |x|
-        collection = Arango::Collection.new(name: x[:_id].split("/")[0], database:  @database)
+        collection = Arango::Collection.new(name: x[:_id].split("/")[0],
+          database:  @database)
         Arango::Document.new(name: x[:_key], collection: collection, body: x)
       end
       @paths = result[:result][:visited][:paths].map do |x|
         {
           "edges": x[:edges].map do |e|
-            collection_edge = Arango::Collection.new(name: e[:_id].split("/")[0], database:  @database, type: :edge)
-            Arango::Document.new(name: e[:_key], collection: collection_edge, body: e, from: e[:_from], to: e[:_to] )
+            collection_edge = Arango::Collection.new(name: e[:_id].split("/")[0],
+              database:  @database, type: :edge)
+            Arango::Document.new(name: e[:_key], collection: collection_edge,
+              body: e, from: e[:_from], to: e[:_to])
           end,
           "vertices": x[:vertices].map do |v|
-            collection_vertex = Arango::Collection.new(name: v[:_id].split("/")[0], database:  @database)
-            Arango::Document.new(name: v[:_key], collection: collection_vertex, body: v )
+            collection_vertex = Arango::Collection.new(name: v[:_id].split("/")[0],
+              database:  @database)
+            Arango::Document.new(name: v[:_key], collection: collection_vertex, body: v)
           end
         }
       end

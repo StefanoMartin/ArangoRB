@@ -78,9 +78,10 @@ module Arango
 
     def return_collection(collection, type=nil)
       satisfy_class?(collection, [Arango::Collection, String])
-      if collection.is_a?(Arango::Collection)
+      case collection
+      when Arango::Collection
         return collection
-      elsif collection.is_a?(String)
+      when String
         return Arango::Collection.new(name: collection,
           database: @database, type: type, graph: self)
       end

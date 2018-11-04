@@ -105,12 +105,12 @@ module Arango
       filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
       uniqueness: nil, order: nil, expander: nil,
       edgeCollection: nil)
-      Arango::Traversal.new(body: body, database: @database,
+      Arango::Traversal.new(body: body,
         sort: sort, direction: direction, minDepth: minDepth,
-        startVertex: self, visitor: visitor,itemOrder: itemOrder,
+        vertex: self, visitor: visitor,itemOrder: itemOrder,
         strategy: strategy, filter: filter, init: init,
         maxIterations: maxIterations, maxDepth: maxDepth,
-        uniqueness: uniqueness, order: order, graph: @graph,
+        uniqueness: uniqueness, order: order, 
         expander: expander, edgeCollection: edgeCollection)
     end
 

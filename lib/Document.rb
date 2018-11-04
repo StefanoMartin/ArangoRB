@@ -294,7 +294,7 @@ module Arango
 
   # === EDGE ===
 
-    def edges(collection, direction=nil)
+    def edges(collection:, direction=nil)
       satisfy_class?(collection, [Arango::Collection, String])
       collection = collection.is_a?(Arango::Collection) ? collection.name : collection
       query = {
@@ -311,11 +311,15 @@ module Arango
       end
     end
 
-    def out(collection)
-      edges(collection, "out")
+    def any(collection)
+      edges(collection: collection)
     end
 
-    def in(collection)
+    def out(collection)
+      edges(collection: collection, "out")
+    end
+
+    def in(collection: collection)
       edges(collection, "in")
     end
 
@@ -326,12 +330,12 @@ module Arango
       filter: nil, init: nil, maxIterations: nil, maxDepth: nil,
       uniqueness: nil, order: nil, expander: nil,
       edgeCollection: nil)
-      Arango::Traversal.new(body: body, database: @database,
+      Arango::Traversal.new(body: body,
         sort: sort, direction: direction, minDepth: minDepth,
-        startVertex: self, visitor: visitor,itemOrder: itemOrder,
+        vertex: self, visitor: visitor,itemOrder: itemOrder,
         strategy: strategy, filter: filter, init: init,
         maxIterations: maxIterations, maxDepth: maxDepth,
-        uniqueness: uniqueness, order: order, graph: @graph,
+        uniqueness: uniqueness, order: order,
         expander: expander, edgeCollection: edgeCollection)
     end
   end

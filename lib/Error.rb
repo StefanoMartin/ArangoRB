@@ -62,6 +62,15 @@ module Arango
       },
       you_cannot_assign_from_or_to_to_a_vertex: {
         code: 10020, message: "You cannot assign from or to to a Vertex"
+      },
+      wrong_start_vertex_type: {
+        code: 10021, message: "Starting vertex should be an Arango::Vertex, an Arango::Document (not Edge) or a valid vertex id"
+      },
+      database_undefined_for_traversal: {
+        code: 10022, message: "Database undefined for traversal"
+      },
+      edge_collection_should_be_of_type_edge: {
+        code: 10022, message: "Database undefined for traversal"
       }
     }
 
