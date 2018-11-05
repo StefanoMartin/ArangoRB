@@ -2,7 +2,7 @@ ArangoRB [![Gem Version](https://badge.fury.io/rb/arangorb.svg)](https://badge.f
 ===============================
 
 [ArangoDatabase](https://www.arangodb.com/) is a native multi-model database with flexible data models for document, graphs, and key-values.
-ArangoRB is a Gem to use ArangoDatabase with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.0/HTTP/index.html).
+ArangoRB is a Gem to use ArangoDatabase with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.4/HTTP/index.html).
 
 ArangoRB 0.1.0 - 1.3.0 have been tested with ArangoDB 3.0  with Ruby 2.3.1</br>
 ArangoRB 1.4.0 has been tested with ArangoDB 3.1 with Ruby 2.3.3</br>
@@ -665,7 +665,8 @@ myGraph.replaceEdgeCollections collection: "myEdgeCollection", from: "myCollecti
 myGraph.removeEdgeCollections collection: "myEdgeCollection"  # Remove an Edge Collection to our Graph
 ```
 
-<a name="ArangoVertex"></a><a name="ArangoEdge"></a>
+<a name="ArangoVertex"></a>
+<a name="ArangoEdge"></a>
 ## Arango::Vertex and Arango::Edge
 
 Both these two classes inherit the class Arango::Document.
