@@ -38,6 +38,7 @@ Any pull request, issue, suggestions and ideas are more than welcome. Do not be 
 Here something the community can help on:
 * Add test and correct bugs for replication, clustering, foxx and other.
 * Improve AQL instance to implement in Rails.
+* Improve Documentation.
 
 If you like this project, please star it. It will remind me that my work has been useful for somebody.  
 
@@ -70,73 +71,80 @@ Classes relative to the Gem ArangoRB
 
 All the instances of these classes can be transformed in Hash with the method to_h.
 
+Many methods can have multiple attributes not mentioned in this documentation. Keep in mind that if an attribute is defined in the ArangoDB documentation, then it is easy that it is an attribute for the relative method too.
+Please refer to the ArangoDB documentation, the rubydoc documentation or open an issue for this missing attributes.
+
 <a name="ArangoServer"></a>
 ## Arango::Server
 
-Arango::Server is used to manage the a single server.
-It is used to provide your login credentials and it is the mandatory step to start your database.
-Further it helps to manage the Server connected with ArangoDB.
+Arango::Server is used to manage a single server by managing the connection with ArangoDB.
+You can provide your login credentials and it is a mandatory step to start your database.
 
 To setup a server use the following way:
 
 ``` ruby
 server = Arango::Server.new username: "MyUsername", password: "MyPassword",
   server: "localhost", port: "8529"
-server.username = "MyOtherUsername"
-server.password = "other_password"
-server.server   = "127.0.0.1"
-server.port     = "8765"
+server.username = "MyOtherUsername" # Default "root"
+server.password = "other_password"  
+server.server   = "127.0.0.1"       # Default "localhost"
+server.port     = "8765"            # Default "8529"
 ```
 
-If not declared, the default values are user: "root", server: "localhost", port: "8529".
 Password is a mandatory field.
 
 ### Returning results
 
 ArangoRB try always to store the information obtained from ArangoDB in an instance.
-If you need to receive the output, you can abilitate the server to return it with:
+If you need to receive the output, you can return it with:
 
 ``` ruby
-server.return_output = true
+server.return_output = true # Default false
 ```
 
 ### Verbose and warnings
 
-For Debugging reasons the user can receive the original JSON file from the database by setting verbose on true.
+For Debugging reasons the user can print out the request and response to ArangoDB by setting verbose to true.
 
 ``` ruby
 server.verbose = true # Default false
 ```
 
 Remember that verbose is only for testing reason: to work efficiently verbose should be false.
-Some deprecated methods will return a warning. To silence this warnings use:
+
+Some deprecated methods will return a warning. To silence these warnings use:
 
 ``` ruby
 server.warning = false # Default true
 ```
 
-### ConnectionPool
+### Connection Pool
 
-ArangoRB supports connection pool, to activate it you can define it at the initialization or during the proceedings.
-To do so use:
+ArangoRB supports connection pool, to activate it you can setup pool to true during the initialization or the proceedings. To do so use:
+
 ``` ruby
 server = Arango::Server.new username: "MyUsername", password: "MyPassword",
   server: "localhost", port: "8529", pool: true, size: 5, timeout: 5
-# Default pool false, size 5, timeout 5
-server.pool = true
-server.size = 7
-server.timeout = 10
-server.restartPool # Restart pool with new size and timeout
+server.pool = true  # Defult false
+server.size = 7     # Default 5
+server.timeout = 10 # Default 5
+server.restartPool  # Restart pool with new size and timeout
 ```
+
+NB: ConnectionPool is not heavily tested.
 
 ### Cache
 
+Often ArangoRB returns multiple time the same object (for example for lists or for retrieving). It can happens thus that a document instance updated somewhere in your code, it is not update somewhere even if you are refering the same ArangoDB document.
+To avoid this, ArangoRB provides its own cache.
+
 You can activate the ArangoRB cache by using:
+
 ``` ruby
 server.active_cache = true # Default false
 ```
 
-If active_cache is true, then a previous document or collection instance will be stored in the ArangoRB cache. In case a new instance of the same document is created, then a new instance will NOT be created but the old one will be used.
+If active_cache is true, then a previous document or collection instance will be stored in the ArangoRB cache. In case a new instance of the same document is created, then a new instance will NOT be created but, instead, the old one will be returned.
 
 With an example:
 
@@ -159,14 +167,14 @@ For more information about the cache, look at the section about [Arango::Cache](
 
 ### Information
 
-Basic informations can be retrieved with these command.
+Basic information can be retrieved with these command.
 
 ``` ruby
-server.to_h # Return an hash of the instances
+server.to_h      # Return an hash of the instances
 server.endpoint  # Check address used to connect with the server
 server.username  # Check name used to connect with the server
-server.verbose # Check if verbose is true or false
-server.async # Check the status of async
+server.verbose   # Check if verbose is true or false
+server.async     # Check the status of async
 ```
 
 To retrieve lists
@@ -174,8 +182,8 @@ To retrieve lists
 ``` ruby
 server.databases # Lists of available databases
 server.endpoints # Lists of endpoints used
-server.users # Lists of available users
-server.tasks # Lists of available tasks
+server.users     # Lists of available users
+server.tasks     # Lists of available tasks
 ```
 
 To monitoring the server you can use the following commands
@@ -184,24 +192,24 @@ To monitoring the server you can use the following commands
 server.log # Return log files
 server.loglevel
 server.updateLoglevel body: body
-server.available? # Reloads the routing information from the collection routing.
-server.reload # Reloads the routing information from the collection routing.
-server.statistics # Returns the statistics information
+server.available?    # Reloads the routing information from the collection routing.
+server.reload        # Reloads the routing information from the collection routing.
+server.statistics    # Returns the statistics information
 server.statisticsDescription # Fetch descriptive info of statistics
-server.status # Status of the server
-server.role # Get to know whether this server is a Coordinator or DB-Server
+server.status     # Status of the server
+server.role       # Get to know whether this server is a Coordinator or DB-Server
 server.serverData # Get server data
-server.mode # Get server mode
+server.mode       # Get server mode
 server.updateMode(mode: "default") # Change mode of the server
 ```
 
 ### Manage Async
 
-With Arango::Server you can manage Async results.
+With Arango::Server you can manage Async results. It can be useful to use async for heavy requests (like the one in example/year.rb).
 
 ``` ruby
-server.async = false # default
-server.async = true # fire and forget
+server.async = false  # default
+server.async = true   # fire and forget
 server.async = :store # fire and store
 ```
 
@@ -215,33 +223,33 @@ server.destroyAsync  id: id # Deletes an async job result
 server.retrieveAsync id: id # Returns the status of a specific job
 server.retrieveAsyncByType type: type # Returns the ids of job results with a specific
 # status. Type can be "done" or "pending"
-server.retrieveDoneAsync # Equivalent to server.retrieveAsync type: "done"
-server.retrievePendingAsync # Equivalent to server.retrieveAsync type: "pending"
+server.retrieveDoneAsync       # Equivalent to server.retrieveAsync type: "done"
+server.retrievePendingAsync    # Equivalent to server.retrieveAsync type: "pending"
 server.destroyAsync type: type # Deletes async jobs with a specific status
-# Type can be "all" or "expired"
-server.destroyAllAsync # Equivalent to server.destroyAsync type: "all"
-server.destroyExpiredAsync # Equivalent to server.destroyAsync type: "expired"
+                               # Type can be "all" or "expired"
+server.destroyAllAsync         # Equivalent to server.destroyAsync type: "all"
+server.destroyExpiredAsync     # Equivalent to server.destroyAsync type: "expired"
 ```
 
 ### Miscellaneous
 
 ``` ruby
-server.version # Returns the server version number
-server.engine # Returns the server engine
-server.flushWAL # Flushes the write-ahead log
-server.propertyWAL # Retrieves the configuration of the write-ahead log
+server.version           # Returns the server version number
+server.engine            # Returns the server engine
+server.flushWAL          # Flushes the write-ahead log
+server.propertyWAL       # Retrieves the configuration of the write-ahead log
 server.changePropertyWAL # Configures the write-ahead log
-server.transactions # Returns information about the currently running transactions
-server.time # Get the current time of the system
-server.echo # Return current request
-server.databaseVersion # Return the required version of the database
-server.shutdown # Initiate shutdown sequence
+server.transactions      # Returns information about the currently running transactions
+server.time              # Get the current time of the system
+server.echo              # Return current request
+server.databaseVersion   # Return the required version of the database
+server.shutdown          # Initiate shutdown sequence
 ```
 
 UNTESTED
 
 ``` ruby
-server.test body: body # Runs tests on server
+server.test body: body    # Runs tests on server
 server.execute body: body # Execute a script on the server.
 ```
 
@@ -251,14 +259,15 @@ ArangoDB permits the sharding of the database. Although these methods has not be
 
 ``` ruby
 server.clusterHealth port: port # Allows to check whether a given port is usable
-server.serverId # Returns the id of a server in a cluster.
-server.clusterStatistics dbserver: dbserver # Allows to query the statistics of a DBserver in the cluster
+server.serverId                 # Returns the id of a server in a cluster.
+server.clusterStatistics dbserver: dbserver # Allows to query the statistics of a
+                                            # DBserver in the cluster
 ```
 
 <a name="ArangoDatabase"></a>
 ## Arango::Database
 
-Arango::Database is used to manage your Database. You can create an instance in one of the following ways:
+Arango::Database is used to manage a Database. You can create an instance in one of the following ways:
 
 ``` ruby
 myDatabase = server.database name: "MyDatabase"
@@ -266,26 +275,27 @@ myDatabase = server["MyDatabase"]
 myDatabase = Arango::Database.new database: "MyDatabase", server: server
 ```
 
-### Create and Destroy a Database
+### Main methods
 
 ``` ruby
-myDatabase.create # Create a new Database
+myDatabase.create   # Create a new Database
 myDatabase.retrieve # Retrieve database
-myDatabase.destroy # Delete the selected Database
+myDatabase.destroy   # Delete the selected Database
 ```
 
 ### Retrieve information
 
 ``` ruby
-server.databases # Obtain an Array with the available databases in the server
-myDatabase.to_h # Hash of the instance
-myDatabase.info # Obtain general info about the databases
+server.databases       # Obtain an Array with the available databases in the server
+myDatabase.to_h        # Hash of the instance
+myDatabase.info        # Obtain general info about the databases
+myDatabase.sever       # Return the server connected with the database
 myDatabase.collections # Obtain an Array with the available collections in the selected Database
-myDatabase.graphs #  Obtain an Array with the available graphs in the selected Database
+myDatabase.graphs       #  Obtain an Array with the available graphs in the selected Database
 myDatabase.aqlFunctions #  Obtain an Array with the available functions in the selected Database
 myDatabase.foxxes # Return all the foxx available in the database
-myDatabase.views # Return all the views available in the database
-myDatabase.tasks # Return all the tasks available in the database
+myDatabase.views  # Return all the views available in the database
+myDatabase.tasks  # Return all the tasks available in the database
 ```
 
 <a name="arangoaql"></a>
@@ -310,17 +320,17 @@ If the query is too big, you can divide the fetching in pieces, for example:
 ``` ruby
 myQuery.size = 10
 myQuery.execute # First 10 documents
-myQuery.next # Next 10 documents
-myQuery.next # Next 10 documents
+myQuery.next    # Next 10 documents
+myQuery.next    # Next 10 documents
 ```
 
 Other useful methods are the following
 
 ``` ruby
 myQuery.destroy # Destroy cursor to retrieve documents
-myQuery.kill # Kill query request (if requires too much time)
+myQuery.kill    # Kill query request (if requires too much time)
 myQuery.explain # Show data query
-myQuery.parse # Parse query
+myQuery.parse   # Parse query
 ```
 
 ### Query Properties
@@ -328,20 +338,20 @@ myQuery.parse # Parse query
 It is possible to handle generic properties of query by Arango::Database.
 
 ``` ruby
-myQuery.to_h # Return an hash version of the instance
-myQuery.properties  # Check Query properties
-myQuery.current # Retrieve current running Query
+myQuery.to_h                                # Return an hash version of the instance
+myQuery.properties                          # Check Query properties
+myQuery.current                             # Retrieve current running Query
 myQuery.changeProperties maxSlowQueries: 65 # Change Properties
-myQuery.slow # Retrieve slow Queries
-myQuery.stopSlowQueries # Stop slow Queries
+myQuery.slow                                # Retrieve slow Queries
+myQuery.stopSlowQueries                     # Stop slow Queries
 ```
 
 The cache of the query can handle in the following way:
 
 ``` ruby
-myDatabase.retrieveQueryCache # Retrieve Query Cache
-myDatabase.clearQueryCache # Clear Query Cache
-myDatabase.propertyQueryCache # Check properties Cache
+myDatabase.retrieveQueryCache                      # Retrieve Query Cache
+myDatabase.clearQueryCache                         # Clear Query Cache
+myDatabase.propertyQueryCache                      # Check properties Cache
 myDatabase.changePropertyQueryCache maxResults: 30 # Change properties Cache
 ```
 
@@ -376,8 +386,8 @@ myEdgeCollection = ArangoCollection.new collection: "MyCollectionB", type: :edge
 ### Main methods
 
 ``` ruby
-myCollection.create
-myCollection.destroy # Delete collection from database
+myCollection.create   # Create collection
+myCollection.destroy  # Delete collection from database
 myCollection.truncate # Delete all the Documents inside the selected Collection
 myCollection.retrieve # Retrieve the selected Collection
 ```
@@ -385,23 +395,25 @@ myCollection.retrieve # Retrieve the selected Collection
 ### Info methods
 
 ``` ruby
-myCollection.indexes # Return a list of all used Indexes in the Collection
-myCollection.rotate # Rotate the collection
-myCollection.data # Returns the whole content of one collection
+myCollection.database   # Return database of the collection
+myCollection.server     # Returm server of the collection
+myCollection.indexes    # Return a list of all used Indexes in the Collection
+myCollection.rotate     # Rotate the collection
+myCollection.data       # Returns the whole content of one collection
 myCollection.properties # Properties of the Collection
-myCollection.count # Number of Documents in the Collection
-myCollection.stats # Statistics of the Collection
-myCollection.revision # Return collection revision id
-myCollection.checksum # Return checksum for the Collection
+myCollection.count      # Number of Documents in the Collection
+myCollection.stats      # Statistics of the Collection
+myCollection.revision   # Return collection revision id
+myCollection.checksum   # Return checksum for the Collection
 ```
 
 ### Modify the Collection
 
 ``` ruby
-myCollection.load # Load the collection (preparing for retrieving documents)
+myCollection.load   # Load the collection (preparing for retrieving documents)
 myCollection.unload # Unload the collection (if you stop to work with it)
-myCollection.loadIndexesIntoMemory # Load indexes in memory
-myCollection.change(waitForSync: true) # Change some properties
+myCollection.loadIndexesIntoMemory            # Load indexes in memory
+myCollection.change(waitForSync: true)        # Change some properties
 myCollection.rename(newName: "myCollection2") # Change name (NB: This is not Arango::Cache compatible)
 myCollection.rotate # Rotate journal of a collection
 ```
@@ -433,8 +445,8 @@ It means that we skip the first three Documents, we can retrieve the next 100 Do
 To retrieve specific Document you can use:
 
 ``` ruby
-myCollection.documentsMatch match: {"value":  4} # All Documents of the Collection with value equal to 4
-myCollection.documentMatch match: {"value":  4} # The first Document of the Collection with value equal to 4
+myCollection.documentsMatch match: {"value":  4}   # All Documents of the Collection with value equal to 4
+myCollection.documentMatch match: {"value":  4}    # The first Document of the Collection with value equal to 4
 myCollection.documentByKeys keys: ["4546", "4646"] # Documents of the Collection with the keys in the Array
 myCollection.documentByName names: ["4546", "4646"] # Documents of the Collection with the name in the Array
 myCollection.random # A random Document of the Collection
@@ -495,7 +507,7 @@ More-to-More with more Edge classes
  * [myDocA] --(myEdge2)--> [myDocD]
  * [myDocB] --(myEdge2)--> [myDocD]
 
- ``` ruby
+``` ruby
 myEdgeCollection.createEdges document: [myEdge, myEdge2], from: [myDocA, myDocB], to: [myDocC, myDocD]
 ```
 
@@ -510,7 +522,7 @@ We can import one document with the following structure {"value": "uno", "num": 
 
 ``` ruby
 attributes = ["value", "num", "name"]
-values = ["uno",1,"ONE"]
+values     = ["uno",1,"ONE"]
 myCollection.import attributes: attributes, values: values
 ```
 
@@ -520,7 +532,7 @@ We can import three Documents with the following structure {"value": "uno", "num
 
 ``` ruby
 attributes = ["value", "num", "name"]
-values = [["uno",1,"ONE"],["due",2,"TWO"],["tre",3,"THREE"]]
+values     = [["uno",1,"ONE"],["due",2,"TWO"],["tre",3,"THREE"]]
 myCollection.import attributes: attributes, values: values
 ```
 
@@ -580,24 +592,25 @@ myDocument = Arango::Document.new body: {"value":  17}, name: "MyDocument"
 ArangoRB provides several way to create a single Document.
 
 ``` ruby
-myDocument.create # Create a new document
-myDocument.retrieve # Retrieve Document
-myDocument.update body: {"value":  3} # We update or add a value
+myDocument.create                      # Create a new document
+myDocument.retrieve                    # Retrieve Document
+myDocument.update body: {"value":  3}  # We update or add a value
 myDocument.replace body: {"value":  3} # We replace a value
-myDocument.destroy # Destroy document
+myDocument.destroy                     # Destroy document
 ```
 
 ### Retrieve information
 
 ``` ruby
 myDocument.collection # Retrieve Collection of the Document
-myDocument.database # Retrieve Database of the Document
+myDocument.database   # Retrieve Database of the Document
+myDocument.server     # Retrieve Server of the Document
 myDocument.edges collection: myEdgeCollection  # Retrieve all myEdgeCollection edges connected with the Document
 myDocument.any(myEdgeCollection) # Retrieve all myEdgeCollection edges connected with the Document
 myDocument.in(myEdgeCollection)  # Retrieve all myEdgeCollection edges coming in the Document
 myDocument.out(myEdgeCollection) # Retrieve all myEdgeCollection edges going out the Document
 myEdge.from # Retrieve the document at the begin of the edge
-myEdge.to # Retrieve the document at the end of the edge
+myEdge.to   # Retrieve the document at the end of the edge
 ```
 
 #### Example: how to navigate the edges
@@ -641,10 +654,10 @@ myGraph = Arango::Graph.new name: "MyGraph", database: myDatabase
 ### Main methods
 
 ``` ruby
-myGraph.create # create a new Graph
+myGraph.create   # create a new Graph
 myGraph.retrieve # retrieve the Graph
 myGraph.database # retrieve database of the Graph
-myGraph.destroy # destroy the Graph
+myGraph.destroy  # destroy the Graph
 ```
 
 ### Manage Vertex Collections
@@ -683,12 +696,12 @@ myVertex = Arango::Vertex.new name: "newVertex", body: {"value":  3},
 ```
 
 ```   ruby
-myVertex.create # create a new Document in the Graph
+myVertex.create    # create a new Document in the Graph
 myVertex.retrieve  # retrieve a Document
-myVertex.graph # retrieve Graph  of the Document
+myVertex.graph     # retrieve Graph of the Document
 myVertex.replace body: {"value":  6} # replace the Document
-myVertex.update body: {"value":  6} # update the Document
-myVertex.destroy # delete the Document
+myVertex.update  body: {"value":  6} # update the Document
+myVertex.destroy   # delete the Document
 ```
 
 ### Arango::Edge methods
@@ -702,12 +715,12 @@ myEdge = myCollection.edge name: "newEdge", body: {"value":  3}, from: myArangoD
 ```
 
 ```   ruby
-myEdge.create # create a new Document of type Edge in the Graph
+myEdge.create   # create a new Document of type Edge in the Graph
 myEdge.retrieve # retrieve a Document
-myEdge.graph # Retrieve Graph  of the Document
+myEdge.graph    # Retrieve Graph  of the Document
 myEdge.replace body: {"value":  6} # replace the Document
-myEdge.update body: {"value":  6} # update the Document
-myEdge.destroy # delete the Document
+myEdge.update  body: {"value":  6} # update the Document
+myEdge.destroy  # delete the Document
 ```
 
 <a name="ArangoTraversal"></a>
@@ -718,7 +731,7 @@ Arango::Traversal needs to know the vertex from where the traversal starts, the 
 
 
 ``` ruby
-myTraversal = myVertex.traversal # Start traversal from myVertex
+myTraversal = myVertex.traversal   # Start traversal from myVertex
 myTraversal = myDocument.traversal # Start traversal from myDocument
 myTraversal = ArangoTraversal.new database: myDatabase, startVertex: myVertex # create instance
 ```
@@ -726,9 +739,9 @@ myTraversal = ArangoTraversal.new database: myDatabase, startVertex: myVertex # 
 ``` ruby
 myTraversal.vertex = myVertex # define starting Vertex
 myTraversal.edgeCollection = myEdgeCollection # define used Edge
-myTraversal.in   # Direction is in
-myTraversal.out  # Direction is out
-myTraversal.any  # Direction is in and out
+myTraversal.in      # Direction is in
+myTraversal.out     # Direction is out
+myTraversal.any     # Direction is in and out
 myTraversal.min = 1 # Define how minimum deep we want to go with the traversal
 myTraversal.max = 3 # Define how maximum deep we want to go with the traversal
 ```
@@ -753,13 +766,13 @@ myUser = Arango::User.new user: "MyUser", password: "password", server: server
 ### User management
 
 ``` ruby
-myUser.retrieve # Retrieve User
-myUser["MyDatabase"] # Retrieve database if the user can access it
+myUser.retrieve               # Retrieve User
+myUser["MyDatabase"]          # Retrieve database if the user can access it
 myUser.database("MyDatabase") # Retrieve database if the user can access it
-myUser.create # Create a new User
-myUser.replace active: false # Replace User
-myUser.update active: false # Update User
-myUser.destroy # Delete User
+myUser.create                 # Create a new User
+myUser.replace active: false  # Replace User
+myUser.update active: false   # Update User
+myUser.destroy               # Delete User
 ```
 
 ### Database management
@@ -767,8 +780,8 @@ myUser.destroy # Delete User
 ``` ruby
 myUser.databases # List of databases can access
 myUser.addDatabaseAccess grant: "rw", database: myDatabase
-myUser.grant database: "MyDatabase" # Grant access to a database
-myUser.revoke database: "MyDatabase" # Revoke access to a database
+myUser.grant          database: myDatabase # Grant access to a database
+myUser.revoke         database: myDatabase # Revoke access to a database
 myUser.databaseAccess database: myDatabase # Check permission level of an User
 myUser.addCollectionAccess grant: "rw", database: myDatabase, collection: myCollection
 myUser.revokeCollectionAccess database: myDatabase, collection: myCollection
@@ -796,7 +809,7 @@ To initialize an index:
 
 ``` ruby
 myIndex = myCollection.index fields: "num", unique: false, id: "myIndex"
-myIndex = Arango::Index.new fields: "num", unique: false, id: "myIndex", collection: myCollection
+myIndex = Arango::Index.new  fields: "num", unique: false, id: "myIndex", collection: myCollection
 ```
 
 ### Index management
@@ -836,9 +849,9 @@ myTask = Arango::Task.new id: "mytaskid", name: "MyTaskID", command: command, pa
 ```
 
 ``` ruby
-myArangoTask.create # Create a new Task
+myArangoTask.create   # Create a new Task
 myArangoTask.retrieve # Retrieve a Task
-myArangoTask.destroy # Delete a Task
+myArangoTask.destroy  # Delete a Task
 ```
 
 <a name="ArangoReplication"></a>
@@ -867,11 +880,11 @@ myReplication.sync    # Sync master - slave database
 To retrieve other information ArangoRB provides the following methods:
 
 ``` ruby
-myReplication.logger # Returns the current state of the server's replication logger
+myReplication.logger       # Returns the current state of the server's replication logger
 myReplication.loggerFollow # Returns data from the server's replication log.
-myReplication.firstTick # Return the first available tick value from the server
+myReplication.firstTick    # Return the first available tick value from the server
 myReplication.rangeTick # Returns the currently available ranges of tick values for all currently available WAL logfiles.
-myReplication.serverId # Returns the servers id.
+myReplication.serverId  # Returns the servers id.
 ```
 
 ### Relation Master-Slave
@@ -887,8 +900,8 @@ To manage the Configuration of a Master-Slave Replication you can use the follow
 ``` ruby
 myReplication.start   # Start replication
 myReplication.configuration # check the Configuration of the Replication
-myReplication.state # check the status of the Replication
-myReplication.stop # stop the Replication
+myReplication.state   # check the status of the Replication
+myReplication.stop    # stop the Replication
 myReplication.modify  # modify the Configuration of the Replication (you can modify only a stopped Replication)
 ```
 
@@ -965,13 +978,13 @@ myView = Arango::View.new name: "MyView", database: myDatabase
 
 ``` ruby
 myView.addLink(collection: myCollection) # Add a collection to the link
-myView.retrieve # Retrieve view
-myView.create # Create a view
-myView.replaceProperties # Replace properties
-myView.updateProperties # Update properties
+myView.retrieve               # Retrieve view
+myView.create                 # Create a view
+myView.replaceProperties      # Replace properties
+myView.updateProperties       # Update properties
 myView.rename name: "MyView2" # Change name
-myView.properties # Check properties
-myView.destroy # Delete view
+myView.properties             # Check properties
+myView.destroy                # Delete view
 ```
 
 <a name="ArangoFoxx"></a>
@@ -986,10 +999,10 @@ myFoxx = Arango::Foxx.new mount: address, database: myDatabase
 
 ``` ruby
 myFoxx.retrieve # Retrieve foxx
-myView.create # Create a foxx
-myFoxx.update  # Update foxx
-myFoxx.replace # Replace foxx
-myFoxx.destroy # Delete foxx
+myView.create   # Create a foxx
+myFoxx.update   # Update foxx
+myFoxx.replace  # Replace foxx
+myFoxx.destroy  # Delete foxx
 ```
 
 Other methods
@@ -1020,10 +1033,10 @@ An Arango::Cache instance is created together with the initialization of a serve
 
 ``` ruby
 cache = server.cache # Arango::Cache instance
-cache.max # Max number of variable stored in the cache
+cache.max            # Max number of variable stored in the cache
 cache.updateMax(type: :document, val: 400) # Update how many documents store in the cache
-cache.clear # Clear cache
-cache.to_h # Hash of the cache
+cache.clear          # Clear cache
+cache.to_h           # Hash of the cache
 ```
 
 NB: If you insert a max value higher than the quantity of elements in the Cache, then the first elements in excess will be removed from the Cache.
@@ -1042,9 +1055,9 @@ begin
   Arango::Collection.new name: "Test", database: not_a_database
 rescue Arango::Error => e
   e.message # Message of the error
-  e.code # ArangoRB code, each ArangoRB errors provides a list of errors
-  e.data # More information about the error
-  e.to_h # Hash version of the error
+  e.code    # ArangoRB code, each ArangoRB errors provides a list of errors
+  e.data    # More information about the error
+  e.to_h    # Hash version of the error
 end
 ```
 
@@ -1054,13 +1067,13 @@ Arango::Error has a children class called Arango::ErrorDB to handle Errors comin
 begin
   Arango::Collection.new(name: "DuplicateCollection", database: myDatabase).create
 rescue Arango::Error => e
-  e.message # Message of the error
-  e.code # HTTP error code
-  e.data # More information about the error
+  e.message  # Message of the error
+  e.code     # HTTP error code
+  e.data     # More information about the error
   e.errorNum # ArangoDB errorNum code
-  e.action # Type of request done to ArangoDB (POST, GET, ...)
-  e.url # URL requested to ArangoDB
-  e.request # Request made to ArangoDB
-  e.to_h # Hash version of the error
+  e.action   # Type of request done to ArangoDB (POST, GET, ...)
+  e.url      # URL requested to ArangoDB
+  e.request  # Request made to ArangoDB
+  e.to_h     # Hash version of the error
 end
 ```

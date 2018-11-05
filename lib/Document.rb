@@ -135,6 +135,8 @@ module Arango
         @body[:"_#{attrs}"] = var
       when Arango::Document
         @body[:"_#{attrs}"] = var.id
+        @from = var if attrs == "from"
+        @to   = var if attrs == "to"
       else
         raise Arango::Error.new err: :attribute_is_not_valid, data:
           {"attribute": attrs, "wrong_value": var}
@@ -144,12 +146,14 @@ module Arango
 
     def from(string: false)
       return @body[:_from] if string
-      retrieve_instance_from_and_to(@body[:_from])
+      @from ||= retrieve_instance_from_and_to(@body[:_from])
+      return @from
     end
 
     def to(string: false)
       return @body[:_to] if string
-      retrieve_instance_from_and_to(@body[:_to])
+      @to ||= retrieve_instance_from_and_to(@body[:_to])
+      return @to
     end
 
     def retrieve_instance_from_and_to(var)
