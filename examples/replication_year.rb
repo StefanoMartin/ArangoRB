@@ -1,7 +1,8 @@
 # This example follows the example year.rb and it simply prints some results on the screen.
 
-require_relative File.expand_path('../../lib/arangorb', __FILE__)
+# require_relative File.expand_path('../../lib/arangorb', __FILE__)
 require "awesome_print"
+require "arangorb"
 
 # OPEN REMOTE DATABASE
 server_master = Arango::Server.new username: "root", password: "root", server: "173.17.8.101", port: "8529"

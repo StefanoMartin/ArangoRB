@@ -1,7 +1,7 @@
 require "rspec"
 require "pry-byebug"
-# require "arangorb"
-require_relative File.expand_path('../../lib/arangorb', __FILE__)
+require "arangorb"
+# require_relative File.expand_path('../../lib/arangorb', __FILE__)
 
 RSpec.configure do |config|
 	config.color = true

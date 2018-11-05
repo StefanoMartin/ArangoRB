@@ -6,8 +6,8 @@
 # Hour --(NEXT)--> Next Hour
 # Minute --(NEXT)--> Next Minute
 
-require_relative '../lib/arangorb'
-require 'objspace'
+# require_relative '../lib/arangorb'
+require "arangorb"
 
 year = 2016
 

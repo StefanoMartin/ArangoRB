@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.description = "Ruby driver for ArangoDB's HTTP API"
   s.platform	   = Gem::Platform::RUBY
   s.require_paths = ['lib']
-  s.files         = FileList['lib/*', 'spec/**/*', 'ArangoRB.gemspec', 'Gemfile', 'LICENSE', 'README.md'].to_a
+  s.files         = FileList['lib/**/*', 'ArangoRB.gemspec', 'Gemfile', 'LICENSE', 'README.md'].to_a
   s.add_dependency 'httparty', '~> 0.14', '>= 0.14.0'
   s.add_dependency 'oj', '~> 3.6.11', '>=  3.6.11'
   s.add_dependency 'connection_pool', '~> 2.2.2', '>=  2.2.2'

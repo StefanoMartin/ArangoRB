@@ -14,22 +14,6 @@ To install ArangoRB: `gem install arangorb`
 
 To use it in your application: `require "arangorb"`
 
-## Differences between version 1.4 and 2.0
-
-ArangoRB 1.4 and ArangoRB 2.0 are not compatible.
-The new version provide different improvements.
-* Now all the instances are in a module Arango. This means that previous classes like Arango::Server will become Arango::Server.
-* Arango::Server is now an instance. This means that ArangoRB 2.0 will permits to use different servers.
-* ArangoRB has implemented connection_pool
-* ArangoRB has now a better implementation of Cache
-* The returned values are returned with symbols as keys
-* Oj is used for parsing instead of JSON
-* Add supports for View and Foxx. The least is untested.
-* Better hierarchy handling between the different instances. For example now myDocument.database will return the database instance that includes the document.
-* Better handling of replication (untested)
-* Clean in general the code (for future easier maintance)
-* Now errors are handled by Arango::Error
-
 ## Support
 
 This is a project managed by one single person. ArangoDB is a wonderful project that it is hard to cover completely alone. For this reason all your supports is more than welcome.
@@ -41,6 +25,10 @@ Here something the community can help on:
 * Improve Documentation.
 
 If you like this project, please star it. It will remind me that my work has been useful for somebody.  
+
+For the differences between version 1.4.0 and 2.0.0: [Click here](#differences).
+
+For testing: [Click here](#testing).
 
 ## Classes used
 
@@ -1077,3 +1065,35 @@ rescue Arango::Error => e
   e.to_h     # Hash version of the error
 end
 ```
+
+<a name="testing"></a>
+## Testing
+
+To test ArangoRB you can use:
+
+``` ruby
+rspec spec/arangoRB_helper.rb
+ruby examples/year.rb
+ruby examples/year2.rb
+```
+
+Remember however the following:
+* Setup the correct server in lib/spec_helper.rb and in the examples
+* The test examples/year2.rb should run much after the test examples/year.rb, since the last test is dependent from the conclusion of the first test (that is running in async).
+
+<a name="differences"></a>
+## Differences between version 1.4 and 2.0
+
+ArangoRB 1.4 and ArangoRB 2.0 are not compatible.
+The new version provide different improvements.
+* Now all the instances are in a module Arango. This means that previous classes like Arango::Server will become Arango::Server.
+* Arango::Server is now an instance. This means that ArangoRB 2.0 will permits to use different servers.
+* ArangoRB has implemented connection_pool
+* ArangoRB has now a better implementation of Cache
+* The returned values are returned with symbols as keys
+* Oj is used for parsing instead of JSON
+* Add supports for View and Foxx. The least is untested.
+* Better hierarchy handling between the different instances. For example now myDocument.database will return the database instance that includes the document.
+* Better handling of replication (untested)
+* Clean in general the code (for future easier maintance)
+* Now errors are handled by Arango::Error
