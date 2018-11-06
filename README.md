@@ -1098,4 +1098,3 @@ The new version provide different improvements.
 * Better handling of replication (untested).
 * Clean in general the code (for future maintainer).
 * Now errors are handled by Arango::Error.
->>>>>>> arangorb_1_5
