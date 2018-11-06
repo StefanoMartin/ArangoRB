@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-## Note 5/11/2018
-Please note that I am working on a new release 2.0 of this gem. It will not be backward compatible.
-It will bring the possibility to create your own instance of Server and it will introduce Views (ArangoDB 3.4).
-Errors should be better handled and, by using Oj, it should have a faster usage.
-If you are curios you can give a look in the branch https://github.com/StefanoMartin/ArangoRB/tree/arangorb_1_5.
-The README.md is now updated.
-
 ArangoRB [![Gem Version](https://badge.fury.io/rb/arangorb.svg)](https://badge.fury.io/rb/arangorb)
 ===============================
 
@@ -2016,4 +2008,3 @@ The new version provide different improvements.
 * Better handling of replication (untested).
 * Clean in general the code (for future maintainer).
 * Now errors are handled by Arango::Error.
->>>>>>> arangorb_1_5
