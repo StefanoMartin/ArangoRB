@@ -1,42 +1,57 @@
 require "rspec"
+require "pry-byebug"
 require "arangorb"
 # require_relative File.expand_path('../../lib/arangorb', __FILE__)
 
 RSpec.configure do |config|
 	config.color = true
 	config.before(:all) do
-		ArangoServer.default_server user: "root", password: "tretretre", server: "localhost", port: "8529"
-		ArangoServer.database = "MyDatabase"
-		ArangoServer.collection = "MyCollection"
-		ArangoServer.graph = "MyGraph"
-		ArangoServer.user = "MyUser"
-		ArangoServer.verbose = false
-		ArangoServer.async = false
-		@myDatabase = ArangoDatabase.new.create
-		@myGraph = ArangoGraph.new.create
-		@myCollection = ArangoCollection.new.create
-		@myCollectionB = ArangoCollection.new(collection: "MyCollectionB").create
-		@myDocument = ArangoDocument.new(body: {"Hello" => "World", "num" => 1}, key: "FirstDocument").create
-		@myEdgeCollection = ArangoCollection.new(collection: "MyEdgeCollection").create_edge_collection
+		@server = Arango::Server.new username: "root", password: "root",
+			server: "localhost", port: "8529", pool: true
+		@myDatabase    = @server.database(name: "MyDatabase")
+		@myDatabase.create
+		@myGraph       = @myDatabase.graph(name: "MyGraph").create
+		@myCollection  = @myDatabase.collection(name: "MyCollection").create
+		@myCollectionB = @myDatabase.collection(name: "MyCollectionB").create
+		@myDocument    = @myCollection.document(name: "FirstDocument",
+			body: {"Hello": "World", "num": 1}).create
+		@myEdgeCollection = @myDatabase.collection(
+			name: "MyEdgeCollection", type: "Edge").create
 		@myGraph.addVertexCollection collection: "MyCollection"
-		@myGraph.addEdgeCollection collection: "MyEdgeCollection", from: "MyCollection", to: "MyCollection"
-		@myAQL = ArangoAQL.new query: "FOR u IN MyCollection RETURN u.num"
-		@myDoc = @myCollection.create_document document: [{"num" => 1, "_key" => "FirstKey"}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 1}, {"num" => 2}, {"num" => 2}, {"num" => 2}, {"num" => 3}, {"num" => 2}, {"num" => 5}, {"num" => 2}]
-		@myEdgeCollection.create_edge from: [@myDoc[0].id, @myDoc[1].id, @myDoc[2].id, @myDoc[3].id, @myDoc[7].id], to: [@myDoc[4].id, @myDoc[5].id, @myDoc[6].id, @myDoc[8].id]
-		@myVertex = ArangoVertex.new(body: {"Hello" => "World", "num" => 1}, key: "FirstVertex").create
-		@vertexA = ArangoVertex.new(body: {"Hello" => "World", "num" => 1}).create
-	  @vertexB = ArangoVertex.new(body: {"Hello" => "Moon", "num" => 2}).create
-	  @myEdge = ArangoEdge.new(from: @vertexA, to: @vertexB, collection: "MyEdgeCollection").create
-		@myIndex = @myCollection.createIndex unique: false, fields: "num", type: "hash", id: "MyIndex"
-		@myTraversal = ArangoTraversal.new
-		@myUser = ArangoUser.new.create
-		@myTask = ArangoTask.new id: "mytaskid", name: "MyTaskID", command: "(function(params) { require('@arangodb').print(params); })(params)", params: {"foo" => "bar", "bar" => "foo"}, period: 60
+		@myGraph.addEdgeDefinition collection: "MyEdgeCollection", from: "MyCollection", to: "MyCollection"
+		@myAQL = @myDatabase.aql query: "FOR u IN MyCollection RETURN u.num"
+		@myDoc = @myCollection.createDocuments document: [{"num": 1, "_key": "FirstKey"},
+			{"num": 1}, {"num": 1}, {"num": 1}, {"num": 1}, {"num": 1},
+			{"num": 1}, {"num": 2}, {"num": 2}, {"num": 2}, {"num": 3},
+			{"num": 2}, {"num": 5}, {"num": 2}]
+		@myCollection.graph = @myGraph
+		@myEdgeCollection.graph = @myGraph
+		@myVertex = @myCollection.vertex(body: {"Hello": "World", "num": 1},
+			name: "FirstVertex").create
+		@vertexA = @myCollection.vertex(body: {"Hello": "World", "num": 1}, name: "Second_Key").create
+	  @vertexB = @myCollection.vertex(body: {"Hello": "Moon", "num": 2}).create
+	  @myEdge = @myEdgeCollection.edge(from: @vertexA, to: @vertexB).create
+		@myIndex = @myCollection.index(unique: false, fields: "num", type: "hash",
+			id: "MyIndex").create
+		@myTraversal = @vertexA.traversal
+		@myUser = @server.user(name: "MyUser")
+		begin
+			@myUser.destroy
+		rescue Arango::Error => e
+		end
+		@myUser.create
+		@myTask = @myDatabase.task(id: "mytaskid", name: "MyTaskID",
+			command: "(function(params) { require('@arangodb').print(params); })(params)",
+			params: {"foo": "bar", "bar": "foo"}, period: 60).create
+		@myView = @myDatabase.view name: "MyView"
 	end
 
 	config.after(:all) do
-		ArangoDatabase.new.destroy
-		ArangoUser.new.destroy
-		@myUser.destroy unless @myUser.nil?
-		@myIndex.destroy unless @myIndex.nil?
+		[@myIndex, @myDatabase, @myUser].each do |c|
+			begin
+				c.destroy unless c.nil?
+			rescue Arango::Error => e
+			end
+		end
 	end
 end

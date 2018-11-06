@@ -1,23 +1,26 @@
 # This example follows the example year.rb and it simply prints some results on the screen.
 
-require_relative File.expand_path('../../lib/arangorb', __FILE__)
+# require_relative File.expand_path('../../lib/arangorb', __FILE__)
 require "awesome_print"
+require "arangorb"
 
 # OPEN REMOTE DATABASE
-ArangoServer.default_server user: "root", password: "tretretre", server: "172.17.8.101", port: "8529"
-myReplication = ArangoReplication.new endpoint: "tcp://10.10.1.97:8529", username: "root", password: "", database: "year"
+server_master = Arango::Server.new username: "root", password: "root", server: "173.17.8.101", port: "8529"
+database_master = server_master.database name: "year"
+server_slave = Arango::Server.new username: "root", password: "root", server: "11.10.1.971", port: "8529"
+database_slave = server_slave.database name: "year" # It will be overwritten
+myReplication = database_slave.replication(master: database_master)
 
 print "\n === REPLICATE === \n"
 # REPLICATION (only once)
-# From our local database (tcp://10.10.1.97:8529) to our remote database (tcp://172.17.8.101:8529)
+# From our local database (tcp://173.17.8.101:8529) to our remote database (tcp://11.10.1.971:8529)
 ap myReplication.sync
 
 print "\n === INFORMATION === \n"
 # INFO
-myDB = ArangoDatabase.new database: "year"
-ap myDB.inventory # Fetch Collection data
+ap database_slave.inventory # Fetch Collection data
 print "\n =========== \n"
-day_class = myDB["Day"]
+day_class = database_slave["Day"]
 print day_class.dump # Fetch all the data in one class from one tick to another
 print "\n =========== \n"
 ap myReplication.logger # Returns the current state of the server's replication logger
@@ -32,7 +35,7 @@ ap myReplication.serverId # Returns the servers id.
 print "\n =========== \n"
 
 # REPLICATION (master-slave)
-# From the master: our local database (tcp://10.10.1.97:8529), to the slave: our remote database (tcp://172.17.8.101:8529)
+# From the master: our local database (tcp://173.17.8.101:8529), to the slave: our remote database (tcp://11.10.1.971:8529)
 print "\n === CREATE SLAVE === \n"
 myReplication.idleMinWaitTime = 10
 myReplication.verbose = true
@@ -41,18 +44,18 @@ ap myReplication.enslave
 # MANAGE THE REPLICATION
 
 print "\n === MANAGE REPLICATION === \n"
-ap myReplication.configurationReplication # check the Configuration of the Replication
+ap myReplication.configuration # check the Configuration of the Replication
 print "\n =========== \n"
-ap myReplication.stateReplication # check the status of the Replication
+ap myReplication.state # check the status of the Replication
 print "\n =========== \n"
-ap myReplication.stopReplication # stop the Replication
+ap myReplication.stop # stop the Replication
 print "\n =========== \n"
 myReplication.idleMinWaitTime = 100
 myReplication.idleMaxWaitTime = 10
-ap myReplication.modifyReplication  # modify the Configuration of the Replication (you can modify only a stopped Replication)
+ap myReplication.modify  # modify the Configuration of the Replication (you can modify only a stopped Replication)
 print "\n =========== \n"
-ap myReplication.startReplication # restart the replication
+ap myReplication.start # restart the replication
 print "\n =========== \n"
-ap myReplication.configurationReplication # check the modification
+ap myReplication.configurationn # check the modification
 print "\n =========== \n"
-myReplication.stopReplication # stop the Replication
+myReplication.stopn # stop the Replication
