@@ -2,6 +2,8 @@
 
 module Arango
   class Replication
+    include Arango::Helper_Error
+
     def initialize(master:, slave:, includeSystem: true,
       initialSyncMaxWaitTime: nil, incremental: nil,
       restrictCollections: nil, connectTimeout: nil,
@@ -54,7 +56,7 @@ module Arango
 
     def restrictType=(restrictType)
       satisfy_category?(restrictType, ["include", "exclude", nil])
-      @restrictType = value
+      @restrictType = restrictType
     end
     alias assign_restrictType restrictType=
 
@@ -200,7 +202,7 @@ module Arango
       }
       @slave.request("PUT", "_api/replication/applier-config", body: body)
     end
-    alias modifyReplication modifyConfigurationReplication
+    alias modifyReplication modify
 
     # LOGGER
 

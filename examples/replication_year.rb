@@ -5,9 +5,9 @@ require "awesome_print"
 require "arangorb"
 
 # OPEN REMOTE DATABASE
-server_master = Arango::Server.new username: "root", password: "root", server: "173.17.8.101", port: "8529"
+server_master = Arango::Server.new username: "root", password: "root", server: "", port: "8529"
 database_master = server_master.database name: "year"
-server_slave = Arango::Server.new username: "root", password: "root", server: "11.10.1.971", port: "8529"
+server_slave = Arango::Server.new username: "root", password: "root", server: "", port: "8529"
 database_slave = server_slave.database name: "year" # It will be overwritten
 myReplication = database_slave.replication(master: database_master)
 

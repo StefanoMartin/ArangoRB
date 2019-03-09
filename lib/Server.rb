@@ -32,7 +32,7 @@ module Arango
 # === DEFINE ===
 
     attr_reader :async, :port, :server, :base_uri, :username, :cache,
-      :verbose, :return_output, :active_cache, :pool
+      :verbose, :return_output, :active_cache, :pool, :password
     attr_accessor :warning, :size, :timeout
 
     def active_cache=(active)

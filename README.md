@@ -20,6 +20,7 @@ This is a project managed by one single person. ArangoDB is a wonderful project 
 Any pull request, issue, suggestions and ideas are more than welcome. Do not be shy to contact me, create issues on Github or pushing changes.
 
 Here something the community can help on:
+* Replication example in example/replication_year.rb is a work in progress. Any found bugs and advice to improve it will be great. I removed the IPs in the examples to make clear that it is only an example that needs work.
 * Add test and correct bugs for replication, clustering, foxx and other.
 * Improve AQL instance to implement in Rails.
 * Improve Documentation.
