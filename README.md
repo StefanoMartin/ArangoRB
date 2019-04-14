@@ -113,11 +113,12 @@ ArangoRB supports connection pool, to activate it you can setup pool to true dur
 
 ``` ruby
 server = Arango::Server.new username: "MyUsername", password: "MyPassword",
-  server: "localhost", port: "8529", pool: true, size: 5, timeout: 5
+  server: "localhost", port: "8529", pool: true, size: 5, timeout: 5, tls: false
 server.pool = true  # Defult false
 server.size = 7     # Default 5
 server.timeout = 10 # Default 5
 server.restartPool  # Restart pool with new size and timeout
+server.tls = true   # Default false, to do https requests instead of http
 ```
 
 NB: ConnectionPool is not heavily tested.
