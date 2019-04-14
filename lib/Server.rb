@@ -5,8 +5,13 @@ module Arango
     include Arango::Helper_Error
 
     def initialize(username: "root", password:, server: "localhost",
-      warning: true, port: "8529", verbose: false, return_output: false, async: false, active_cache: false, pool: false, size: 5, timeout: 5)
-      @base_uri = "http://#{server}:#{port}"
+      warning: true, port: "8529", verbose: false, return_output: false,
+      async: false, active_cache: false, pool: false, size: 5, timeout: 5,
+      tls: false)
+      @tls = tls
+      @base_uri = "http"
+      @base_uri += "s" if tls
+      @base_uri += "://#{server}:#{port}"
       @server = server
       @port = port
       @username = username
@@ -32,7 +37,7 @@ module Arango
 # === DEFINE ===
 
     attr_reader :async, :port, :server, :base_uri, :username, :cache,
-      :verbose, :return_output, :active_cache, :pool, :password
+      :verbose, :return_output, :active_cache, :pool, :password, :tls
     attr_accessor :warning, :size, :timeout
 
     def active_cache=(active)
@@ -89,13 +94,26 @@ module Arango
 
     def port=(port)
       @port = port
-      @base_uri = "http://#{@server}:#{@port}"
+      @base_uri = "http"
+      @base_uri += "s" if @tls
+      @base_uri += "://#{@server}:#{@port}"
       @request.base_uri = @base_uri
     end
 
     def server=(server)
       @server = server
-      @base_uri = "http://#{@server}:#{@port}"
+      @base_uri = "http"
+      @base_uri += "s" if @tls
+      @base_uri += "://#{@server}:#{@port}"
+      @request.base_uri = @base_uri
+    end
+
+    def tls=(tls)
+      satisfy_category?(tls, [false, true])
+      @tls = tls
+      @base_uri = "http"
+      @base_uri += "s" if @tls
+      @base_uri += "://#{@server}:#{@port}"
       @request.base_uri = @base_uri
     end
 
@@ -128,8 +146,10 @@ module Arango
         "async":    @async,
         "verbose":  @verbose,
         "return_output": @return_output,
-        "warning": @warning
+        "warning": @warning,
+        "tls": @tls
       }.delete_if{|k,v| v.nil?}
+      hash
     end
 
 # === REQUESTS ===
