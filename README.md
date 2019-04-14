@@ -73,11 +73,12 @@ To setup a server use the following way:
 
 ``` ruby
 server = Arango::Server.new username: "MyUsername", password: "MyPassword",
-  server: "localhost", port: "8529"
+  server: "localhost", port: "8529", tls: false
 server.username = "MyOtherUsername" # Default "root"
 server.password = "other_password"  
 server.server   = "127.0.0.1"       # Default "localhost"
 server.port     = "8765"            # Default "8529"
+server.tls      = true   # Default false, to do https requests instead of http
 ```
 
 Password is a mandatory field.
@@ -118,7 +119,6 @@ server.pool = true  # Defult false
 server.size = 7     # Default 5
 server.timeout = 10 # Default 5
 server.restartPool  # Restart pool with new size and timeout
-server.tls = true   # Default false, to do https requests instead of http
 ```
 
 NB: ConnectionPool is not heavily tested.
