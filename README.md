@@ -1,6 +1,8 @@
 ArangoRB [![Gem Version](https://badge.fury.io/rb/arangorb.svg)](https://badge.fury.io/rb/arangorb)
 ===============================
 
+UNMANTAINED: This project is not mantained anymore. A new Ruby ArangoDB driver project is in development here: [arango-driver](https://github.com/isomorfeus/arango-driver). Thank you a lot for your support in these years. 
+
 [ArangoDatabase](https://www.arangodb.com/) is a native multi-model database with flexible data models for document, graphs, and key-values.
 ArangoRB is a Gem to use ArangoDatabase with Ruby. ArangoRB is based on the [HTTP API of ArangoDB](https://docs.arangodb.com/3.4/HTTP/index.html).
 
